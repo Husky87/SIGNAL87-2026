@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -31,6 +31,18 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<any>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(600);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateWidth = () => setContainerWidth(el.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -86,7 +98,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center w-full relative">
+    <div ref={containerRef} className="flex flex-col items-center w-full max-w-full relative">
       {loading && (
         <div className="flex flex-col items-center justify-center p-12 text-[#78716C] gap-3">
           <Loader2 size={32} className="animate-spin text-[#8C2F27]" />
@@ -112,7 +124,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
       {pdfFile && !error && (
         <div
-          className="transition-transform duration-200 origin-top shadow-xl rounded-xl overflow-hidden bg-white border border-[#DDD6C8]"
+          className="transition-transform duration-200 origin-top shadow-xl rounded-xl overflow-hidden bg-white border border-[#DDD6C8] max-w-full"
           style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
         >
           <Document
@@ -124,6 +136,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
           >
             <Page
               pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)}
+              width={Math.min(containerWidth, 800)}
               renderTextLayer={true}
               renderAnnotationLayer={false}
               className="shadow-sm"
