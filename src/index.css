@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Google Drive Light Theme Palette */
+    --paper: #f8f9fa;         /* Google Drive background */
+    --card: #ffffff;          /* Pristine white cards/surfaces */
+    --raised: #e8eaed;        /* Google grey for hover and inactive states */
+    --ink: #202124;           /* Primary charcoal text */
+    --ink-2: #5f6368;         /* Secondary grey body text */
+    --slate: #70757a;         /* Tertiary grey for metadata */
+    --rule: #dadce0;          /* Google divider/border light grey */
+    --rule-2: #f1f3f4;        /* Softest hairlines */
+    --accent: #1a73e8;        /* Google Drive primary blue */
+    --accent-soft: #e8f0fe;   /* Light blue active highlighting */
+    --accent-ink: #1967d2;    /* Deep Google blue for text links */
+    --verify: #137333;        /* Google green success indicator */
+    --verify-bg: #e6f4ea;
+    --alert: #f9ab00;         /* Google yellow alert */
+    
+    /* Typography */
+    --serif: "Inter", system-ui, sans-serif;
+    --sans: "Inter", system-ui, sans-serif;
+    --mono: "Fira Code", monospace;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Simple reset for button min-height */
+  button { min-height: 44px; }
+}

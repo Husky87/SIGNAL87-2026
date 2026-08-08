@@ -1,0 +1,8 @@
+{
+  "name": "Signal87 AI",
+  "description": "Multi-document intelligence, legislative tracking, research assistant chatbot, document comparison, knowledge graph, and automated AI report generation powered by Gemini and Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

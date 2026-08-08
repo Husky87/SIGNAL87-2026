@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profile and role settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "documents": {
+      "title": "Document Item",
+      "description": "Indexed enterprise documents and contracts",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "sizeBytes": { "type": "number" },
+        "uploadDate": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "owner": { "type": "string" },
+        "organization": { "type": "string" },
+        "status": { "type": "string" },
+        "aiIndexed": { "type": "boolean" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "contentPreview": { "type": "string" }
+      },
+      "required": ["title", "owner"]
+    },
+    "projects": {
+      "title": "Project Workspace",
+      "description": "Research projects and workspace containers",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "documentIds": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "reports": {
+      "title": "Generated Report",
+      "description": "AI-generated executive memos and policy briefs",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "templateId": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "generatedAt": { "type": "string" }
+      },
+      "required": ["title", "content"]
+    },
+    "chat_messages": {
+      "title": "Research Chat Messages",
+      "description": "Chatbot message thread with Gemini citations and reasoning",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "modelUsed": { "type": "string" }
+      },
+      "required": ["text", "role"]
+    }
+  }
+}
