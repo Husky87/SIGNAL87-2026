@@ -23,7 +23,8 @@ import {
   File,
   Layers,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  StickyNote
 } from 'lucide-react';
 import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
@@ -33,12 +34,14 @@ interface DocumentDetailModalProps {
   document: DocumentItem | null;
   onClose: () => void;
   onOpenCompare: (doc: DocumentItem) => void;
+  onAddNote?: (docId: string) => void;
 }
 
 export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   document: doc,
   onClose,
-  onOpenCompare
+  onOpenCompare,
+  onAddNote
 }) => {
   const [activeTab, setActiveTab] = useState<'pdf' | 'analysis'>('pdf');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -439,6 +442,18 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
           {/* Action Tools */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => {
+                if (onAddNote) {
+                  onAddNote(doc.id);
+                  onClose();
+                }
+              }}
+              className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors cursor-pointer flex items-center gap-1"
+              title="Add a linked note"
+            >
+              <StickyNote size={16} />
+            </button>
             <button
               onClick={() => onOpenCompare(doc)}
               className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors cursor-pointer hidden sm:flex items-center gap-1"

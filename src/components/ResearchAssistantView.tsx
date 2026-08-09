@@ -64,6 +64,8 @@ export interface ResearchAssistantViewProps {
   onOpenMobileMenu?: () => void;
   onGoogleSignIn?: () => void;
   onSelectDocument?: (doc: DocumentItem) => void;
+  onSaveAnswer?: (msg: ChatMessage, question: string) => void;
+  savedAnswerIds?: Set<string>;
 }
 
 const parseInlineStyles = (text: string) => {
@@ -233,7 +235,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   currentUser,
   onOpenMobileMenu,
   onGoogleSignIn,
-  onSelectDocument
+  onSelectDocument,
+  onSaveAnswer,
+  savedAnswerIds
 }) => {
   const [mode, setMode] = useState<'quick' | 'deep'>('quick');
   const [inputQuery, setInputQuery] = useState('');
@@ -926,6 +930,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                                 }}
                                 onSelectDocument={onSelectDocument}
                                 documents={documents}
+                                onSaveAnswer={onSaveAnswer}
+                                isAnswerSaved={savedAnswerIds?.has(msg.id)}
                               />
                             </div>
                           </div>

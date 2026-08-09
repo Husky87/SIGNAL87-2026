@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
 import { DocumentLibraryView } from './components/DocumentLibraryView';
@@ -24,6 +24,7 @@ import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
+import { SavedView } from './components/SavedView';
 import { auth, onAuthStateChanged, User, signInWithPopup, googleProvider } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check } from 'lucide-react';
 
@@ -35,13 +36,16 @@ import {
   INITIAL_ORG_STATS
 } from './data/mockData';
 
-import { DocumentItem, FolderItem, GeneratedReport, ChatMessage } from './types';
+import { DocumentItem, FolderItem, GeneratedReport, ChatMessage, SavedItem, SavedAnswer } from './types';
 import {
   fetchDocumentsFromFirestore,
   saveDocumentToFirestore,
   deleteDocumentFromFirestore,
   fetchReportsFromFirestore,
-  saveReportToFirestore
+  saveReportToFirestore,
+  fetchSavedItemsFromFirestore,
+  saveSavedItemToFirestore,
+  deleteSavedItemFromFirestore
 } from './lib/firestoreService';
 
 /* iOS shrinks the visual viewport when the keyboard opens but leaves the
@@ -136,6 +140,21 @@ export default function App() {
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
   const [stats, setStats] = useState(INITIAL_ORG_STATS);
 
+  // Saved Items State
+  const [savedItems, setSavedItems] = useState<SavedItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('signal87_saved_items');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed loading saved items from localStorage', e);
+    }
+    return [];
+  });
+  const [prelinkedDocId, setPrelinkedDocId] = useState<string | null>(null);
+
   // Persist documents to localStorage
   useEffect(() => {
     try {
@@ -144,6 +163,15 @@ export default function App() {
       console.warn('Failed saving documents to localStorage', e);
     }
   }, [documents]);
+
+  // Persist savedItems to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('signal87_saved_items', JSON.stringify(savedItems));
+    } catch (e) {
+      console.warn('Failed saving saved items to localStorage', e);
+    }
+  }, [savedItems]);
 
   // Persist attachedFiles to localStorage
   useEffect(() => {
@@ -401,10 +429,63 @@ export default function App() {
           return [...newUnique, ...prev];
         });
       }
+
+      // Saved Items sync
+      const remoteSaved = await fetchSavedItemsFromFirestore();
+      if (remoteSaved && remoteSaved.length > 0) {
+        setSavedItems((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const newUnique = remoteSaved.filter((rs) => !existingIds.has(rs.id));
+          return [...newUnique, ...prev];
+        });
+      }
     }
 
     syncFirestoreData();
   }, []);
+
+  // Handlers for Saved notebook
+  const handleSaveSavedItem = (item: SavedItem) => {
+    setSavedItems((prev) => {
+      const idx = prev.findIndex((s) => s.id === item.id);
+      if (idx > -1) {
+        const next = [...prev];
+        next[idx] = item;
+        return next;
+      } else {
+        return [item, ...prev];
+      }
+    });
+    saveSavedItemToFirestore(item);
+  };
+
+  const handleDeleteSavedItem = (id: string) => {
+    setSavedItems((prev) => prev.filter((s) => s.id !== id));
+    deleteSavedItemFromFirestore(id);
+  };
+
+  const handleSaveAnswer = (msg: ChatMessage, question: string) => {
+    const isSaved = savedItems.some((s) => s.id === msg.id);
+    if (isSaved) {
+      handleDeleteSavedItem(msg.id);
+    } else {
+      const savedAns: SavedAnswer = {
+        id: msg.id,
+        type: 'answer',
+        text: msg.text,
+        citations: msg.citations || [],
+        question: question,
+        timestamp: new Date().toISOString()
+      };
+      handleSaveSavedItem(savedAns);
+    }
+  };
+
+  const savedAnswerIds = useMemo(() => {
+    return new Set(
+      savedItems.filter((s) => s.type === 'answer').map((s) => s.id)
+    );
+  }, [savedItems]);
 
   // Handlers
   const handleUploadSuccess = (newDoc: DocumentItem, _parsedFile?: any) => {
@@ -789,6 +870,8 @@ export default function App() {
               onOpenMobileMenu={() => setMobileMenuOpen(true)}
               onGoogleSignIn={handleGoogleSignIn}
               onSelectDocument={setSelectedDocForDetail}
+              onSaveAnswer={handleSaveAnswer}
+              savedAnswerIds={savedAnswerIds}
             />
           )}
 
@@ -814,6 +897,18 @@ export default function App() {
               documents={documents}
               initialQuery={searchQuery}
               onSelectDocument={setSelectedDocForDetail}
+            />
+          )}
+
+          {currentTab === 'saved' && (
+            <SavedView
+              savedItems={savedItems}
+              onSaveItem={handleSaveSavedItem}
+              onDeleteItem={handleDeleteSavedItem}
+              documents={documents}
+              onSelectDocument={setSelectedDocForDetail}
+              prelinkedDocId={prelinkedDocId}
+              onClearPrelinkedDoc={() => setPrelinkedDocId(null)}
             />
           )}
 
@@ -888,6 +983,10 @@ export default function App() {
         onOpenCompare={(doc) => {
           setSelectedDocForDetail(null);
           setCurrentTab('compare');
+        }}
+        onAddNote={(docId) => {
+          setPrelinkedDocId(docId);
+          setCurrentTab('saved');
         }}
       />
 

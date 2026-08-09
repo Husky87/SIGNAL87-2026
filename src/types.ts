@@ -168,3 +168,25 @@ export interface OrgStats {
   aiQueriesProcessed: number;
   modelDistribution: { model: string; percentage: number }[];
 }
+
+export interface SavedNote {
+  id: string;
+  type: 'note';
+  title: string;
+  body: string;
+  linkedDocId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedAnswer {
+  id: string;
+  type: 'answer';
+  text: string;
+  citations?: Citation[];
+  question: string;
+  timestamp: string;
+}
+
+export type SavedItem = SavedNote | SavedAnswer;
+

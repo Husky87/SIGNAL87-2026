@@ -9,6 +9,7 @@ import {
   X,
   Upload,
   Home,
+  Bookmark,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { Signal87Logo } from './Signal87Logo';
@@ -24,7 +25,8 @@ export type NavTab =
   | 'reports'
   | 'searches'
   | 'team'
-  | 'organization';
+  | 'organization'
+  | 'saved';
 
 export interface ChatSessionSummary {
   id: string;
@@ -80,6 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'documents', label: 'Documents', icon: FolderOpen },
     { id: 'research', label: 'AI Research Chat', icon: Search },
+    { id: 'saved', label: 'Saved Items', icon: Bookmark },
     { id: 'traces', label: 'Recent Activity', icon: Activity },
     { id: 'admin', label: 'Storage & Account', icon: UserIcon },
   ];
@@ -188,6 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               (item.id === 'research' && currentTab === 'research') ||
               (item.id === 'documents' && currentTab === 'documents') ||
               (item.id === 'traces' && currentTab === 'traces') ||
+              (item.id === 'saved' && currentTab === 'saved') ||
               (item.id === 'admin' &&
                 (currentTab === 'admin' || currentTab === 'organization'));
 

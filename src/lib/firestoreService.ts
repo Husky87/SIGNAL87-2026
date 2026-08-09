@@ -14,7 +14,7 @@ import {
   limit,
   getDocFromServer
 } from 'firebase/firestore';
-import { DocumentItem, Project, GeneratedReport, ChatMessage } from '../types';
+import { DocumentItem, Project, GeneratedReport, ChatMessage, SavedItem } from '../types';
 
 // Skill Error Handler Standards
 export enum OperationType {
@@ -79,6 +79,7 @@ const DOCS_COLLECTION = 'documents';
 const PROJECTS_COLLECTION = 'projects';
 const REPORTS_COLLECTION = 'reports';
 const CHAT_COLLECTION = 'chat_messages';
+const SAVED_ITEMS_COLLECTION = 'saved_items';
 
 // Fetch Documents from Firestore
 export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
@@ -239,6 +240,59 @@ export async function saveChatMessageToFirestore(msg: ChatMessage): Promise<void
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+// Fetch Saved Items (Notes & Answers) from Firestore
+export async function fetchSavedItemsFromFirestore(): Promise<SavedItem[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, SAVED_ITEMS_COLLECTION));
+    const list: SavedItem[] = [];
+    querySnapshot.forEach((docSnap) => {
+      list.push({ id: docSnap.id, ...docSnap.data() } as SavedItem);
+    });
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, SAVED_ITEMS_COLLECTION);
+    return [];
+  }
+}
+
+// Save or Update Saved Item in Firestore
+export async function saveSavedItemToFirestore(item: SavedItem): Promise<void> {
+  const docPath = `${SAVED_ITEMS_COLLECTION}/${item.id}`;
+  try {
+    const docRef = doc(db, SAVED_ITEMS_COLLECTION, item.id);
+    if (item.type === 'note') {
+      await setDoc(docRef, {
+        type: 'note',
+        title: item.title,
+        body: item.body,
+        linkedDocId: item.linkedDocId || null,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      });
+    } else {
+      await setDoc(docRef, {
+        type: 'answer',
+        text: item.text,
+        citations: item.citations || [],
+        question: item.question,
+        timestamp: item.timestamp
+      });
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+// Delete Saved Item from Firestore
+export async function deleteSavedItemFromFirestore(id: string): Promise<void> {
+  const docPath = `${SAVED_ITEMS_COLLECTION}/${id}`;
+  try {
+    await deleteDoc(doc(db, SAVED_ITEMS_COLLECTION, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, docPath);
   }
 }
 

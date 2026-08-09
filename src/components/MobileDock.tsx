@@ -9,7 +9,11 @@ import {
   Upload,
   Sparkles,
   Globe,
-  X
+  X,
+  Bookmark,
+  Menu,
+  Plus,
+  Search
 } from 'lucide-react';
 
 interface MobileDockProps {
@@ -39,15 +43,17 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   onOpenUpload,
   onOpenDrivePicker,
   onOpenNewFolderModal,
+  onOpenMenu,
 }) => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   // Map of Mobile Style Tabs
-  const tabs: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'dashboard', label: 'Home', icon: Home },
-    { id: 'traces', label: 'Recent', icon: Clock },
-    { id: 'admin', label: 'Shared', icon: Users }, // Admin/Shared maps well
+  const tabs: { id: NavTab | 'new' | 'more'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'research', label: 'Ask', icon: Search },
+    { id: 'new', label: 'New', icon: Plus },
+    { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'more', label: 'More', icon: Menu },
   ];
 
   const handleAction = (type: 'folder' | 'upload' | 'chat' | 'drive') => {
@@ -174,14 +180,23 @@ export const MobileDock: React.FC<MobileDockProps> = ({
           const Icon = tab.icon;
           const isActive =
             (tab.id === 'documents' && currentTab === 'documents') ||
-            (tab.id === 'dashboard' && currentTab === 'dashboard') ||
-            (tab.id === 'traces' && currentTab === 'traces') ||
-            (tab.id === 'admin' && (currentTab === 'admin' || currentTab === 'organization'));
+            (tab.id === 'research' && currentTab === 'research') ||
+            (tab.id === 'saved' && currentTab === 'saved');
+
+          const handleClick = () => {
+            if (tab.id === 'new') {
+              setIsBottomSheetOpen(true);
+            } else if (tab.id === 'more') {
+              if (onOpenMenu) onOpenMenu();
+            } else {
+              onSelectTab(tab.id as NavTab);
+            }
+          };
 
           return (
             <button
               key={tab.id}
-              onClick={() => onSelectTab(tab.id)}
+              onClick={handleClick}
               aria-current={isActive ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors focus:outline-none`}
             >

@@ -6,7 +6,8 @@ import {
   Share2,
   FileSpreadsheet,
   Edit2,
-  Save
+  Save,
+  Bookmark
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Spreadsheet from 'react-spreadsheet';
@@ -505,13 +506,18 @@ export const ActionRouterCard: React.FC<{
   onInspectInCanvas?: (msg: ChatMessage) => void;
   onSelectDocument?: (doc: any) => void;
   documents?: any[];
+  onSaveAnswer?: (msg: ChatMessage, question: string) => void;
+  isAnswerSaved?: boolean;
 }> = ({
   msg,
+  userPrompt,
   copiedMsgId,
   onCopy,
   onExportPDF,
   onSelectDocument,
-  documents
+  documents,
+  onSaveAnswer,
+  isAnswerSaved
 }) => {
   const [shareCopied, setShareCopied] = useState(false);
   const [isEditingExcel, setIsEditingExcel] = useState(false);
@@ -625,6 +631,21 @@ export const ActionRouterCard: React.FC<{
           <Download size={13} />
           <span>Export PDF</span>
         </button>
+
+        {onSaveAnswer && (
+          <button
+            onClick={() => onSaveAnswer(msg, userPrompt || 'AI Assistant Answer')}
+            className={`px-2.5 py-1.5 border rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              isAnswerSaved
+                ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                : 'bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)]'
+            }`}
+            title={isAnswerSaved ? "Answer Saved" : "Save Answer"}
+          >
+            <Bookmark size={13} />
+            <span>{isAnswerSaved ? 'Saved' : 'Save Answer'}</span>
+          </button>
+        )}
 
         <button
           onClick={handleShare}
