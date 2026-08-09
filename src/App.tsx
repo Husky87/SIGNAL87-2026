@@ -641,7 +641,6 @@ export default function App() {
       <>
         <LandingPageView
           onGoogleSignIn={handleGoogleSignIn}
-          onEnterDemo={handleEnterDemoMode}
           onOpenPrivacy={() => setIsPrivacyOpen(true)}
           onOpenBlog={() => setIsBlogOpen(true)}
           onOpenMedia={() => setIsMediaOpen(true)}
@@ -650,7 +649,7 @@ export default function App() {
               const el = document.getElementById('team');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             } else {
-              handleEnterDemoMode();
+              handleGoogleSignIn();
             }
           }}
         />

@@ -7,8 +7,7 @@ import {
   FileText,
   GitFork,
   ArrowRight,
-  ArrowUpRight,
-  Zap
+  ArrowUpRight
 } from 'lucide-react';
 import { Footer } from './Footer';
 import { NavTab } from './Sidebar';
@@ -19,7 +18,6 @@ const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 interface LandingPageViewProps {
   onGoogleSignIn: () => void;
-  onEnterDemo: () => void;
   onOpenPrivacy: () => void;
   onOpenBlog: () => void;
   onOpenMedia: () => void;
@@ -37,7 +35,6 @@ const ROMAN_NUMERALS = ['I.', 'II.', 'III.', 'IV.'];
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onGoogleSignIn,
-  onEnterDemo,
   onOpenPrivacy,
   onOpenBlog,
   onOpenMedia,
@@ -92,16 +89,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={onGoogleSignIn}
-              className="text-xs font-bold text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Log in
-            </button>
-            <button
-              onClick={onEnterDemo}
-              className="px-4 py-2 border border-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent)] text-[var(--accent)] hover:text-[var(--paper)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Zap size={13} className="text-[var(--accent)]" />
-              <span>Try Demo</span>
+              <span>Sign In with Google</span>
             </button>
           </div>
         </div>
@@ -144,8 +134,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {EXAMPLE_QUESTIONS.map((q, idx) => (
                 <div
                   key={idx}
-                  onClick={onEnterDemo}
-                  className="p-3 bg-[var(--card)] border border-[var(--rule)] hover:border-[var(--accent)] rounded-[4px] cursor-pointer transition-colors flex items-center gap-3 text-left shadow-2xs"
+                  className="p-3 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] flex items-center gap-3 text-left shadow-2xs"
                 >
                   <span
                     className="text-xs font-mono font-bold text-[var(--accent)] flex-shrink-0"
@@ -171,14 +160,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               >
                 <span>Sign In with Google</span>
                 <ArrowUpRight size={18} />
-              </button>
-
-              <button
-                onClick={onEnterDemo}
-                className="px-6 py-3 bg-[var(--raised)] hover:bg-[var(--raised)]/80 text-[var(--ink)] border border-[var(--rule)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Zap size={16} className="text-[var(--accent)]" />
-                <span>Instant Demo Access</span>
               </button>
             </div>
           </div>
@@ -302,8 +283,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       className="bg-transparent border-none text-xs text-[var(--ink)] placeholder-[var(--slate)] focus:outline-hidden w-full"
                     />
                     <button
-                      onClick={onEnterDemo}
-                      className="px-3 py-1 bg-[var(--accent)] hover:opacity-95 text-[var(--paper)] text-[10px] font-mono font-bold rounded-[3px] cursor-pointer flex-shrink-0"
+                      disabled
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="px-3 py-1 bg-[var(--accent)] text-[var(--paper)] text-[10px] font-mono font-bold rounded-[3px] flex-shrink-0"
                       style={{ fontFamily: MONO }}
                     >
                       Ask
