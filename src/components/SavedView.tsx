@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Trash2, 
-  ArrowLeft, 
-  Bookmark, 
-  StickyNote, 
-  Link2, 
-  Check, 
+import {
+  Search,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Bookmark,
+  StickyNote,
+  Link2,
   Calendar,
   X
 } from 'lucide-react';
@@ -114,7 +113,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
 
     const timestamp = new Date().toISOString();
     const isNew = isCreatingNote || !selectedItem;
-    
+
     const noteId = isNew ? `note-${Date.now()}` : selectedItem!.id;
     const createdAt = isNew ? timestamp : (selectedItem as SavedNote).createdAt;
 
@@ -129,7 +128,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
     };
 
     onSaveItem(savedNote);
-    
+
     // Reset view
     setSelectedItem(null);
     setIsCreatingNote(false);
@@ -173,32 +172,32 @@ export const SavedView: React.FC<SavedViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F4F1EA] text-[#1C1917] select-none">
+    <div className="flex flex-col h-full bg-[var(--paper)] text-[var(--ink)] font-sans select-none">
       {/* Detail view / Editor (Tapping a row opens it) */}
       {selectedItem || isCreatingNote ? (
-        <div className="flex-1 flex flex-col h-full bg-[#FBF9F4] animate-in fade-in duration-200">
+        <div className="flex-1 flex flex-col h-full bg-[var(--paper)] animate-in fade-in duration-200 overflow-hidden">
           {/* Editor Header */}
-          <div className="h-14 px-4 flex items-center justify-between border-b border-[#DDD6C8] bg-[#FBF9F4]">
+          <div className="h-14 px-4 flex items-center justify-between border-b border-[var(--rule)] bg-[var(--paper)] flex-shrink-0">
             <button
               onClick={handleCloseDetail}
-              className="flex items-center gap-2 text-[#57534E] hover:text-[#1C1917] font-sans font-bold text-sm cursor-pointer min-h-[44px]"
+              className="flex items-center gap-2 text-[var(--ink-2)] hover:text-[var(--ink)] font-bold text-sm cursor-pointer min-h-[44px]"
             >
               <ArrowLeft size={16} />
               <span>Back</span>
             </button>
             <div className="flex items-center gap-2">
-              {(selectedItem && selectedItem.type === 'note' || isCreatingNote) ? (
+              {((selectedItem && selectedItem.type === 'note') || isCreatingNote) ? (
                 <button
                   onClick={handleSaveNote}
-                  className="px-4 py-1.5 bg-[#8C2F27] hover:bg-[#8C2F27]/90 text-white rounded-[4px] font-sans font-bold text-xs cursor-pointer min-h-[44px]"
+                  className="px-4 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-[4px] font-bold text-xs cursor-pointer min-h-[44px]"
                 >
-                  Save Note
+                  Save
                 </button>
               ) : null}
               {selectedItem && (
                 <button
                   onClick={() => handleDeleteItem(selectedItem.id)}
-                  className="p-2 text-[#78716C] hover:text-[#8C2F27] hover:bg-[#F4F1EA] rounded-[4px] transition-colors cursor-pointer min-h-[44px]"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--slate)] hover:text-[var(--accent)] hover:bg-[var(--raised)] rounded-[4px] transition-colors cursor-pointer"
                   title="Delete item"
                 >
                   <Trash2 size={16} />
@@ -210,18 +209,18 @@ export const SavedView: React.FC<SavedViewProps> = ({
           {/* Editor Content Area */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
             {/* LINKED DOCUMENT INDICATOR / SELECTOR */}
-            {(selectedItem && selectedItem.type === 'note' || isCreatingNote) && (
-              <div className="bg-[#F4F1EA] p-3 rounded-[4px] border border-[#DDD6C8] space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#57534E]">
-                  <Link2 size={14} className="text-[#8C2F27]" />
-                  <span className="font-mono uppercase tracking-wider text-[10px]" style={{ fontFamily: 'monospace' }}>
+            {((selectedItem && selectedItem.type === 'note') || isCreatingNote) && (
+              <div className="bg-[var(--card)] p-3 rounded-[4px] border border-[var(--rule)] space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-2)]">
+                  <Link2 size={14} className="text-[var(--accent)]" />
+                  <span className="font-mono uppercase tracking-[0.09em] text-[10px]" style={{ fontFamily: 'var(--mono)' }}>
                     Linked Document Context
                   </span>
                 </div>
                 <select
                   value={noteLinkedDocId}
                   onChange={(e) => setNoteLinkedDocId(e.target.value)}
-                  className="w-full bg-[#FBF9F4] text-[#1C1917] border border-[#DDD6C8] p-2.5 rounded-[4px] focus:outline-none focus:border-[#8C2F27] font-sans"
+                  className="w-full bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] p-2.5 rounded-[4px] focus:outline-none focus:border-[var(--accent)] font-sans"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="">No linked document</option>
@@ -235,25 +234,25 @@ export const SavedView: React.FC<SavedViewProps> = ({
             )}
 
             {/* Note Editor */}
-            {(selectedItem && selectedItem.type === 'note' || isCreatingNote) ? (
+            {(selectedItem && selectedItem.type === 'note') || isCreatingNote ? (
               <div className="space-y-4">
                 <input
                   type="text"
                   placeholder="Note Title"
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
-                  className="w-full bg-transparent border-b border-[#DDD6C8]/60 pb-2 text-2xl font-bold focus:outline-none focus:border-[#8C2F27] placeholder-[#78716C] text-[#1C1917]"
-                  style={{ fontFamily: 'Georgia, serif', fontSize: '20px' }}
+                  className="w-full bg-transparent border-b border-[var(--rule)] pb-2 font-normal focus:outline-none focus:border-[var(--accent)] placeholder-[var(--ink-2)] text-[var(--ink)] tracking-tight"
+                  style={{ fontFamily: 'var(--serif)', fontSize: '22px' }}
                 />
                 <textarea
                   placeholder="Write your note here..."
                   value={noteBody}
                   onChange={(e) => setNoteBody(e.target.value)}
-                  className="w-full min-h-[300px] bg-transparent resize-none focus:outline-none placeholder-[#78716C] text-[#57534E] leading-relaxed"
-                  style={{ fontFamily: 'Georgia, serif', fontSize: '16px' }}
+                  className="w-full min-h-[300px] bg-transparent resize-none focus:outline-none placeholder-[var(--ink-2)] text-[var(--ink-2)] leading-relaxed font-sans"
+                  style={{ fontSize: '16px' }}
                 />
                 {selectedItem && (
-                  <div className="pt-4 border-t border-[#DDD6C8]/40 text-[10px] font-mono text-[#78716C] uppercase tracking-wider" style={{ fontFamily: 'monospace' }}>
+                  <div className="pt-4 border-t border-[var(--rule-2)] text-[10px] font-mono text-[var(--slate)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                     Last updated: {formattedDate(selectedItem.type === 'note' ? (selectedItem as SavedNote).updatedAt : '')}
                   </div>
                 )}
@@ -263,19 +262,22 @@ export const SavedView: React.FC<SavedViewProps> = ({
               selectedItem && selectedItem.type === 'answer' && (
                 <div className="space-y-5">
                   <div className="space-y-1.5">
-                    <span className="inline-block px-2 py-0.5 bg-[#8C2F27]/10 text-[#8C2F27] font-mono text-[9px] font-bold uppercase tracking-wider rounded-[3px]" style={{ fontFamily: 'monospace' }}>
-                      AI RESEARCH ANSWER
+                    <span
+                      className="inline-block px-2 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-ink)] font-mono text-[9px] font-bold uppercase tracking-[0.09em] rounded-[3px]"
+                      style={{ fontFamily: 'var(--mono)' }}
+                    >
+                      AI Research Answer
                     </span>
-                    <h1 className="text-xl font-bold text-[#1C1917] leading-snug" style={{ fontFamily: 'Georgia, serif' }}>
+                    <h1 className="text-lg sm:text-xl font-normal text-[var(--ink)] leading-snug tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
                       {(selectedItem as SavedAnswer).question}
                     </h1>
-                    <div className="text-[10px] font-mono text-[#78716C] uppercase tracking-wider" style={{ fontFamily: 'monospace' }}>
+                    <div className="text-[10px] font-mono text-[var(--slate)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                       Saved on: {formattedDate((selectedItem as SavedAnswer).timestamp)}
                     </div>
                   </div>
 
                   {/* Read only citations-intact answer */}
-                  <div className="p-5 bg-[#FBF9F4] border border-[#DDD6C8] rounded-[4px] leading-relaxed text-[#57534E]">
+                  <div className="p-5 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] leading-relaxed">
                     <GeminiMarkdownRenderer
                       text={(selectedItem as SavedAnswer).text}
                       citations={(selectedItem as SavedAnswer).citations}
@@ -292,20 +294,23 @@ export const SavedView: React.FC<SavedViewProps> = ({
         /* List View */
         <div className="flex-1 flex flex-col min-h-0">
           {/* Header Controls (Fixed above list) */}
-          <div className="p-4 bg-[#FBF9F4] border-b border-[#DDD6C8] space-y-3.5 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bookmark size={20} className="text-[#8C2F27]" />
-                <h1 className="text-lg font-bold text-[#1C1917]" style={{ fontFamily: 'Georgia, serif' }}>
-                  Saved Notebook
+          <div className="p-4 bg-[var(--paper)] border-b border-[var(--rule)] space-y-3.5 flex-shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Bookmark size={18} className="text-[var(--accent)] flex-shrink-0" />
+                <h1 className="text-lg font-normal text-[var(--ink)] truncate" style={{ fontFamily: 'var(--serif)' }}>
+                  Saved
                 </h1>
-                <span className="bg-[#DDD6C8] text-[#1C1917] text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-[3px]" style={{ fontFamily: 'monospace' }}>
+                <span
+                  className="bg-[var(--raised)] text-[var(--ink-2)] text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-[3px] flex-shrink-0"
+                  style={{ fontFamily: 'var(--mono)' }}
+                >
                   {savedItems.length}
                 </span>
               </div>
               <button
                 onClick={handleStartCreateNote}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8C2F27] hover:bg-[#8C2F27]/90 text-white rounded-[4px] font-sans font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px] flex-shrink-0"
               >
                 <Plus size={14} />
                 <span>New Note</span>
@@ -314,19 +319,19 @@ export const SavedView: React.FC<SavedViewProps> = ({
 
             {/* Search Field */}
             <div className="relative">
-              <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#78716C]" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--slate)] pointer-events-none" size={16} />
               <input
                 type="text"
                 placeholder="Search notes and answers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-[#F4F1EA] text-[#1C1917] placeholder-[#78716C] border border-[#DDD6C8] rounded-[4px] focus:outline-none focus:border-[#8C2F27] font-sans"
+                className="w-full pl-10 pr-9 py-2.5 bg-[var(--card)] text-[var(--ink)] placeholder-[var(--slate)] border border-[var(--rule)] rounded-xl focus:outline-none focus:border-[var(--accent)] transition-all shadow-2xs font-sans"
                 style={{ fontSize: '16px' }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 p-1 text-[#78716C] hover:text-[#1C1917]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--slate)] hover:text-[var(--ink)] p-1 cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -335,18 +340,18 @@ export const SavedView: React.FC<SavedViewProps> = ({
 
             {/* Horizontally scrolling Filter Chips */}
             <div className="overflow-x-auto scrollbar-none -mx-4 px-4">
-              <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max pb-1">
+              <div className="flex items-center gap-2 whitespace-nowrap min-w-max pb-1">
                 {(['all', 'notes', 'answers'] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-1 rounded-[4px] border font-sans font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center ${
+                    className={`px-3.5 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center whitespace-nowrap ${
                       activeFilter === filter
-                        ? 'bg-[#1C1917] text-white border-[#1C1917]'
-                        : 'bg-[#F4F1EA] text-[#57534E] border-[#DDD6C8] hover:bg-[#FBF9F4] hover:text-[#1C1917]'
+                        ? 'bg-[var(--accent)] text-[var(--paper)]'
+                        : 'bg-[var(--card)] text-[var(--ink-2)] border border-[var(--rule)] hover:bg-[var(--raised)]'
                     }`}
                   >
-                    {filter === 'all' ? 'All Items' : filter === 'notes' ? 'My Notes' : 'Saved Answers'}
+                    {filter === 'all' ? 'All' : filter === 'notes' ? 'Notes' : 'Answers'}
                   </button>
                 ))}
               </div>
@@ -367,55 +372,55 @@ export const SavedView: React.FC<SavedViewProps> = ({
                   <div
                     key={item.id}
                     onClick={() => handleSelectItem(item)}
-                    className="flex flex-col justify-between p-4 bg-[#FBF9F4] border border-[#DDD6C8] hover:border-[#8C2F27] rounded-[4px] transition-all cursor-pointer min-h-[74px]"
+                    className="flex flex-col justify-between p-4 bg-[var(--card)] border border-[var(--rule)] hover:border-[var(--accent)] rounded-[4px] transition-all cursor-pointer min-h-[44px] shadow-2xs"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span 
-                            className={`px-1.5 py-0.2 font-mono text-[8px] font-black uppercase tracking-wider rounded-[2px] ${
-                              isNote 
-                                ? 'bg-[#8C2F27]/10 text-[#8C2F27]' 
-                                : 'bg-[#1C1917]/10 text-[#1C1917]'
+                          <span
+                            className={`px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.09em] rounded-[3px] ${
+                              isNote
+                                ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+                                : 'bg-[var(--raised)] text-[var(--slate)] border border-[var(--rule)]'
                             }`}
-                            style={{ fontFamily: 'monospace' }}
+                            style={{ fontFamily: 'var(--mono)' }}
                           >
-                            {isNote ? 'NOTE' : 'ANSWER'}
+                            {isNote ? 'Note' : 'Answer'}
                           </span>
                           {linkedId && (
-                            <span 
-                              className="inline-flex items-center gap-0.5 font-mono text-[8px] font-bold text-[#78716C]"
-                              style={{ fontFamily: 'monospace' }}
+                            <span
+                              className="inline-flex items-center gap-1 font-mono text-[9px] font-bold text-[var(--slate)]"
+                              style={{ fontFamily: 'var(--mono)' }}
                             >
-                              <Link2 size={8} />
+                              <Link2 size={9} />
                               <span className="truncate max-w-[120px]">{getLinkedDocTitle(linkedId)}</span>
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-bold text-[#1C1917] truncate leading-snug" style={{ fontFamily: 'Georgia, serif' }}>
+                        <h3 className="text-sm font-bold text-[var(--ink)] truncate leading-snug">
                           {title || 'Untitled Note'}
                         </h3>
-                        <p className="text-xs text-[#57534E] truncate leading-relaxed">
-                          {preview || <span className="italic text-[#78716C]">Empty content</span>}
+                        <p className="text-xs text-[var(--ink-2)] truncate leading-relaxed">
+                          {preview || <span className="italic text-[var(--slate)]">Empty content</span>}
                         </p>
                       </div>
-                      
+
                       {/* Trash action shortcut directly from row */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteItem(item.id);
                         }}
-                        className="p-1.5 text-[#78716C]/50 hover:text-[#8C2F27] hover:bg-[#F4F1EA] rounded-[4px] transition-colors min-h-[44px]"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--slate)] hover:text-[var(--accent)] hover:bg-[var(--raised)] rounded-[4px] transition-colors flex-shrink-0"
                         title="Delete immediately"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2.5 pt-1.5 border-t border-[#DDD6C8]/30">
-                      <Calendar size={10} className="text-[#78716C]" />
-                      <span className="font-mono text-[9px] text-[#78716C] uppercase" style={{ fontFamily: 'monospace' }}>
+                    <div className="flex items-center gap-1.5 mt-2.5 pt-1.5 border-t border-[var(--rule-2)]">
+                      <Calendar size={10} className="text-[var(--slate)]" />
+                      <span className="font-mono text-[9px] text-[var(--slate)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                         {formattedDate(timestamp)}
                       </span>
                     </div>
@@ -425,22 +430,22 @@ export const SavedView: React.FC<SavedViewProps> = ({
             ) : (
               /* Empty State */
               <div className="h-64 flex flex-col items-center justify-center text-center p-6 space-y-4 max-w-sm mx-auto">
-                <div className="w-12 h-12 rounded-full bg-[#DDD6C8]/40 flex items-center justify-center text-[#78716C]">
+                <div className="w-12 h-12 rounded-full bg-[var(--raised)] flex items-center justify-center text-[var(--slate)]">
                   <StickyNote size={24} />
                 </div>
                 <div className="space-y-1.5">
-                  <h2 className="text-base font-bold text-[#1C1917]" style={{ fontFamily: 'Georgia, serif' }}>
+                  <h2 className="text-base font-normal text-[var(--ink)]" style={{ fontFamily: 'var(--serif)' }}>
                     Nothing saved yet
                   </h2>
-                  <p className="text-xs text-[#57534E] leading-relaxed">
+                  <p className="text-xs text-[var(--ink-2)] leading-relaxed">
                     AI research answers can be saved directly from the ask assistant, and custom notes can be authored here.
                   </p>
                 </div>
                 <button
                   onClick={handleStartCreateNote}
-                  className="px-4 py-2 bg-[#8C2F27] hover:bg-[#8C2F27]/90 text-white rounded-[4px] font-sans font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
+                  className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
                 >
-                  Create first note
+                  New note
                 </button>
               </div>
             )}
