@@ -1,36 +1,217 @@
 @import "tailwindcss";
 
+:root{
+  --bg:#FCFCFB;         /* page */
+  --surface:#FFFFFF;    /* cards, composer, dock */
+  --raised:#F5F6F5;     /* hover, secondary fills, user bubble */
+  --ink:#13343B;        /* primary text — deep slate-teal, softer than black */
+  --ink-2:#4A5B60;      /* body text */
+  --muted:#7C8B90;      /* metadata, placeholders, inactive */
+  --rule:#E6E8E7;       /* borders */
+  --rule-2:#EFF1F0;     /* hairlines */
+  --teal:#20808D;       /* the only accent */
+  --teal-soft:#E3F2F3;  /* accent fills, chips */
+  --teal-deep:#186A75;  /* accent text on soft fills */
+  --ok:#3D8168;
+  --warn:#B4651E;
+  --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+
+  /* Back-compat aliases: the app's components already consume this variable
+     system (var(--paper), var(--accent), etc). Pointing the old names at the
+     Clear tokens re-themes the whole app without a repo-wide rename. */
+  --paper: var(--bg);
+  --card: var(--surface);
+  --slate: var(--muted);
+  --accent: var(--teal);
+  --accent-soft: var(--teal-soft);
+  --accent-ink: var(--teal-deep);
+  --verify: var(--ok);
+  --verify-bg: var(--teal-soft);
+  --alert: var(--warn);
+  --serif: var(--f);
+  --sans: var(--f);
+  --mono: var(--f);
+}
+
 @layer base {
-  :root {
-    /* Google Drive Light Theme Palette */
-    --paper: #f8f9fa;         /* Google Drive background */
-    --card: #ffffff;          /* Pristine white cards/surfaces */
-    --raised: #e8eaed;        /* Google grey for hover and inactive states */
-    --ink: #202124;           /* Primary charcoal text */
-    --ink-2: #5f6368;         /* Secondary grey body text */
-    --slate: #70757a;         /* Tertiary grey for metadata */
-    --rule: #dadce0;          /* Google divider/border light grey */
-    --rule-2: #f1f3f4;        /* Softest hairlines */
-    --accent: #1a73e8;        /* Google Drive primary blue */
-    --accent-soft: #e8f0fe;   /* Light blue active highlighting */
-    --accent-ink: #1967d2;    /* Deep Google blue for text links */
-    --verify: #137333;        /* Google green success indicator */
-    --verify-bg: #e6f4ea;
-    --alert: #f9ab00;         /* Google yellow alert */
-    
-    /* Typography */
-    --serif: "Inter", system-ui, sans-serif;
-    --sans: "Inter", system-ui, sans-serif;
-    --mono: "Fira Code", monospace;
+  html {
+    font-size: 16px;
   }
 
   body {
-    background-color: var(--paper);
+    background-color: var(--bg);
     color: var(--ink);
-    font-family: var(--sans);
+    font-family: var(--f);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.036em;
+  }
+
+  input, textarea, select, button {
+    font-family: var(--f);
+  }
+
+  /* One typeface: neutralize any leftover font-mono utility usage from the
+     previous system instead of hunting every call site. */
+  .font-mono {
+    font-family: var(--f) !important;
   }
 
   /* Simple reset for button min-height */
   button { min-height: 44px; }
 }
+
+/* =========================================================================
+   GENERATED — Clear palette overrides for legacy "Chambers" color classes.
+   Scanned from every .tsx under src/. Do not hand-edit stale entries here;
+   regenerate instead if new legacy colors are introduced.
+   ========================================================================= */
+
+.s87-app .bg-\[\#004a77\] { background-color: var(--teal) !important; }
+.s87-app .bg-\[\#004a77\]\/30 { background-color: color-mix(in srgb, var(--teal) 30%, transparent) !important; }
+.s87-app .bg-\[\#004a77\]\/40 { background-color: color-mix(in srgb, var(--teal) 40%, transparent) !important; }
+.s87-app .bg-\[\#004a77\]\/50 { background-color: color-mix(in srgb, var(--teal) 50%, transparent) !important; }
+.s87-app .bg-\[\#0F6E66\] { background-color: var(--teal-deep) !important; }
+.s87-app .bg-\[\#131314\] { background-color: var(--bg) !important; }
+.s87-app .bg-\[\#131C25\] { background-color: var(--ink) !important; }
+.s87-app .bg-\[\#131C25\]\/70 { background-color: color-mix(in srgb, var(--ink) 70%, transparent) !important; }
+.s87-app .bg-\[\#131C25\]\/75 { background-color: color-mix(in srgb, var(--ink) 75%, transparent) !important; }
+.s87-app .bg-\[\#18191a\] { background-color: var(--raised) !important; }
+.s87-app .bg-\[\#1a73e8\] { background-color: var(--teal) !important; }
+.s87-app .bg-\[\#1a73e8\]\/20 { background-color: color-mix(in srgb, var(--teal) 20%, transparent) !important; }
+.s87-app .bg-\[\#1e1f20\] { background-color: var(--surface) !important; }
+.s87-app .bg-\[\#28292a\] { background-color: var(--raised) !important; }
+.s87-app .bg-\[\#37393b\] { background-color: var(--rule) !important; }
+.s87-app .bg-\[\#3D4B58\]\/10 { background-color: color-mix(in srgb, var(--ink-2) 10%, transparent) !important; }
+.s87-app .bg-\[\#D3D9DE\] { background-color: var(--rule) !important; }
+.s87-app .bg-\[\#E8F2F0\] { background-color: var(--teal-soft) !important; }
+.s87-app .bg-\[\#EBF3FC\] { background-color: var(--teal-soft) !important; }
+.s87-app .bg-\[\#EDEFF2\] { background-color: var(--rule-2) !important; }
+.s87-app .bg-\[\#F0B429\] { background-color: var(--teal) !important; }
+.s87-app .bg-\[\#F8F9FA\] { background-color: var(--bg) !important; }
+.s87-app .bg-\[\#FBEECB\] { background-color: var(--teal-soft) !important; }
+.s87-app .bg-\[\#FFFFFF\] { background-color: var(--surface) !important; }
+.s87-app .border-\[\#004a77\] { border-color: var(--teal) !important; }
+.s87-app .border-\[\#0F6E66\] { border-color: var(--teal-deep) !important; }
+.s87-app .border-\[\#131C25\] { border-color: var(--ink) !important; }
+.s87-app .border-\[\#131C25\]\/20 { border-color: color-mix(in srgb, var(--ink) 20%, transparent) !important; }
+.s87-app .border-\[\#1a73e8\] { border-color: var(--teal) !important; }
+.s87-app .border-\[\#1a73e8\]\/30 { border-color: color-mix(in srgb, var(--teal) 30%, transparent) !important; }
+.s87-app .border-\[\#1e1f20\] { border-color: var(--surface) !important; }
+.s87-app .border-\[\#28292a\] { border-color: var(--raised) !important; }
+.s87-app .border-\[\#37393b\] { border-color: var(--rule) !important; }
+.s87-app .border-\[\#BDE0DB\] { border-color: var(--teal-soft) !important; }
+.s87-app .border-\[\#D3D9DE\] { border-color: var(--rule) !important; }
+.s87-app .border-\[\#DDD6C8\] { border-color: var(--rule) !important; }
+.s87-app .border-\[\#EBD79B\] { border-color: var(--rule) !important; }
+.s87-app .divide-\[\#28292a\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--raised) !important; }
+.s87-app .divide-\[\#37393b\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--rule) !important; }
+.s87-app .focus\:border-\[\#1a73e8\]:focus { border-color: var(--teal) !important; }
+.s87-app .focus\:border-\[\#7dd3fc\]:focus { border-color: var(--teal) !important; }
+.s87-app .focus\:ring-\[\#1a73e8\]:focus { --tw-ring-color: var(--teal) !important; }
+.s87-app .from-\[\#0F6E66\] { --tw-gradient-from: var(--teal-deep) !important; }
+.s87-app .from-\[\#1a73e8\] { --tw-gradient-from: var(--teal) !important; }
+.s87-app .from-\[\#1e1f20\] { --tw-gradient-from: var(--surface) !important; }
+.s87-app .group:hover .group-hover\:bg-\[\#1a73e8\] { background-color: var(--teal) !important; }
+.s87-app .group:hover .group-hover\:text-\[\#7dd3fc\] { color: var(--teal) !important; }
+.s87-app .hover\:bg-\[\#1557b0\]:hover { background-color: var(--teal) !important; }
+.s87-app .hover\:bg-\[\#1e1f20\]:hover { background-color: var(--surface) !important; }
+.s87-app .hover\:bg-\[\#28292a\]:hover { background-color: var(--raised) !important; }
+.s87-app .hover\:bg-\[\#37393b\]:hover { background-color: var(--rule) !important; }
+.s87-app .hover\:bg-\[\#D3D9DE\]:hover { background-color: var(--rule) !important; }
+.s87-app .hover\:bg-\[\#EDEFF2\]:hover { background-color: var(--rule-2) !important; }
+.s87-app .hover\:bg-\[\#EDEFF2\]\/60:hover { background-color: color-mix(in srgb, var(--rule-2) 60%, transparent) !important; }
+.s87-app .hover\:border-\[\#131C25\]:hover { border-color: var(--ink) !important; }
+.s87-app .hover\:border-\[\#1a73e8\]:hover { border-color: var(--teal) !important; }
+.s87-app .hover\:border-\[\#37393b\]:hover { border-color: var(--rule) !important; }
+.s87-app .hover\:from-\[\#1557b0\]:hover { --tw-gradient-from: var(--teal) !important; }
+.s87-app .hover\:text-\[\#131C25\]:hover { color: var(--ink) !important; }
+.s87-app .hover\:text-\[\#e3e3e3\]:hover { color: var(--ink) !important; }
+.s87-app .hover\:text-\[\#F0B429\]:hover { color: var(--teal) !important; }
+.s87-app .placeholder-\[\#8e918f\]::placeholder { color: var(--muted) !important; }
+.s87-app .placeholder-\[\#9aa0a6\]::placeholder { color: var(--muted) !important; }
+.s87-app .placeholder-\[\#c4c7c5\]::placeholder { color: var(--ink-2) !important; }
+.s87-app .ring-\[\#1a73e8\] { --tw-ring-color: var(--teal) !important; }
+.s87-app .ring-\[\#1a73e8\]\/20 { --tw-ring-color: color-mix(in srgb, var(--teal) 20%, transparent) !important; }
+.s87-app .text-\[\#0F6E66\] { color: var(--teal-deep) !important; }
+.s87-app .text-\[\#131C25\] { color: var(--ink) !important; }
+.s87-app .text-\[\#1a73e8\] { color: var(--teal) !important; }
+.s87-app .text-\[\#37393b\] { color: var(--rule) !important; }
+.s87-app .text-\[\#3D4B58\] { color: var(--ink-2) !important; }
+.s87-app .text-\[\#6E7C89\] { color: var(--muted) !important; }
+.s87-app .text-\[\#78716C\] { color: var(--muted) !important; }
+.s87-app .text-\[\#7dd3fc\] { color: var(--teal) !important; }
+.s87-app .text-\[\#8A6414\] { color: var(--teal-deep) !important; }
+.s87-app .text-\[\#8C2F27\] { color: var(--teal) !important; }
+.s87-app .text-\[\#8e918f\] { color: var(--muted) !important; }
+.s87-app .text-\[\#9aa0a6\] { color: var(--muted) !important; }
+.s87-app .text-\[\#c4c7c5\] { color: var(--ink-2) !important; }
+.s87-app .text-\[\#e3e3e3\] { color: var(--ink) !important; }
+.s87-app .text-\[\#F0B429\] { color: var(--teal) !important; }
+.s87-app .text-\[\#FFFFFF\] { color: var(--surface) !important; }
+.s87-app .to-\[\#131314\] { --tw-gradient-to: var(--bg) !important; }
+.s87-app .to-\[\#F0B429\] { --tw-gradient-to: var(--teal) !important; }
+
+/* Legacy hex values that don't appear as literal .tsx utility classes today
+   (SavedView.tsx's old parchment palette, already restyled) — kept as a
+   defensive net in case they resurface. */
+.s87-app .bg-\[\#F4F1EA\], .s87-app .bg-\[\#EFEBE1\] { background-color: var(--bg) !important; }
+.s87-app .bg-\[\#FBF9F4\] { background-color: var(--surface) !important; }
+.s87-app .border-\[\#E8E3D8\] { border-color: var(--rule) !important; }
+.s87-app .text-\[\#1C1917\] { color: var(--ink) !important; }
+.s87-app .text-\[\#57534E\] { color: var(--ink-2) !important; }
+.s87-app .text-\[\#8F8880\] { color: var(--muted) !important; }
+.s87-app .bg-\[\#6B231C\] { background-color: var(--teal) !important; }
+.s87-app .bg-\[\#F3E3DF\] { background-color: var(--teal-soft) !important; }
+.s87-app .bg-\[\#4A6741\], .s87-app .text-\[\#4A6741\] { background-color: var(--ok) !important; color: var(--ok) !important; }
+
+/* Named Tailwind scales standing in for the old dark-canvas theme. */
+.s87-app .bg-slate-950, .s87-app .bg-zinc-950, .s87-app .bg-neutral-950 { background-color: var(--bg) !important; }
+.s87-app .bg-slate-900, .s87-app .bg-zinc-900, .s87-app .bg-neutral-900 { background-color: var(--surface) !important; }
+.s87-app .bg-slate-800, .s87-app .bg-zinc-800, .s87-app .bg-neutral-800 { background-color: var(--raised) !important; }
+.s87-app .text-slate-100, .s87-app .text-slate-200 { color: var(--ink) !important; }
+.s87-app .text-slate-300 { color: var(--ink-2) !important; }
+.s87-app .text-slate-400 { color: var(--muted) !important; }
+.s87-app .border-slate-700, .s87-app .border-slate-800, .s87-app .border-slate-900,
+.s87-app .border-zinc-700, .s87-app .border-zinc-800, .s87-app .border-zinc-900,
+.s87-app .border-neutral-700, .s87-app .border-neutral-800, .s87-app .border-neutral-900 { border-color: var(--rule) !important; }
+.s87-app .text-sky-50, .s87-app .text-sky-100, .s87-app .text-sky-200, .s87-app .text-sky-300,
+.s87-app .text-sky-400, .s87-app .text-sky-500, .s87-app .text-sky-600, .s87-app .text-sky-700,
+.s87-app .text-amber-50, .s87-app .text-amber-100, .s87-app .text-amber-200, .s87-app .text-amber-300,
+.s87-app .text-amber-400, .s87-app .text-amber-500, .s87-app .text-amber-600, .s87-app .text-amber-700,
+.s87-app .text-rose-50, .s87-app .text-rose-100, .s87-app .text-rose-200, .s87-app .text-rose-300,
+.s87-app .text-rose-400, .s87-app .text-rose-500, .s87-app .text-rose-600, .s87-app .text-rose-700 { color: var(--teal) !important; }
+
+/* text-white: correct to dark ink by default now that most old dark
+   surfaces are light Clear surfaces; keep genuine white text only where the
+   background is still a dark/accent fill after conversion. */
+.s87-app .text-white { color: var(--ink) !important; }
+.s87-app [class*="bg-gradient"].text-white,
+.s87-app .bg-\[\#131C25\].text-white,
+.s87-app .bg-\[\#1a73e8\].text-white,
+.s87-app .bg-\[\#1557b0\].text-white,
+.s87-app .bg-\[\#004a77\].text-white,
+.s87-app .bg-\[\#0F6E66\].text-white,
+.s87-app .bg-\[\#8C2F27\].text-white,
+.s87-app .bg-\[\#6B231C\].text-white,
+.s87-app .bg-\[\#F0B429\].text-white,
+.s87-app .bg-\[\#20808D\].text-white,
+.s87-app .bg-\[\#13343B\].text-white,
+.s87-app .bg-teal-600.text-white, .s87-app .bg-teal-700.text-white,
+.s87-app .group:hover .group-hover\:text-white { color: #FFFFFF !important; }
+
+/* The one spot dark ink text on the teal-accent toggle would be unreadable:
+   the PDF-viewer view-mode pills pair an accent fill with dark ink text. */
+.s87-app .bg-\[\#F0B429\].text-\[\#131C25\] { color: #FFFFFF !important; }
+
+/* Radii: land old utilities in the Clear scale. */
+.s87-app .rounded-2xl { border-radius: 12px; }
+.s87-app .rounded-3xl { border-radius: 16px; }
+.s87-app .rounded-xl  { border-radius: 11px; }
+.s87-app .rounded-lg  { border-radius: 9px; }
+.s87-app .shadow-2xl, .s87-app .shadow-xl, .s87-app .shadow-lg,
+.s87-app .shadow-sm,  .s87-app .shadow { box-shadow: none !important; }
