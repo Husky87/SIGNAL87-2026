@@ -242,6 +242,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const [mode, setMode] = useState<'quick' | 'deep'>('quick');
   const [inputQuery, setInputQuery] = useState('');
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>(documents.map((d) => d.id));
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -991,8 +992,58 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 </div>
               )}
 
-              {/* Floating Input Box matching Perplexity style */}
-              <div className="relative bg-[var(--card)] border border-[var(--rule)] rounded-xl p-2.5 sm:p-3 flex flex-col gap-2 mt-auto transition-all shadow-2xs focus-within:border-[var(--accent)]">
+              {/* Single-row composer: "+" attach menu, input, send */}
+              <div className="relative bg-[var(--card)] border border-[var(--rule)] rounded-xl p-1.5 sm:p-2 flex items-end gap-1.5 mt-auto transition-all shadow-2xs focus-within:border-[var(--accent)]">
+                <div className="relative flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAttachMenu(!showAttachMenu)}
+                    aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
+                    aria-expanded={showAttachMenu}
+                    className="flex items-center justify-center w-11 h-11 md:w-9 md:h-9 rounded-lg border border-[var(--rule)] bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                  >
+                    {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
+                  </button>
+
+                  {showAttachMenu && (
+                    <div className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] shadow-lg py-1.5 z-50 animate-in fade-in duration-150">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAttachMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        disabled={isParsingFile}
+                        className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isParsingFile ? <Loader2 size={15} className="animate-spin text-[var(--accent)]" /> : <Paperclip size={15} className="text-[var(--slate)]" />}
+                        <span>Upload Document</span>
+                      </button>
+
+                      {onOpenDrivePicker && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAttachMenu(false);
+                            onOpenDrivePicker();
+                          }}
+                          className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer"
+                        >
+                          <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 87.3 78">
+                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                            <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                            <path d="m73.55 76.8c1.4-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 10.15z" fill="#ea4335"/>
+                            <path d="m43.65 25 13.75 23.8h27.5c0-1.55-.4-3.1-1.2-4.5l-25.4-44c-.8-1.4-1.9-2.5-3.3-3.3z" fill="#00832d"/>
+                            <path d="m57.4 48.8-13.75 23.8c1.4.8 2.95 1.2 4.5 1.2h54.8c1.55 0 3.1-.4 4.5-1.2l-13.75-23.8z" fill="#2684fc"/>
+                            <path d="m13.75 25 13.75 23.8 13.75-23.8-13.75-23.8z" fill="#ffba00"/>
+                          </svg>
+                          <span>Google Drive</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <textarea
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
@@ -1003,60 +1054,30 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                     }
                   }}
                   placeholder="Ask anything..."
-                  className="w-full bg-transparent border-0 text-[16px] sm:text-[15px] leading-[1.45] text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none resize-none min-h-[40px] max-h-32 px-1 font-sans"
-                  rows={2}
+                  className="flex-1 min-w-0 bg-transparent border-0 text-[16px] leading-[1.4] text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none resize-none min-h-[44px] md:min-h-[36px] max-h-32 px-1.5 py-[11px] md:py-[8px] font-sans"
+                  rows={1}
                 />
-                <div className="flex items-center justify-between pt-1 border-t border-[var(--rule-2)]">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isParsingFile}
-                      className="flex items-center gap-1.5 min-h-[44px] md:min-h-[36px] text-[12px] font-semibold text-[var(--ink-2)] bg-[var(--card)] hover:bg-[var(--raised)] hover:text-[var(--ink)] px-3 rounded-lg border border-[var(--rule)] transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {isParsingFile ? <Loader2 size={14} className="animate-spin text-[var(--accent)]" /> : <Paperclip size={14} />}
-                      <span className="whitespace-nowrap">Upload</span>
-                    </button>
 
-                    {onOpenDrivePicker && (
-                      <button
-                        type="button"
-                        onClick={onOpenDrivePicker}
-                        className="flex items-center justify-center min-h-[44px] min-w-[44px] md:min-h-[36px] md:min-w-[36px] bg-[var(--card)] hover:bg-[var(--raised)] rounded-lg border border-[var(--rule)] transition-colors cursor-pointer"
-                        title="Port files from Google Workspace"
-                      >
-                        <svg className="w-4 h-4 fill-current flex-shrink-0 text-[var(--ink)]" viewBox="0 0 87.3 78">
-                          <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                          <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                          <path d="m73.55 76.8c1.4-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 10.15z" fill="#ea4335"/>
-                          <path d="m43.65 25 13.75 23.8h27.5c0-1.55-.4-3.1-1.2-4.5l-25.4-44c-.8-1.4-1.9-2.5-3.3-3.3z" fill="#00832d"/>
-                          <path d="m57.4 48.8-13.75 23.8c1.4.8 2.95 1.2 4.5 1.2h54.8c1.55 0 3.1-.4 4.5-1.2l-13.75-23.8z" fill="#2684fc"/>
-                          <path d="m13.75 25 13.75 23.8 13.75-23.8-13.75-23.8z" fill="#ffba00"/>
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSendQuery()}
-                      disabled={!inputQuery.trim() || loading}
-                      aria-label="Send"
-                      className={`w-[44px] h-[44px] md:w-[38px] md:h-[38px] flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                        inputQuery.trim() && !loading
-                          ? 'bg-[var(--accent)] text-[var(--paper)] hover:opacity-90'
-                          : 'bg-[var(--raised)] text-[var(--slate)] cursor-not-allowed'
-                      }`}
-                      title="Send message"
-                    >
-                      <ArrowUp size={18} strokeWidth={2.6} />
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSendQuery()}
+                  disabled={!inputQuery.trim() || loading}
+                  aria-label="Send"
+                  className={`flex-shrink-0 w-11 h-11 md:w-9 md:h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                    inputQuery.trim() && !loading
+                      ? 'bg-[var(--accent)] text-[var(--paper)] hover:opacity-90'
+                      : 'bg-[var(--raised)] text-[var(--slate)] cursor-not-allowed'
+                  }`}
+                  title="Send message"
+                >
+                  <ArrowUp size={18} strokeWidth={2.6} />
+                </button>
               </div>
-              <p className="text-[11px] text-center text-[var(--slate)] mt-2">
-                Signal87 AI may produce inaccurate information. Verify key citations.
-              </p>
+              {chatHistory.length === 0 && (
+                <p className="text-[11px] text-center text-[var(--slate)] mt-2">
+                  Signal87 AI may produce inaccurate information. Verify key citations.
+                </p>
+              )}
             </div>
           </div>
         </div>

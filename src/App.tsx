@@ -26,7 +26,7 @@ import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { SavedView } from './components/SavedView';
 import { auth, onAuthStateChanged, User, signInWithPopup, googleProvider } from './lib/firebase';
-import { LogIn, Sparkles, X, Menu, ChevronDown, Check } from 'lucide-react';
+import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'lucide-react';
 
 import {
   INITIAL_DOCUMENTS,
@@ -749,15 +749,25 @@ export default function App() {
               )}
             </div>
 
-            {/* Model Indicator/Selector Button */}
+            {/* Model Indicator/Selector Button - hidden below 640px to save header width; model switching moves into the More menu there */}
             <button
               onClick={() => setShowMobileModelMenu(!showMobileModelMenu)}
-              className="flex items-center gap-1 p-1 px-2 text-[10px] font-bold text-[var(--ink-2)] bg-[var(--paper)] hover:bg-[var(--raised)] rounded-full border border-[var(--rule)] uppercase cursor-pointer"
+              className="hidden sm:flex items-center gap-1 p-1 px-2 text-[10px] font-bold text-[var(--ink-2)] bg-[var(--paper)] hover:bg-[var(--raised)] rounded-full border border-[var(--rule)] uppercase cursor-pointer"
               title="Change active AI model"
             >
               <Sparkles size={11} className="text-amber-500 animate-pulse" />
               <span className="max-w-[70px] truncate">{selectedModel === 'gemini-3.1-pro-preview' ? 'Deep' : selectedModel === 'gemini-3.1-flash-lite' ? 'Fast' : 'Standard'}</span>
               <ChevronDown size={10} className="text-[var(--slate)]" />
+            </button>
+
+            {/* More menu (under 640px) - houses model switching once the chip above is hidden */}
+            <button
+              onClick={() => setShowMobileModelMenu(!showMobileModelMenu)}
+              className="sm:hidden flex items-center justify-center w-7 h-7 text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer"
+              title="More options"
+              aria-label="More options"
+            >
+              <MoreVertical size={16} />
             </button>
 
             {/* User Avatar */}
