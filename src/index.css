@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root{
-  --bg:#191A1A;          /* page — offblack, not pure black */
-  --surface:#202222;     /* composer, raised rows, dock */
-  --surface-2:#252828;   /* hover */
+  --bg:#1E2020;          /* page — offblack, not pure black */
+  --surface:#252828;     /* composer, raised rows, dock */
+  --surface-2:#2B2F2F;   /* hover */
   --ink:#F3F3EE;         /* primary text — warm off-white */
   --ink-2:#B9BDBD;       /* body text */
   --muted:#8D9191;       /* metadata, placeholders, inactive icons */
-  --rule:#2E3131;        /* borders */
-  --rule-2:#272A2A;      /* hairlines */
+  --rule:#343838;        /* borders */
+  --rule-2:#2C3030;      /* hairlines */
   --teal:#20B8CD;        /* the only accent — brighter than light mode */
   --teal-soft:#12292E;   /* accent fill */
   --teal-ink:#0F1010;    /* text on a turquoise fill — never white */
