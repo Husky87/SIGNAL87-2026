@@ -784,7 +784,7 @@ export default function App() {
 
             {/* User Avatar */}
             {currentUser ? (
-              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--paper)] font-bold flex items-center justify-center text-xs overflow-hidden">
+              <div className="w-7 h-7 rounded-full bg-[var(--surface-2)] text-[var(--ink)] font-bold flex items-center justify-center text-xs overflow-hidden">
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}

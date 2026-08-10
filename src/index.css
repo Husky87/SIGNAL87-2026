@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root{
-  --bg:#FCFCFB;         /* page */
-  --surface:#FFFFFF;    /* cards, composer, dock */
-  --raised:#F5F6F5;     /* hover, secondary fills, user bubble */
-  --ink:#13343B;        /* primary text — deep slate-teal, softer than black */
-  --ink-2:#4A5B60;      /* body text */
-  --muted:#7C8B90;      /* metadata, placeholders, inactive */
-  --rule:#E6E8E7;       /* borders */
-  --rule-2:#EFF1F0;     /* hairlines */
-  --teal:#20808D;       /* the only accent */
-  --teal-soft:#E3F2F3;  /* accent fills, chips */
-  --teal-deep:#186A75;  /* accent text on soft fills */
-  --ok:#3D8168;
-  --warn:#B4651E;
+  --bg:#191A1A;          /* page — offblack, not pure black */
+  --surface:#202222;     /* composer, raised rows, dock */
+  --surface-2:#252828;   /* hover */
+  --ink:#F3F3EE;         /* primary text — warm off-white */
+  --ink-2:#B9BDBD;       /* body text */
+  --muted:#8D9191;       /* metadata, placeholders, inactive icons */
+  --rule:#2E3131;        /* borders */
+  --rule-2:#272A2A;      /* hairlines */
+  --teal:#20B8CD;        /* the only accent — brighter than light mode */
+  --teal-soft:#12292E;   /* accent fill */
+  --teal-ink:#0F1010;    /* text on a turquoise fill — never white */
+  --ok:#5CB98A;
+  --warn:#D98A4A;
   --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   /* Back-compat aliases: the app's components already consume this variable
@@ -21,10 +21,12 @@
      Clear tokens re-themes the whole app without a repo-wide rename. */
   --paper: var(--bg);
   --card: var(--surface);
+  --raised: var(--surface-2);
   --slate: var(--muted);
   --accent: var(--teal);
   --accent-soft: var(--teal-soft);
-  --accent-ink: var(--teal-deep);
+  --accent-ink: var(--teal);
+  --teal-deep: var(--teal);
   --verify: var(--ok);
   --verify-bg: var(--teal-soft);
   --alert: var(--warn);
@@ -186,9 +188,10 @@
 .s87-app .text-rose-50, .s87-app .text-rose-100, .s87-app .text-rose-200, .s87-app .text-rose-300,
 .s87-app .text-rose-400, .s87-app .text-rose-500, .s87-app .text-rose-600, .s87-app .text-rose-700 { color: var(--teal) !important; }
 
-/* text-white: correct to dark ink by default now that most old dark
-   surfaces are light Clear surfaces; keep genuine white text only where the
-   background is still a dark/accent fill after conversion. */
+/* text-white: correct to ink by default (ink is warm off-white in dark
+   mode, so this stays readable against the dark surfaces everywhere).
+   Every background below resolves to --teal or --ink, both light/bright
+   in dark mode — text on those needs to be dark (--teal-ink), never white. */
 .s87-app .text-white { color: var(--ink) !important; }
 .s87-app [class*="bg-gradient"].text-white,
 .s87-app .bg-\[\#131C25\].text-white,
@@ -199,14 +202,14 @@
 .s87-app .bg-\[\#8C2F27\].text-white,
 .s87-app .bg-\[\#6B231C\].text-white,
 .s87-app .bg-\[\#F0B429\].text-white,
-.s87-app .bg-\[\#20808D\].text-white,
-.s87-app .bg-\[\#13343B\].text-white,
+.s87-app .bg-\[var\(--teal\)\].text-white,
+.s87-app .bg-\[var\(--ink\)\].text-white,
 .s87-app .bg-teal-600.text-white, .s87-app .bg-teal-700.text-white,
-.s87-app .group:hover .group-hover\:text-white { color: #FFFFFF !important; }
+.s87-app .group:hover .group-hover\:text-white { color: var(--teal-ink) !important; }
 
-/* The one spot dark ink text on the teal-accent toggle would be unreadable:
-   the PDF-viewer view-mode pills pair an accent fill with dark ink text. */
-.s87-app .bg-\[\#F0B429\].text-\[\#131C25\] { color: #FFFFFF !important; }
+/* The PDF-viewer view-mode pills pair an accent fill with ink text —
+   ink is light in dark mode, so that combination also needs teal-ink. */
+.s87-app .bg-\[\#F0B429\].text-\[\#131C25\] { color: var(--teal-ink) !important; }
 
 /* Radii: land old utilities in the Clear scale. */
 .s87-app .rounded-2xl { border-radius: 12px; }

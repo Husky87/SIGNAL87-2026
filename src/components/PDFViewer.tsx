@@ -103,7 +103,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 bg-[var(--accent)] text-[var(--paper)] text-xs font-semibold rounded-[4px] hover:opacity-90 transition-all flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--accent)] text-[var(--teal-ink)] text-xs font-semibold rounded-[4px] hover:opacity-90 transition-all flex items-center gap-2"
           >
             <Download size={14} /> Download & View PDF Directly
           </a>

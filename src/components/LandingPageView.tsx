@@ -44,7 +44,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const [followUpInput, setFollowUpInput] = useState<string>('');
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] font-sans antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--paper)] s87-app">
+    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] font-sans antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 bg-[var(--paper)]/95 backdrop-blur-md border-b border-[var(--rule)] px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -89,7 +89,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={onGoogleSignIn}
-              className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
             >
               <span>Sign In with Google</span>
             </button>
@@ -156,7 +156,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="pt-4 flex flex-wrap items-center gap-3">
               <button
                 onClick={onGoogleSignIn}
-                className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span>Sign In with Google</span>
                 <ArrowUpRight size={18} />
@@ -286,7 +286,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       disabled
                       aria-hidden="true"
                       tabIndex={-1}
-                      className="px-3 py-1 bg-[var(--accent)] text-[var(--paper)] text-[10px] font-mono font-bold rounded-[3px] flex-shrink-0"
+                      className="px-3 py-1 bg-[var(--accent)] text-[var(--teal-ink)] text-[10px] font-mono font-bold rounded-[3px] flex-shrink-0"
                       style={{ fontFamily: MONO }}
                     >
                       Ask
@@ -363,7 +363,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             <div className="bg-[var(--card)] p-6 sm:p-8 rounded-[6px] border border-[var(--rule)] space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[4px] bg-[var(--accent)] text-[var(--paper)] font-bold text-base flex items-center justify-center">
+                <div className="w-12 h-12 rounded-[4px] bg-[var(--accent)] text-[var(--teal-ink)] font-bold text-base flex items-center justify-center">
                   MB
                 </div>
                 <div>

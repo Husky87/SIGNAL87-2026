@@ -188,7 +188,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
               {((selectedItem && selectedItem.type === 'note') || isCreatingNote) ? (
                 <button
                   onClick={handleSaveNote}
-                  className="px-4 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-[4px] font-bold text-xs cursor-pointer min-h-[44px]"
+                  className="px-4 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] rounded-[4px] font-bold text-xs cursor-pointer min-h-[44px]"
                 >
                   Save
                 </button>
@@ -306,7 +306,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
               </div>
               <button
                 onClick={handleStartCreateNote}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px] flex-shrink-0"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px] flex-shrink-0"
               >
                 <Plus size={14} />
                 <span>New Note</span>
@@ -414,7 +414,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
                 </div>
                 <button
                   onClick={handleStartCreateNote}
-                  className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
+                  className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] rounded-full font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
                 >
                   New note
                 </button>

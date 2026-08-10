@@ -302,7 +302,7 @@ export const GeminiMarkdownRenderer: React.FC<{
               </div>
               <button
                 onClick={() => downloadExcelFromBlock(block.excelData.data, block.excelData.filename)}
-                className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-[var(--paper)] text-xs font-semibold rounded-[3px] transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                className="px-3.5 py-1.5 bg-[var(--teal)] hover:opacity-90 text-[var(--teal-ink)] text-xs font-semibold rounded-[3px] transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0"
               >
                 <FileSpreadsheet size={14} />
                 <span>Download .xlsx</span>

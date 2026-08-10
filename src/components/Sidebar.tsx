@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="flex items-center gap-1.5">
             {collapsed && !mobileMenuOpen ? null : (
-              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--card)] font-bold flex items-center justify-center text-[10px] font-mono">
+              <div className="w-7 h-7 rounded-full bg-[var(--surface-2)] text-[var(--ink)] font-bold flex items-center justify-center text-[10px]">
                 {userInitials}
               </div>
             )}

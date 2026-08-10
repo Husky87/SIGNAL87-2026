@@ -209,16 +209,16 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           )}
         </div>
 
-        {/* Category filter */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        {/* Category filter — text tabs, turquoise underline when active, no fill */}
+        <div className="flex items-center gap-4 overflow-x-auto scrollbar-none border-b border-[var(--rule-2)]">
           {categories.map((cat) => {
             const isActive = activeCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-2 rounded-full text-[13px] transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center ${
-                  isActive ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                className={`px-1 py-2 text-[13px] transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center border-b-2 -mb-px ${
+                  isActive ? 'text-[var(--ink)] font-semibold border-[var(--teal)]' : 'text-[var(--muted)] hover:text-[var(--ink)] border-transparent'
                 }`}
               >
                 {cat}
@@ -244,7 +244,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     onClick={() => { if (!isEditing) handleSetActiveFolderId(fld.id); }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <Folder size={18} className="flex-shrink-0 text-[var(--ink-2)]" style={{ color: fld.color || undefined }} />
+                      <Folder size={18} className="flex-shrink-0 text-[var(--muted)]" />
                       {isEditing ? (
                         <input
                           type="text"
@@ -461,7 +461,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       }`}
                       style={{ backgroundColor: clr }}
                     >
-                      {selectedFolderColor === clr && <Check size={14} className="text-white" />}
+                      {selectedFolderColor === clr && (
+                        <Check size={14} className={clr === 'var(--teal)' ? 'text-[var(--teal-ink)]' : 'text-white'} />
+                      )}
                     </button>
                   ))}
                 </div>
