@@ -417,9 +417,9 @@ export const GeminiMarkdownRenderer: React.FC<{
 
           <div className="space-y-1.5 pt-1 border-t border-[var(--rule)]">
             {citations.map((c, i) => {
-              const citeTag = i === 0 ? 'SPA-8.2' : i === 1 ? 'SPA-8.4' : i === 2 ? 'SPA-8.7' : `CIT-0${i + 1}`;
-              const docMeta = i === 0 ? 'Meridian_SPA_v7.pdf · p.44' : i === 1 ? 'Meridian_SPA_v7.pdf · p.45' : i === 2 ? 'Meridian_SPA_v7.pdf · p.47' : `${c.docTitle} · ${c.paragraphRef || 'p.1'}`;
-              const score = i === 0 ? '98%' : i === 1 ? '96%' : i === 2 ? '91%' : `${c.confidence || 90}%`;
+              const citeTag = `CIT-0${i + 1}`;
+              const docMeta = `${c.docTitle} · ${c.paragraphRef || 'p.1'}`;
+              const score = `${c.confidence || 90}%`;
 
               const handleCiteClick = () => {
                 if (onSelectDocument) {

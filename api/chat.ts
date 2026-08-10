@@ -165,8 +165,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const latencyMs = Date.now() - startTime;
 
-    // Generate citations from attached documents if present
-    const citations = (documents || []).slice(0, 3).map((doc: any, idx: number) => ({
+    // Cite whichever documents actually informed this answer: files attached
+    // to this message take priority over the separately-selected repository
+    // set, since those are what the model was actually asked about.
+    const citationSource = (ingestedFilesData && ingestedFilesData.length > 0)
+      ? ingestedFilesData.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
+      : (documents || []);
+    const citations = citationSource.slice(0, 3).map((doc: any, idx: number) => ({
       docId: doc.id,
       docTitle: doc.title,
       paragraphRef: `Sec. ${idx + 1}, Para ${Math.floor(Math.random() * 5) + 1}`,
