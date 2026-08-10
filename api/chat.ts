@@ -9,7 +9,7 @@ function getGeminiClient() {
     apiKey: apiKey || 'DUMMY_KEY',
     httpOptions: {
       headers: {
-        'User-Agent': 'aistudio-build'
+        'User-Agent': 'signal87-ai-platform'
       }
     }
   });
@@ -64,9 +64,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = req.body;
+    const { 
+      prompt, 
+      messages, 
+      documents, 
+      ingestedFilesData, 
+      attachedFiles, 
+      model = 'gemini-2.5-flash' 
+    } = req.body;
 
-    // Prepare attached images
+    // Prepare attached images into proper SDK Part structures
     const imageParts: any[] = [];
     if (attachedFiles && Array.isArray(attachedFiles)) {
       for (const file of attachedFiles) {
@@ -117,15 +124,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fullPrompt = `REPOSITORY KNOWLEDGE BASE CONTEXT:\n${docContext}\n\n` + fullPrompt;
     }
 
-    // Handle multimodal input
+    // Handle multimodal input cleanly via @google/genai
     if (imageParts.length > 0) {
       const ai = getGeminiClient();
-      const parts: any[] = [{ text: fullPrompt }, ...imageParts];
-
       const response = await ai.models.generateContent({
         model: model,
-        contents: [{ role: 'user', parts }],
-        config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: fullPrompt }, ...imageParts]
+          }
+        ],
+        config: { 
+          systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION,
+          temperature: 0.2
+        }
       });
 
       return res.json({
@@ -136,8 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Text-only input
-    // Construct normalized OpenAI message array structure
+    // Text-only input route through fallback service
     const openAiPayloadMessages = messages && Array.isArray(messages) && messages.length > 0
       ? messages
       : [
@@ -156,13 +168,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const latencyMs = Date.now() - startTime;
 
-    // Generate citations from attached documents if present
     const citations = (documents || []).slice(0, 3).map((doc: any, idx: number) => ({
       docId: doc.id,
       docTitle: doc.title,
       paragraphRef: `Sec. ${idx + 1}, Para ${Math.floor(Math.random() * 5) + 1}`,
       snippet: doc.summary ? doc.summary.substring(0, 120) + '...' : 'Grounded document match',
-      confidence: Math.floor(Math.random() * 10) + 90 // 90-99%
+      confidence: Math.floor(Math.random() * 10) + 90
     }));
 
     return res.json({
