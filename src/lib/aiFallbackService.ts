@@ -1,4 +1,4 @@
-import { generateWithFallback } from '../src/lib/aiFallbackService';
+import { generateWithFallback } from '../lib/aiFallbackService';
 
 export const config = {
   runtime: 'nodejs',
