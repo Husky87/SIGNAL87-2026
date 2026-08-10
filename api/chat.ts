@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
-import { generateWithFallback } from '../src/lib/aiFallbackService';
+import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 
 // Server-side Gemini initialization
 function getGeminiClient() {

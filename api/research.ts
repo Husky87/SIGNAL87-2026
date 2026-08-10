@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { generateWithFallback } from '../src/lib/aiFallbackService';
+import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
