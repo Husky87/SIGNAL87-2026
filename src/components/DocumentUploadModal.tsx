@@ -6,6 +6,7 @@ import {
 import { DocumentItem } from '../types';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { fileDataCache } from '../lib/pdfGenerator';
+import { uploadDocumentFile } from '../lib/firebase';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -74,15 +75,29 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       console.warn('Backend API fallback:', apiErr);
     }
 
-    updateItem({ progress: 90, status: 'processing', stepMessage: 'Almost ready...' });
+    updateItem({ progress: 90, status: 'processing', stepMessage: 'Saving to secure storage...' });
+
+    const docId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    // blob: URLs only live for this browser tab — upload to Firebase Storage so the
+    // real file survives a reload instead of falling back to a reconstructed preview.
+    let fileUrl = fileObj ? URL.createObjectURL(fileObj) : undefined;
+    if (fileObj) {
+      try {
+        fileUrl = await uploadDocumentFile(fileObj, docId);
+      } catch (storageErr) {
+        console.warn('Firebase Storage upload failed, using local preview only:', storageErr);
+      }
+    }
+
+    updateItem({ progress: 95, status: 'processing', stepMessage: 'Almost ready...' });
     await new Promise((r) => setTimeout(r, 200));
 
-    const fileUrl = fileObj ? URL.createObjectURL(fileObj) : undefined;
     const extension = title.split('.').pop()?.toLowerCase() || '';
     const detectedType = extension === 'docx' ? 'docx' : extension === 'xlsx' || extension === 'xls' ? 'xlsx' : extension === 'csv' ? 'csv' : extension === 'pdf' ? 'pdf' : 'txt';
 
     const newDoc: DocumentItem & { fullText?: string } = {
-      id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: docId,
       title,
       type: detectedType as DocumentItem['type'],
       sizeBytes,

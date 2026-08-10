@@ -39,7 +39,6 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [docSearchQuery, setDocSearchQuery] = useState('');
   const [activeMatchIndex, setActiveMatchIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'reader' | 'native'>('reader');
 
   const pdfUrl = useMemo(() => (doc ? getDocumentPdfUrl(doc) : ''), [doc]);
 
@@ -49,7 +48,10 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     setDocSearchQuery('');
     setActiveMatchIndex(0);
     setTotalPages(doc?.type === 'xlsx' || doc?.type === 'csv' ? 1 : 3);
-    setViewMode(doc?.fileUrl ? 'native' : 'reader');
+    // Only default to the PDF tab when a real file is available — otherwise
+    // getDocumentPdfUrl() silently reconstructs a lookalike PDF from extracted
+    // text, which reads as the platform "regenerating" the document.
+    setActiveTab(doc?.fileUrl ? 'pdf' : 'analysis');
   }, [doc]);
 
   useEffect(() => {
@@ -256,18 +258,18 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
               {doc.fileUrl && (
                 <div className="flex items-center gap-1 mr-2">
                   <button
-                    onClick={() => setViewMode('native')}
+                    onClick={() => setActiveTab('pdf')}
                     className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
-                      viewMode === 'native' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                      activeTab === 'pdf' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
                     }`}
                     title="View embedded PDF"
                   >
                     Embedded
                   </button>
                   <button
-                    onClick={() => setViewMode('reader')}
+                    onClick={() => setActiveTab('analysis')}
                     className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
-                      viewMode === 'reader' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                      activeTab === 'analysis' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
                     }`}
                     title="View page reader mode"
                   >

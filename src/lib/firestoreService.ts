@@ -113,7 +113,8 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
       aiIndexed: docItem.aiIndexed ?? true,
       category: docItem.category || 'General',
       summary: docItem.summary || '',
-      contentPreview: docItem.contentPreview || ''
+      contentPreview: docItem.contentPreview || '',
+      fileUrl: docItem.fileUrl && !docItem.fileUrl.startsWith('blob:') ? docItem.fileUrl : ''
     });
     return docItem.id;
   } catch (error) {

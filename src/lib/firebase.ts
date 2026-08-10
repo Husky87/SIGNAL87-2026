@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, query, orderBy, limit, addDoc, deleteDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -17,6 +18,16 @@ export const signInWithGoogle = async () => {
 
 // Notice custom databaseId in config!
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || undefined);
+
+export const storage = getStorage(app);
+
+// Uploads the original file bytes so the real document can be re-rendered
+// after a reload — blob: URLs only live for the browser tab that created them.
+export async function uploadDocumentFile(file: File, docId: string): Promise<string> {
+  const storageRef = ref(storage, `documents/${docId}/${file.name}`);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
 
 export { signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider };
 export type { User };
