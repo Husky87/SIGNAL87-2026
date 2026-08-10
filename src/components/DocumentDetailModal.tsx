@@ -166,7 +166,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </button>
           </div>
 
-          {/* Actions */}
+          {/* Actions with tooltips */}
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => { if (onAddNote) { onAddNote(doc.id); onClose(); } }}
@@ -185,21 +185,21 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             <button
               onClick={handlePrint}
               className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer hidden sm:block"
-              title="Print"
+              title="Print document"
             >
               <Printer size={16} />
             </button>
             <button
               onClick={handleDownloadText}
               className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
-              title="Download"
+              title="Download document"
             >
               <Download size={16} />
             </button>
             <button
               onClick={onClose}
               className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer sm:hidden"
-              title="Close"
+              title="Close viewer"
             >
               <X size={16} />
             </button>
@@ -243,13 +243,13 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
               {docSearchQuery && (
                 <div className="flex items-center gap-1 text-[12px] text-[var(--muted)] flex-shrink-0">
                   <span>{matchesCount > 0 ? `${activeMatchIndex + 1}/${matchesCount}` : '0'}</span>
-                  <button onClick={handlePrevMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer">
+                  <button onClick={handlePrevMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Previous match">
                     <ChevronUp size={12} />
                   </button>
-                  <button onClick={handleNextMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer">
+                  <button onClick={handleNextMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Next match">
                     <ChevronDown size={12} />
                   </button>
-                  <button onClick={() => setDocSearchQuery('')} className="p-0.5 hover:text-[var(--ink)] cursor-pointer">
+                  <button onClick={() => setDocSearchQuery('')} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Clear search">
                     <X size={12} />
                   </button>
                 </div>
@@ -264,6 +264,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                     className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
                       viewMode === 'native' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
                     }`}
+                    title="View embedded PDF"
                   >
                     Embedded
                   </button>
@@ -272,6 +273,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                     className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
                       viewMode === 'reader' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
                     }`}
+                    title="View page reader mode"
                   >
                     Page reader
                   </button>
@@ -286,7 +288,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 <button onClick={handleZoomIn} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom in">
                   <ZoomIn size={14} />
                 </button>
-                <button onClick={() => setZoomLevel(100)} className="ml-1 text-[12px] text-[var(--muted)] hover:text-[var(--ink)] underline cursor-pointer">
+                <button onClick={() => setZoomLevel(100)} className="ml-1 text-[12px] text-[var(--muted)] hover:text-[var(--ink)] underline cursor-pointer" title="Reset zoom">
                   Reset
                 </button>
               </div>
