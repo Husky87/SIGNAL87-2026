@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -31,37 +31,57 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<any>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
     setError(null);
-    
+    setLoading(true);
+    setPdfFile(null);
+
+    // Only use cached data when it is actually a PDF. Older versions of the
+    // upload flow cached the original DOCX/XLSX bytes under the document id,
+    // which caused pdf.js to report "Invalid PDF structure".
     if (docId && fileDataCache.has(docId)) {
       const cachedBuffer = fileDataCache.get(docId);
       if (cachedBuffer) {
-        setPdfFile({ data: new Uint8Array(cachedBuffer) });
-        setLoading(false);
-        return;
+        const header = new TextDecoder().decode(new Uint8Array(cachedBuffer).subarray(0, 5));
+        if (header === '%PDF-') {
+          setPdfFile({ data: new Uint8Array(cachedBuffer) });
+          setLoading(false);
+          return () => { mounted = false; };
+        }
+        fileDataCache.delete(docId);
       }
     }
-    
+
+    if (!fileUrl) {
+      setError('No document preview is available.');
+      setLoading(false);
+      return () => { mounted = false; };
+    }
+
     if (fileUrl.startsWith('blob:')) {
-      setLoading(true);
       fetch(fileUrl)
         .then((res) => {
-          if (!res.ok) throw new Error(`Failed to fetch blob: ${res.statusText}`);
+          if (!res.ok) throw new Error(`Failed to fetch document: ${res.statusText}`);
           return res.arrayBuffer();
         })
         .then((arrayBuffer) => {
-          if (mounted) {
-            setPdfFile({ data: new Uint8Array(arrayBuffer) });
-            setLoading(false);
+          if (!mounted) return;
+          const header = new TextDecoder().decode(new Uint8Array(arrayBuffer).subarray(0, 5));
+          if (header !== '%PDF-') {
+            throw new Error(`The preview source is not a valid PDF (${fileName}).`);
           }
+          if (docId) fileDataCache.set(docId, arrayBuffer);
+          setPdfFile({ data: new Uint8Array(arrayBuffer) });
+          setLoading(false);
         })
         .catch((err) => {
           if (mounted) {
-            console.warn('Failed to fetch blob for react-pdf, falling back to direct blob URL string:', err);
-            setPdfFile(fileUrl);
+            console.error('Failed to load PDF preview:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load PDF document.');
             setLoading(false);
           }
         });
@@ -69,9 +89,25 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
       setPdfFile(fileUrl);
       setLoading(false);
     }
-    
+
     return () => { mounted = false; };
-  }, [fileUrl, docId]);
+  }, [fileUrl, docId, fileName]);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const updateWidth = () => {
+      const width = element.clientWidth;
+      if (width > 0) setContainerWidth(width);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     onTotalPagesChange(numPages);
@@ -85,8 +121,11 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     setLoading(false);
   }
 
+  const basePageWidth = Math.max(280, Math.min(containerWidth || 800, 900));
+  const pageWidth = basePageWidth * (zoomLevel / 100);
+
   return (
-    <div className="flex flex-col items-center w-full relative">
+    <div ref={containerRef} className="flex flex-col items-center w-full relative min-w-0">
       {loading && (
         <div className="flex flex-col items-center justify-center p-12 text-[#78716C] gap-3">
           <Loader2 size={32} className="animate-spin text-[#8C2F27]" />
@@ -111,24 +150,31 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
       )}
 
       {pdfFile && !error && (
-        <div
-          className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8]"
-          style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
-        >
-          <Document
-            file={pdfFile}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading={null}
-            error={null}
+        <div className="w-full flex justify-center min-w-0 overflow-visible">
+          <div
+            className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8] shadow-sm"
+            style={{
+              transform: `scale(${zoomLevel / 100})`,
+              transformOrigin: 'top center',
+              width: `${basePageWidth}px`,
+            }}
           >
-            <Page
-              pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)}
-              renderTextLayer={true}
-              renderAnnotationLayer={false}
-              className=""
-            />
-          </Document>
+            <Document
+              file={pdfFile}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={null}
+              error={null}
+            >
+              <Page
+                pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)}
+                width={pageWidth}
+                renderTextLayer={true}
+                renderAnnotationLayer={false}
+                className="w-full"
+              />
+            </Document>
+          </div>
         </div>
       )}
     </div>

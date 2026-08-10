@@ -114,94 +114,90 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
 
+  const menuButtonClass = 'flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-2 py-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer border-l border-[var(--rule)] first:border-l-0';
+
   return (
     <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
       <div className="bg-[var(--surface)] rounded-none sm:rounded-2xl max-w-6xl w-full h-full sm:h-[94vh] overflow-hidden border-0 sm:border sm:border-[var(--rule)] flex flex-col text-[var(--ink)]">
 
         {/* Top header */}
-        <div className="px-4 py-3 bg-[var(--surface)] border-b border-[var(--rule)] flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <button
-              onClick={onClose}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer flex-shrink-0"
-              title="Close"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="min-w-0">
-              <h2 className="text-[14.5px] font-medium text-[var(--ink)] truncate">{doc.title}</h2>
-              <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[12px] text-[var(--muted)]">
-                <span>{doc.type.toUpperCase()}</span>
-                <span>·</span>
-                <span>{doc.category || 'General'}</span>
-                <span>·</span>
-                <span>{(doc.sizeBytes / 1000000).toFixed(2)} MB</span>
-                <span>·</span>
-                <span>{new Date(doc.uploadDate).toLocaleDateString()}</span>
-              </div>
+        <div className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex items-center gap-3">
+          <div className="min-w-0 flex-1 px-1">
+            <h2 className="text-[14.5px] font-medium text-[var(--ink)] truncate">{doc.title}</h2>
+            <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[12px] text-[var(--muted)]">
+              <span>{doc.type.toUpperCase()}</span>
+              <span>·</span>
+              <span>{doc.category || 'General'}</span>
+              <span>·</span>
+              <span>{(doc.sizeBytes / 1000000).toFixed(2)} MB</span>
+              <span>·</span>
+              <span>{new Date(doc.uploadDate).toLocaleDateString()}</span>
             </div>
           </div>
 
-          {/* View tabs — plain underlined text, not pills */}
-          <div className="flex items-center gap-4 flex-shrink-0">
+          <div className="flex items-stretch flex-1 max-w-[720px] border border-[var(--rule)] rounded-lg overflow-hidden">
             <button
               onClick={() => setActiveTab('pdf')}
-              className={`pb-0.5 text-[13.5px] transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'pdf' ? 'text-[var(--ink)] font-medium border-[var(--ink)]' : 'text-[var(--muted)] border-transparent hover:text-[var(--ink)]'
-              }`}
-              title="Viewer"
+              className={`${menuButtonClass} ${activeTab === 'pdf' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
+              title="Viewer — read and navigate the document"
+              aria-label="Viewer"
             >
-              <BookOpen size={14} />
-              <span className="hidden xs:inline">Viewer</span>
+              <BookOpen size={16} />
+              <span className="text-[10px] leading-none font-medium">Viewer</span>
             </button>
             <button
               onClick={() => setActiveTab('analysis')}
-              className={`pb-0.5 text-[13.5px] transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'analysis' ? 'text-[var(--ink)] font-medium border-[var(--ink)]' : 'text-[var(--muted)] border-transparent hover:text-[var(--ink)]'
-              }`}
-              title="AI Analysis"
+              className={`${menuButtonClass} ${activeTab === 'analysis' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
+              title="AI Analysis — review document analysis"
+              aria-label="AI Analysis"
             >
-              <Sparkles size={14} />
-              <span className="hidden xs:inline">AI Analysis</span>
+              <Sparkles size={16} />
+              <span className="text-[10px] leading-none font-medium">AI Analysis</span>
             </button>
-          </div>
-
-          {/* Actions with tooltips */}
-          <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => { if (onAddNote) { onAddNote(doc.id); onClose(); } }}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
-              title="Add a linked note"
+              className={menuButtonClass}
+              title="Add Note — create a linked note for this document"
+              aria-label="Add Note"
             >
               <StickyNote size={16} />
+              <span className="text-[10px] leading-none font-medium">Add Note</span>
             </button>
             <button
               onClick={() => onOpenCompare(doc)}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer hidden sm:flex"
-              title="Compare with another document"
+              className={`${menuButtonClass} hidden sm:flex`}
+              title="Compare — compare this document with another document"
+              aria-label="Compare"
             >
-              <GitFork size={14} />
+              <GitFork size={16} />
+              <span className="text-[10px] leading-none font-medium">Compare</span>
             </button>
             <button
               onClick={handlePrint}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer hidden sm:block"
-              title="Print document"
+              className={`${menuButtonClass} hidden sm:flex`}
+              title="Print — print the document"
+              aria-label="Print"
             >
               <Printer size={16} />
+              <span className="text-[10px] leading-none font-medium">Print</span>
             </button>
             <button
               onClick={handleDownloadText}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
-              title="Download document"
+              className={menuButtonClass}
+              title="Download — download the document"
+              aria-label="Download"
             >
               <Download size={16} />
+              <span className="text-[10px] leading-none font-medium">Download</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer sm:hidden"
-              title="Close viewer"
+              className={`${menuButtonClass} text-[var(--muted)] hover:text-[var(--ink)]`}
+              title="Close — exit the document viewer"
+              aria-label="Close viewer"
             >
-              <X size={16} />
+              <X size={17} />
+              <span className="text-[10px] leading-none font-medium">Close</span>
             </button>
           </div>
         </div>
