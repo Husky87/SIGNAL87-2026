@@ -112,7 +112,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
       {pdfFile && !error && (
         <div
-          className="transition-transform duration-200 origin-top shadow-xl rounded-xl overflow-hidden bg-white border border-[#DDD6C8]"
+          className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8]"
           style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
         >
           <Document
@@ -126,7 +126,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
               pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)}
               renderTextLayer={true}
               renderAnnotationLayer={false}
-              className="shadow-sm"
+              className=""
             />
           </Document>
         </div>

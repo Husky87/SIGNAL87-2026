@@ -57,24 +57,24 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <button
           onClick={() => setActiveTab('account')}
           className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-            activeTab === 'account' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
-          }`}
+ activeTab === 'account' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
+ }`}
         >
           <CreditCard size={16} /> Account & Subscription
         </button>
         <button
           onClick={() => setActiveTab('team')}
           className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-            activeTab === 'team' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
-          }`}
+ activeTab === 'team' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
+ }`}
         >
           <Users size={16} /> Team & Access
         </button>
         <button
           onClick={() => setActiveTab('apikeys')}
           className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-            activeTab === 'apikeys' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
-          }`}
+ activeTab === 'apikeys' ? 'border-[#1a73e8] text-[#7dd3fc] font-extrabold' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'
+ }`}
         >
           <Key size={16} /> API Keys
         </button>
@@ -101,7 +101,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => alert('Billing Portal: Your Enterprise plan is active with unlimited seats.')}
-                  className="px-4 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
+                  className="px-4 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Manage Billing & Invoices
                 </button>
@@ -141,14 +141,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div
                 onClick={() => onChangeModel('gemini-3.6-flash')}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
-                  selectedModel === 'gemini-3.6-flash'
-                    ? 'border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8]'
-                    : 'border-[#37393b] bg-[#28292a] hover:bg-[#37393b]'
-                }`}
+ selectedModel === 'gemini-3.6-flash'
+ ? 'border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8]'
+ : 'border-[#37393b] bg-[#28292a] hover:bg-[#37393b]'
+ }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm">Signal87 Standard Engine</span>
-                  <span className="text-[10px] bg-[#004a77]/50 text-[#7dd3fc] px-2 py-0.5 rounded-full font-mono font-bold border border-[#004a77]">Fast & Low Latency</span>
+                  <span className="text-[12px] text-[var(--muted)]">Fast, low latency</span>
                 </div>
                 <p className="text-xs text-[#c4c7c5] leading-relaxed">
                   Optimized for instant OCR text extraction, document classification, auto-summarization, and standard Q&A.
@@ -158,16 +158,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div
                 onClick={() => onChangeModel('gemini-3.1-pro-preview')}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
-                  selectedModel === 'gemini-3.1-pro-preview'
-                    ? 'border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8]'
-                    : 'border-[#37393b] bg-[#28292a] hover:bg-[#37393b]'
-                }`}
+ selectedModel === 'gemini-3.1-pro-preview'
+ ? 'border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8]'
+ : 'border-[#37393b] bg-[#28292a] hover:bg-[#37393b]'
+ }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm flex items-center gap-1">
                     Signal87 Deep Engine <Sparkles size={14} className="text-amber-400" />
                   </span>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold border border-amber-500/40">Deep Reasoning</span>
+                  <span className="text-[12px] text-[var(--muted)]">Deep reasoning</span>
                 </div>
                 <p className="text-xs text-[#c4c7c5] leading-relaxed">
                   High-capacity long-context model for complex multi-document comparative analysis, legal drafting, and policy research.
@@ -210,10 +210,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <span className="text-[#c4c7c5] font-mono text-[11px]">{u.email}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 bg-[#28292a] font-semibold text-[#e3e3e3] rounded-lg border border-[#37393b]">
+                    <span className="text-[13px] text-[var(--ink-2)]">
                       {u.role}
                     </span>
-                    <span className="text-[#7dd3fc] font-bold text-[10px] bg-[#004a77]/40 px-2 py-0.5 rounded-full border border-[#004a77]">
+                    <span className="text-[12px] text-[var(--muted)]">
                       {u.status}
                     </span>
                   </div>

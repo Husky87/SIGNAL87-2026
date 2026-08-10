@@ -58,7 +58,7 @@ export const SavedSearchesView: React.FC<SavedSearchesViewProps> = ({
       </div>
 
       {/* Main Search Bar Box */}
-      <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 shadow-xs space-y-4">
+      <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 space-y-4">
         <form onSubmit={handleRunSearch} className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#c4c7c5]" size={18} />
@@ -72,7 +72,7 @@ export const SavedSearchesView: React.FC<SavedSearchesViewProps> = ({
           </div>
           <button
             type="submit"
-            className="px-6 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+            className="px-6 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
           >
             <Sparkles size={15} /> Semantic Search
           </button>

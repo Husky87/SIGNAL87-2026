@@ -86,7 +86,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       <div className="md:hidden fixed right-4 bottom-22 z-40">
         <button
           onClick={() => setIsBottomSheetOpen(true)}
-          className="w-14 h-14 rounded-2xl bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink)] flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer"
+          className="w-14 h-14 rounded-2xl bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink)] flex items-center justify-center transition-transform active:scale-95 cursor-pointer"
           title="Create new action"
           id="signal87-fab"
         >
@@ -104,7 +104,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
           />
 
           {/* Bottom Sheet Container */}
-          <div className="relative bg-[var(--card)] rounded-t-3xl border-t border-[var(--rule)] shadow-2xl p-6 pb-8 space-y-6 z-10 transform transition-transform animate-in slide-in-from-bottom duration-250 ease-out max-w-lg mx-auto w-full">
+          <div className="relative bg-[var(--card)] rounded-t-3xl border-t border-[var(--rule)] p-6 pb-8 space-y-6 z-10 transform transition-transform animate-in slide-in-from-bottom duration-250 ease-out max-w-lg mx-auto w-full">
             {/* Soft drag handle marker */}
             <div className="w-10 h-1 bg-[var(--rule)] rounded-full mx-auto" />
 
@@ -125,7 +125,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('folder')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-[var(--teal-soft)] text-[var(--teal)] flex items-center justify-center border border-[var(--teal)]/20 shadow-sm group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[var(--teal-soft)] text-[var(--teal)] flex items-center justify-center border border-[var(--teal)]/20 group-active:scale-95 transition-transform">
                   <FolderPlus size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Folder</span>
@@ -136,7 +136,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('upload')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900 shadow-sm group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900 group-active:scale-95 transition-transform">
                   <Upload size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>
@@ -147,7 +147,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('chat')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center border border-red-100 dark:border-red-900 shadow-sm group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center border border-red-100 dark:border-red-900 group-active:scale-95 transition-transform">
                   <Sparkles size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">AI Chat</span>
@@ -158,7 +158,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('drive')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 shadow-sm group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
                   <Globe size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Cloud Files</span>
@@ -171,7 +171,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       {/* Primary Bottom Navigation Bar - Material 3 Style */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden flex items-center justify-around flex-shrink-0 px-2 pt-2.5 pb-2 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full shadow-md"
+        className="md:hidden flex items-center justify-around flex-shrink-0 px-2 pt-2.5 pb-2 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full"
         style={{
           paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
         }}
@@ -203,10 +203,10 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               {/* Modern Google MD3 Active Accent Pill Indicator */}
               <div
                 className={`flex items-center justify-center px-5 py-1 rounded-full transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
-                    : 'bg-transparent text-[var(--ink-2)] hover:bg-[var(--raised)]/40 hover:text-[var(--ink)]'
-                }`}
+ isActive
+ ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+ : 'bg-transparent text-[var(--ink-2)] hover:bg-[var(--raised)]/40 hover:text-[var(--ink)]'
+ }`}
               >
                 <Icon className="w-[18px] h-[18px]" />
               </div>
@@ -214,8 +214,8 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               {/* Tab Label */}
               <span
                 className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
-                  isActive ? 'text-[var(--accent-ink)] font-bold' : 'text-[var(--slate)]'
-                }`}
+ isActive ? 'text-[var(--accent-ink)] font-bold' : 'text-[var(--slate)]'
+ }`}
               >
                 {tab.label}
               </span>

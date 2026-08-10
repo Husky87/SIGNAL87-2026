@@ -21,7 +21,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full text-slate-100 shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full text-slate-100 overflow-hidden relative animate-in fade-in zoom-in duration-200">
         {/* Header Close Button */}
         <button
           onClick={onClose}
@@ -33,7 +33,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
         {/* Step 1 Content */}
         {step === 1 ? (
           <div className="p-6 sm:p-8 space-y-6">
-            <div className="w-14 h-14 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center text-sky-400 shadow-inner">
+            <div className="w-14 h-14 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center text-sky-400">
               <Signal87Logo size={32} />
             </div>
 
@@ -68,7 +68,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </button>
               <button
                 onClick={() => setStep(2)}
-                className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+                className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>Next: Core Capabilities</span>
                 <ArrowRight size={14} />
@@ -139,7 +139,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </button>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-gradient-to-r from-sky-400 to-emerald-400 hover:opacity-95 text-slate-950 font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-md"
+                className="px-6 py-2.5 bg-gradient-to-r from-sky-400 to-emerald-400 hover:opacity-95 text-slate-950 font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>Start Exploring Workspace</span>
                 <CheckCircle2 size={16} />

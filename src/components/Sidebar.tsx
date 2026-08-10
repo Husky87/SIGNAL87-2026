@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="flex items-center gap-1.5">
             {collapsed && !mobileMenuOpen ? null : (
-              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--card)] font-bold flex items-center justify-center text-[10px] font-mono shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--card)] font-bold flex items-center justify-center text-[10px] font-mono">
                 {userInitials}
               </div>
             )}
@@ -168,18 +168,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 title={isNew ? 'Start a new question' : undefined}
                 className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
-                  isNew
-                    ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
-                    : isActive
-                    ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
-                    : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
-                } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
+ isNew
+ ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
+ : isActive
+ ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
+ : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
+ } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
               >
                 <Icon
                   size={16}
                   className={`flex-shrink-0 ${
-                    isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
-                  }`}
+ isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
+ }`}
                 />
                 {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
               </button>
@@ -210,8 +210,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Desktop Left Rail */}
       <aside
         className={`hidden md:flex flex-shrink-0 bg-[var(--paper)] h-full flex-col justify-between border-r border-transparent transition-all duration-200 relative z-20 ${
-          collapsed ? 'w-20' : 'w-64'
-        }`}
+ collapsed ? 'w-20' : 'w-64'
+ }`}
       >
         {sidebarContent}
       </aside>
@@ -224,9 +224,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
       <div
-        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-[var(--paper)] border-r border-[var(--rule)] text-[var(--ink)] p-0 transform transition-transform duration-200 shadow-xl ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-[var(--paper)] border-r border-[var(--rule)] text-[var(--ink)] p-0 transform transition-transform duration-200 ${
+ mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+ }`}
       >
         {sidebarContent}
       </div>

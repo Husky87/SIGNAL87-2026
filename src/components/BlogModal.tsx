@@ -72,7 +72,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -136,7 +136,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
               <div
                 key={post.id}
                 onClick={() => setSelectedPost(post)}
-                className="p-5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-4 transition-all cursor-pointer group shadow-2xs hover:border-slate-300"
+                className="p-5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-4 transition-all cursor-pointer group hover:border-slate-300"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-[10px]">

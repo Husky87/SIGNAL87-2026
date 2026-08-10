@@ -90,11 +90,11 @@ export const TeamView: React.FC = () => {
       />
 
       {/* Hero Header - SEO Optimized */}
-      <header className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 shadow-xs space-y-4">
+      <header className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#37393b] pb-6">
           <div className="space-y-2 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#004a77]/40 border border-[#004a77] rounded-full text-xs font-bold text-[#7dd3fc]">
-              <Sparkles size={14} className="text-amber-400" />
+            <div className="inline-flex items-center gap-1.5 text-[13px] text-[var(--muted)]">
+              <Sparkles size={14} />
               <span>Signal87 Team</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-[#e3e3e3] tracking-tight leading-tight">
@@ -108,30 +108,24 @@ export const TeamView: React.FC = () => {
           <div className="flex items-center gap-1.5 bg-[#131314] p-1.5 rounded-2xl border border-[#37393b] overflow-x-auto scrollbar-none w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('leadership')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'leadership'
-                  ? 'bg-[#1a73e8] text-white shadow-xs'
-                  : 'text-[#c4c7c5] hover:text-[#e3e3e3]'
+              className={`px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'leadership' ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--muted)] hover:text-[var(--ink)]'
               }`}
             >
               Executive Team
             </button>
             <button
               onClick={() => setActiveTab('mission')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'mission'
-                  ? 'bg-[#1a73e8] text-white shadow-xs'
-                  : 'text-[#c4c7c5] hover:text-[#e3e3e3]'
+              className={`px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'mission' ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--muted)] hover:text-[var(--ink)]'
               }`}
             >
               Company Mission
             </button>
             <button
               onClick={() => setActiveTab('milestones')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === 'milestones'
-                  ? 'bg-[#1a73e8] text-white shadow-xs'
-                  : 'text-[#c4c7c5] hover:text-[#e3e3e3]'
+              className={`px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'milestones' ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--muted)] hover:text-[var(--ink)]'
               }`}
             >
               Leadership Timeline
@@ -141,12 +135,16 @@ export const TeamView: React.FC = () => {
 
         {/* SEO Keywords Tags */}
         <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px] text-[#c4c7c5] font-medium">
-          <span className="font-bold text-[#e3e3e3] uppercase tracking-wider">Focus Areas:</span>
-          <span className="px-2.5 py-0.5 bg-[#28292a] border border-[#37393b] rounded-md">Legal AI Memory</span>
-          <span className="px-2.5 py-0.5 bg-[#28292a] border border-[#37393b] rounded-md">Enterprise Research Engine</span>
-          <span className="px-2.5 py-0.5 bg-[#28292a] border border-[#37393b] rounded-md">Regulatory Compliance</span>
-          <span className="px-2.5 py-0.5 bg-[#28292a] border border-[#37393b] rounded-md">Citation Grounding</span>
-          <span className="px-2.5 py-0.5 bg-[#28292a] border border-[#37393b] rounded-md">Document Intelligence</span>
+          <span className="text-[var(--ink)] font-medium">Focus areas:</span>
+          <span>Legal AI Memory</span>
+          <span>·</span>
+          <span>Enterprise Research Engine</span>
+          <span>·</span>
+          <span>Regulatory Compliance</span>
+          <span>·</span>
+          <span>Citation Grounding</span>
+          <span>·</span>
+          <span>Document Intelligence</span>
         </div>
       </header>
 
@@ -168,7 +166,7 @@ export const TeamView: React.FC = () => {
             <article
               itemScope
               itemType="https://schema.org/Person"
-              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 shadow-xs hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
+              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
             >
               <div className="space-y-6">
                 <div className="flex items-start gap-4 sm:gap-6">
@@ -177,7 +175,7 @@ export const TeamView: React.FC = () => {
                       src="/assets/michael_benezra.jpg"
                       alt="Michael Benezra - Chief Executive Officer & Co-Founder Signal87"
                       itemProp="image"
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b] shadow-sm"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b]"
                     />
                     <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
                       <ShieldCheck size={12} />
@@ -189,7 +187,7 @@ export const TeamView: React.FC = () => {
                       <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[#e3e3e3]">
                         Michael Benezra
                       </h3>
-                      <span className="text-[10px] bg-[#1a73e8] text-white font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] text-[var(--muted)]">
                         Co-Founder
                       </span>
                     </div>
@@ -271,7 +269,7 @@ export const TeamView: React.FC = () => {
             <article
               itemScope
               itemType="https://schema.org/Person"
-              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 shadow-xs hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
+              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
             >
               <div className="space-y-6">
                 <div className="flex items-start gap-4 sm:gap-6">
@@ -280,7 +278,7 @@ export const TeamView: React.FC = () => {
                       src="/assets/michael_chavira.jpg"
                       alt="Michael Chavira - Co-Founder Signal87"
                       itemProp="image"
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b] shadow-sm"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b]"
                     />
                     <span className="absolute -bottom-1 -right-1 bg-[var(--teal)] text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
                       <ShieldCheck size={12} />
@@ -292,7 +290,7 @@ export const TeamView: React.FC = () => {
                       <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[#e3e3e3]">
                         Michael Chavira
                       </h3>
-                      <span className="text-[10px] bg-[#1a73e8] text-white font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] text-[var(--muted)]">
                         Co-Founder
                       </span>
                     </div>
@@ -375,7 +373,7 @@ export const TeamView: React.FC = () => {
 
       {/* Mission Section */}
       {activeTab === 'mission' && (
-        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 shadow-xs space-y-6">
+        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 space-y-6">
           <div className="max-w-3xl space-y-4">
             <h2 className="text-2xl font-bold text-[#e3e3e3]">The Signal87 Mission & Core Values</h2>
             <p className="text-sm text-[#c4c7c5] leading-relaxed">
@@ -413,7 +411,7 @@ export const TeamView: React.FC = () => {
 
       {/* Leadership Timeline Section */}
       {activeTab === 'milestones' && (
-        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 space-y-6">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-[#e3e3e3]">Signal87 Executive Leadership Timeline</h2>
             <p className="text-xs text-[#c4c7c5]">
@@ -421,7 +419,7 @@ export const TeamView: React.FC = () => {
             </p>
           </div>
 
-          <div className="overflow-x-auto border border-[#37393b] rounded-2xl shadow-2xs">
+          <div className="overflow-x-auto border border-[#37393b] rounded-2xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#131314] border-b border-[#37393b] text-[#c4c7c5] font-bold uppercase tracking-wider text-[11px]">
@@ -450,10 +448,10 @@ export const TeamView: React.FC = () => {
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          m.status === 'Completed'
-                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'
-                            : 'bg-amber-950/80 text-amber-300 border border-amber-800 animate-pulse'
-                        }`}
+ m.status === 'Completed'
+ ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'
+ : 'bg-amber-950/80 text-amber-300 border border-amber-800 animate-pulse'
+ }`}
                       >
                         <CheckCircle2 size={11} /> {m.status}
                       </span>
@@ -476,7 +474,7 @@ export const TeamView: React.FC = () => {
         </div>
         <a
           href="mailto:ceo@signal87.ai"
-          className="px-5 py-2.5 bg-[#1a73e8] text-white hover:bg-[#1557b0] font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center gap-2 cursor-pointer flex-shrink-0"
+          className="px-5 py-2.5 bg-[#1a73e8] text-white hover:bg-[#1557b0] font-bold text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0"
         >
           <Mail size={15} /> Request Executive Briefing
         </a>

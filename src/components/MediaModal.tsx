@@ -12,7 +12,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -49,7 +49,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({ isOpen, onClose }) => {
 
         {/* Media Contact & Brand Assets */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-2xs">
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2">
             <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2 uppercase tracking-wider">
               <Mail size={15} className="text-[var(--teal)]" /> Press Contact
             </h3>
@@ -64,7 +64,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({ isOpen, onClose }) => {
             </a>
           </div>
 
-          <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-2xs">
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2">
             <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2 uppercase tracking-wider">
               <Download size={15} className="text-emerald-600" /> Official Brand Kit
             </h3>

@@ -7,7 +7,6 @@ import {
   Bookmark,
   StickyNote,
   Link2,
-  Calendar,
   X
 } from 'lucide-react';
 import { SavedItem, SavedNote, SavedAnswer, DocumentItem } from '../types';
@@ -197,7 +196,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
               {selectedItem && (
                 <button
                   onClick={() => handleDeleteItem(selectedItem.id)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--slate)] hover:text-[var(--accent)] hover:bg-[var(--raised)] rounded-[4px] transition-colors cursor-pointer"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--slate)] hover:text-[var(--ink)] hover:bg-[var(--raised)] rounded-full transition-colors cursor-pointer"
                   title="Delete item"
                 >
                   <Trash2 size={16} />
@@ -262,22 +261,19 @@ export const SavedView: React.FC<SavedViewProps> = ({
               selectedItem && selectedItem.type === 'answer' && (
                 <div className="space-y-5">
                   <div className="space-y-1.5">
-                    <span
-                      className="inline-block px-2 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-ink)] font-mono text-[9px] font-bold uppercase tracking-[0.09em] rounded-[3px]"
-                      style={{ fontFamily: 'var(--mono)' }}
-                    >
-                      AI Research Answer
+                    <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-[var(--muted)]">
+                      Saved answer
                     </span>
-                    <h1 className="text-lg sm:text-xl font-normal text-[var(--ink)] leading-snug tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
+                    <h1 className="text-lg sm:text-xl text-[var(--ink)] leading-snug" style={{ fontWeight: 600, letterSpacing: '-0.036em' }}>
                       {(selectedItem as SavedAnswer).question}
                     </h1>
-                    <div className="text-[10px] font-mono text-[var(--slate)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
-                      Saved on: {formattedDate((selectedItem as SavedAnswer).timestamp)}
+                    <div className="text-[12px] text-[var(--muted)]">
+                      Saved {formattedDate((selectedItem as SavedAnswer).timestamp)}
                     </div>
                   </div>
 
                   {/* Read only citations-intact answer */}
-                  <div className="p-5 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] leading-relaxed">
+                  <div className="leading-relaxed">
                     <GeminiMarkdownRenderer
                       text={(selectedItem as SavedAnswer).text}
                       citations={(selectedItem as SavedAnswer).citations}
@@ -325,7 +321,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
                 placeholder="Search notes and answers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 bg-[var(--card)] text-[var(--ink)] placeholder-[var(--slate)] border border-[var(--rule)] rounded-xl focus:outline-none focus:border-[var(--accent)] transition-all shadow-2xs font-sans"
+                className="w-full pl-10 pr-9 py-2.5 bg-[var(--card)] text-[var(--ink)] placeholder-[var(--slate)] border border-[var(--rule)] rounded-xl focus:outline-none focus:border-[var(--accent)] transition-all font-sans"
                 style={{ fontSize: '16px' }}
               />
               {searchQuery && (
@@ -345,10 +341,10 @@ export const SavedView: React.FC<SavedViewProps> = ({
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-3.5 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center whitespace-nowrap ${
+                    className={`px-3 py-2 rounded-full text-[13px] transition-all cursor-pointer min-h-[44px] flex items-center whitespace-nowrap ${
                       activeFilter === filter
-                        ? 'bg-[var(--accent)] text-[var(--paper)]'
-                        : 'bg-[var(--card)] text-[var(--ink-2)] border border-[var(--rule)] hover:bg-[var(--raised)]'
+                        ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold'
+                        : 'text-[var(--muted)] hover:text-[var(--ink)]'
                     }`}
                   >
                     {filter === 'all' ? 'All' : filter === 'notes' ? 'Notes' : 'Answers'}
@@ -359,7 +355,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
           </div>
 
           {/* List Scroll Container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto px-4">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => {
                 const isNote = item.type === 'note';
@@ -372,58 +368,33 @@ export const SavedView: React.FC<SavedViewProps> = ({
                   <div
                     key={item.id}
                     onClick={() => handleSelectItem(item)}
-                    className="flex flex-col justify-between p-4 bg-[var(--card)] border border-[var(--rule)] hover:border-[var(--accent)] rounded-[4px] transition-all cursor-pointer min-h-[44px] shadow-2xs"
+                    className="flex items-center justify-between gap-3 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className={`px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.09em] rounded-[3px] ${
-                              isNote
-                                ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
-                                : 'bg-[var(--raised)] text-[var(--slate)] border border-[var(--rule)]'
-                            }`}
-                            style={{ fontFamily: 'var(--mono)' }}
-                          >
-                            {isNote ? 'Note' : 'Answer'}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap text-[12px] text-[var(--muted)]">
+                        <span>{isNote ? 'Note' : 'Answer'}</span>
+                        {linkedId && (
+                          <span className="inline-flex items-center gap-1 min-w-0">
+                            <Link2 size={10} />
+                            <span className="truncate max-w-[120px]">{getLinkedDocTitle(linkedId)}</span>
                           </span>
-                          {linkedId && (
-                            <span
-                              className="inline-flex items-center gap-1 font-mono text-[9px] font-bold text-[var(--slate)]"
-                              style={{ fontFamily: 'var(--mono)' }}
-                            >
-                              <Link2 size={9} />
-                              <span className="truncate max-w-[120px]">{getLinkedDocTitle(linkedId)}</span>
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-bold text-[var(--ink)] truncate leading-snug">
-                          {title || 'Untitled Note'}
-                        </h3>
-                        <p className="text-xs text-[var(--ink-2)] truncate leading-relaxed">
-                          {preview || <span className="italic text-[var(--slate)]">Empty content</span>}
-                        </p>
+                        )}
+                        <span>·</span>
+                        <span>{formattedDate(timestamp)}</span>
                       </div>
-
-                      {/* Trash action shortcut directly from row */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteItem(item.id);
-                        }}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--slate)] hover:text-[var(--accent)] hover:bg-[var(--raised)] rounded-[4px] transition-colors flex-shrink-0"
-                        title="Delete immediately"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <h3 className="text-[14.5px] text-[var(--ink)] truncate">{title || 'Untitled Note'}</h3>
+                      <p className="text-[12.5px] text-[var(--ink-2)] truncate">
+                        {preview || <span className="italic text-[var(--muted)]">Empty content</span>}
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2.5 pt-1.5 border-t border-[var(--rule-2)]">
-                      <Calendar size={10} className="text-[var(--slate)]" />
-                      <span className="font-mono text-[9px] text-[var(--slate)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
-                        {formattedDate(timestamp)}
-                      </span>
-                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted)] hover:text-[var(--ink)] rounded-full transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Delete immediately"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 );
               })

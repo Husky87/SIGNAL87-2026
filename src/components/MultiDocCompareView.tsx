@@ -70,7 +70,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
         <button
           onClick={handleRunComparison}
           disabled={loading || selectedIds.length < 2}
-          className="px-5 py-2.5 bg-[#1a73e8] hover:bg-[#1557b0] disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          className="px-5 py-2.5 bg-[#1a73e8] hover:bg-[#1557b0] disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer"
         >
           {loading ? (
             <>
@@ -101,10 +101,10 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
                 key={doc.id}
                 onClick={() => toggleSelect(doc.id)}
                 className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                  isSelected
-                    ? 'border-[#1a73e8] bg-[#004a77]/30 font-semibold text-[#e3e3e3]'
-                    : 'border-[#37393b] bg-[#28292a] text-[#c4c7c5] hover:bg-[#37393b]'
-                }`}
+ isSelected
+ ? 'border-[#1a73e8] bg-[#004a77]/30 font-semibold text-[#e3e3e3]'
+ : 'border-[#37393b] bg-[#28292a] text-[#c4c7c5] hover:bg-[#37393b]'
+ }`}
               >
                 <div className="flex items-center gap-2 truncate">
                   <FileText size={16} className={isSelected ? 'text-[#7dd3fc]' : 'text-[#c4c7c5]'} />

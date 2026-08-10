@@ -102,38 +102,34 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Template Selection & Generation Controls */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-5 space-y-4">
             <h2 className="text-xs font-bold text-[#e3e3e3] uppercase tracking-wider">
               1. Select Report Template
             </h2>
 
-            <div className="space-y-2">
+            <div>
               {templates.map((tpl) => {
                 const isSelected = selectedTemplate.id === tpl.id;
                 return (
                   <div
                     key={tpl.id}
                     onClick={() => setSelectedTemplate(tpl)}
-                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all space-y-1 ${
-                      isSelected
-                        ? 'border-[#1a73e8] bg-[#004a77]/50 font-semibold text-[#e3e3e3] ring-2 ring-[#1a73e8]/20'
-                        : 'border-[#37393b] bg-[#28292a] text-[#c4c7c5] hover:bg-[#37393b]'
+                    className={`py-3 border-b border-[var(--rule-2)] last:border-b-0 text-[13px] cursor-pointer transition-all space-y-1 ${
+                      isSelected ? 'text-[var(--ink)]' : 'text-[var(--ink-2)] hover:text-[var(--ink)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#e3e3e3]">{tpl.name}</span>
-                      <span className="text-[10px] bg-[#37393b] text-[#c4c7c5] px-2 py-0.5 rounded font-mono">
-                        {tpl.category}
-                      </span>
+                      <span className={isSelected ? 'font-semibold' : 'font-medium'}>{tpl.name}</span>
+                      <span className="text-[12px] text-[var(--muted)]">{tpl.category}</span>
                     </div>
-                    <p className="text-[11px] text-[#c4c7c5] line-clamp-2 leading-relaxed">{tpl.description}</p>
+                    <p className="text-[12.5px] text-[var(--muted)] line-clamp-2 leading-relaxed">{tpl.description}</p>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <form onSubmit={handleGenerateReport} className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-5 shadow-xs space-y-4">
+          <form onSubmit={handleGenerateReport} className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-5 space-y-4">
             <h2 className="text-xs font-bold text-[#e3e3e3] uppercase tracking-wider">
               2. Custom Focus & Inputs
             </h2>
@@ -165,15 +161,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <button
               type="submit"
               disabled={generating}
-              className="w-full py-2.5 bg-[#1a73e8] hover:bg-[#1557b0] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-50 text-white font-medium text-[13.5px] rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {generating ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Drafting Executive Brief via Signal87...
+                  <Loader2 size={16} className="animate-spin" /> Writing your report...
                 </>
               ) : (
                 <>
-                  <Sparkles size={16} /> Generate AI Report
+                  <Sparkles size={16} /> Generate report
                 </>
               )}
             </button>
@@ -183,7 +179,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         {/* Right Column: Generated Report Previewer */}
         <div className="lg:col-span-2">
           {activeReportText ? (
-            <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl shadow-xs overflow-hidden flex flex-col h-full">
+            <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl overflow-hidden flex flex-col h-full">
               <div className="p-4 bg-[#131314] text-[#e3e3e3] border-b border-[#37393b] flex items-center justify-between">
                 <span className="font-bold text-sm flex items-center gap-2">
                   <FileSpreadsheet size={18} className="text-[#7dd3fc]" /> Draft Report Output

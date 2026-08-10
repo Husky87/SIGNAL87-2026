@@ -185,12 +185,12 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-[#18191a] rounded-3xl max-w-3xl w-full border border-[#37393b] text-[#e3e3e3] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-[#18191a] rounded-3xl max-w-3xl w-full border border-[#37393b] text-[#e3e3e3] overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-[#28292a] flex items-center justify-between bg-[#131314] flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--teal)] text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--teal)] text-white flex items-center justify-center">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 87.3 78">
                 <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
                 <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
@@ -238,7 +238,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           {/* Unauthenticated / Auth Connect Banner */}
           {!token ? (
             <div className="py-8 px-6 bg-gradient-to-br from-[#1e1f20] to-[#131314] border border-[#37393b] rounded-2xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
-              <div className="w-16 h-16 rounded-3xl bg-[#28292a] border border-[#37393b] flex items-center justify-center text-[#7dd3fc] shadow-inner">
+              <div className="w-16 h-16 rounded-3xl bg-[#28292a] border border-[#37393b] flex items-center justify-center text-[#7dd3fc]">
                 <FolderOpen size={32} />
               </div>
               <div className="max-w-md space-y-2">
@@ -257,7 +257,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <button
                 onClick={handleConnectDrive}
                 disabled={authenticating}
-                className="px-6 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center gap-2.5 shadow-lg active:scale-95 disabled:opacity-50"
+                className="px-6 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center gap-2.5 active:scale-95 disabled:opacity-50"
               >
                 {authenticating ? (
                   <>
@@ -322,10 +322,10 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         if (token) loadFiles(token);
                       }}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                        categoryFilter === cat.id
-                          ? 'bg-[#1a73e8] text-white shadow-xs'
-                          : 'text-[#c4c7c5] hover:text-white hover:bg-[#28292a]'
-                      }`}
+ categoryFilter === cat.id
+ ? 'bg-[#1a73e8] text-white '
+ : 'text-[#c4c7c5] hover:text-white hover:bg-[#28292a]'
+ }`}
                     >
                       {cat.label}
                     </button>
@@ -400,10 +400,10 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         key={file.id}
                         onClick={() => toggleSelectFile(file.id)}
                         className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected
-                            ? 'bg-[#004a77]/30 border-[#1a73e8] shadow-xs'
-                            : 'bg-[#131314] border-[#28292a] hover:border-[#37393b] hover:bg-[#1e1f20]'
-                        }`}
+ isSelected
+ ? 'bg-[#004a77]/30 border-[#1a73e8] '
+ : 'bg-[#131314] border-[#28292a] hover:border-[#37393b] hover:bg-[#1e1f20]'
+ }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <button
@@ -478,7 +478,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <button
                 onClick={handleStartPorting}
                 disabled={selectedIds.size === 0 || importing}
-                className="px-5 py-2.5 bg-gradient-to-r from-[#1a73e8] to-sky-500 hover:from-[#1557b0] hover:to-sky-400 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-md active:scale-95"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#1a73e8] to-sky-500 hover:from-[#1557b0] hover:to-sky-400 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 active:scale-95"
               >
                 <Sparkles size={15} />
                 <span>Port {selectedIds.size > 0 ? selectedIds.size : ''} File(s) into Signal87</span>

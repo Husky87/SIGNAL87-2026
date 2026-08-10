@@ -153,12 +153,12 @@ export const QuickAIAgentWidget: React.FC<QuickAIAgentWidgetProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl flex items-center gap-2.5 transition-all duration-300 hover:scale-105 group cursor-pointer"
+          className="fixed bottom-6 right-6 z-40 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 p-3.5 sm:px-4 sm:py-3 rounded-full flex items-center gap-2.5 transition-all duration-300 hover:scale-105 group cursor-pointer"
           title="Instant AI Document Assistant (Cmd + K)"
         >
           <div className="relative flex items-center justify-center">
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-sky-400 rounded-full animate-ping"></span>
-            <div className="w-8 h-8 rounded-full bg-[var(--teal)] flex items-center justify-center text-white font-bold shadow-md">
+            <div className="w-8 h-8 rounded-full bg-[var(--teal)] flex items-center justify-center text-white font-bold">
               <Sparkles size={16} />
             </div>
           </div>
@@ -173,11 +173,11 @@ export const QuickAIAgentWidget: React.FC<QuickAIAgentWidgetProps> = ({
 
       {/* Floating Agent Drawer / Window */}
       {isOpen && (
-        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[440px] sm:h-[620px] bg-slate-950 text-slate-100 sm:rounded-3xl border border-slate-800 shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[440px] sm:h-[620px] bg-slate-950 text-slate-100 sm:rounded-3xl border border-slate-800 z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
           <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[var(--teal)] flex items-center justify-center text-white font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-[var(--teal)] flex items-center justify-center text-white font-bold">
                 <Bot size={20} />
               </div>
               <div>
@@ -209,15 +209,15 @@ export const QuickAIAgentWidget: React.FC<QuickAIAgentWidgetProps> = ({
               <div
                 key={msg.id}
                 className={`flex flex-col ${
-                  msg.role === 'user' ? 'items-end' : 'items-start'
-                } space-y-1`}
+ msg.role === 'user' ? 'items-end' : 'items-start'
+ } space-y-1`}
               >
                 <div
                   className={`max-w-[88%] p-3.5 rounded-2xl text-xs leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-sky-500 text-slate-950 font-semibold rounded-br-none shadow-md'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-sm'
-                  }`}
+ msg.role === 'user'
+ ? 'bg-sky-500 text-slate-950 font-semibold rounded-br-none '
+ : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none '
+ }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
 

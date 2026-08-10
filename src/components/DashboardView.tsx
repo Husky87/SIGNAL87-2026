@@ -38,7 +38,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--bg)]">
-      <div className="max-w-[640px] w-full mx-auto px-5 py-16 sm:py-24 space-y-8">
+      <div className="max-w-[680px] w-full mx-auto px-5 md:px-11 py-16 sm:py-24 space-y-9">
         {/* Headline */}
         <div className="space-y-3 text-center">
           <h1
@@ -47,7 +47,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           >
             {firstName ? `What do you want to know, ${firstName}?` : 'What do you want to know?'}
           </h1>
-          <p className="text-[16px] text-[var(--ink-2)]">
+          <p className="text-[16px] text-[var(--ink-2)]" style={{ lineHeight: 1.6 }}>
             Ask about anything you've uploaded. Plain questions work best.
           </p>
         </div>
@@ -81,19 +81,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Plain-language suggestions */}
-        <div className="space-y-2">
+        <div>
           {SUGGESTIONS.map((s, idx) => {
             const Icon = s.icon;
             return (
               <button
                 key={idx}
                 onClick={() => onAskQuestion(s.text)}
-                className="w-full flex items-center gap-3 px-3.5 py-3 min-h-[44px] rounded-[11px] hover:bg-[var(--raised)] transition-colors cursor-pointer text-left"
+                className="w-full flex items-center gap-3 px-1 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 hover:bg-[var(--raised)] transition-colors cursor-pointer text-left"
               >
-                <span className="w-7 h-7 flex-shrink-0 rounded-full bg-[var(--teal-soft)] text-[var(--teal-deep)] flex items-center justify-center">
-                  <Icon size={14} />
-                </span>
-                <span className="text-[14.5px] text-[var(--ink)]">{s.text}</span>
+                <Icon size={15} className="text-[var(--ink-2)] flex-shrink-0" />
+                <span className="text-[14.5px] text-[var(--ink)]" style={{ lineHeight: 1.6 }}>{s.text}</span>
               </button>
             );
           })}
@@ -101,19 +99,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Recent questions */}
         {recent.length > 0 && (
-          <div className="pt-4 border-t border-[var(--rule-2)] space-y-1">
-            <h2 className="text-[13px] font-medium text-[var(--muted)] px-3.5 pb-1">Recent</h2>
+          <div className="pt-2 space-y-0.5">
+            <h2 className="text-[11px] font-medium text-[var(--muted)] uppercase px-1 pb-2" style={{ letterSpacing: '0.09em' }}>
+              Recent
+            </h2>
             {recent.map((s) => (
               <button
                 key={s.id}
                 onClick={() => onOpenSession(s.id)}
-                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 min-h-[44px] rounded-[11px] hover:bg-[var(--raised)] transition-colors cursor-pointer text-left"
+                className="w-full flex items-center justify-between gap-3 px-1 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 hover:bg-[var(--raised)] transition-colors cursor-pointer text-left"
               >
                 <span className="flex items-center gap-2.5 min-w-0 flex-1">
                   <Clock size={13} className="text-[var(--muted)] flex-shrink-0" />
-                  <span className="text-[14.5px] text-[var(--ink-2)] truncate">{s.title}</span>
+                  <span className="text-[14.5px] text-[var(--ink-2)] truncate" style={{ lineHeight: 1.6 }}>{s.title}</span>
                 </span>
-                <span className="text-[11px] text-[var(--muted)] flex-shrink-0">{s.timestamp}</span>
+                <span className="text-[12px] text-[var(--muted)] flex-shrink-0">{s.timestamp}</span>
               </button>
             ))}
           </div>

@@ -727,7 +727,7 @@ export default function App() {
       <div ref={mainScrollRef} className="flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-hidden">
         {/* Persistent Mobile Top Header (Authentic Google Drive Pill Search Bar) */}
         <header className="flex md:hidden bg-[var(--paper)] px-4 pt-3.5 pb-2.5 items-center flex-shrink-0 z-30 relative">
-          <div className="w-full flex items-center gap-2 bg-[var(--card)] px-3 py-1.5 border border-[var(--rule)] rounded-full shadow-sm hover:shadow transition-shadow">
+          <div className="w-full flex items-center gap-2 bg-[var(--card)] px-3 py-1.5 border border-[var(--rule)] rounded-full transition-">
             {/* Hamburger button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -784,7 +784,7 @@ export default function App() {
 
             {/* User Avatar */}
             {currentUser ? (
-              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--paper)] font-bold flex items-center justify-center text-xs overflow-hidden shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--paper)] font-bold flex items-center justify-center text-xs overflow-hidden">
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}
@@ -808,7 +808,7 @@ export default function App() {
 
           {/* Model selector dropdown for mobile if clicked */}
           {showMobileModelMenu && (
-            <div className="absolute top-16 left-4 right-4 bg-[var(--card)] border border-[var(--rule)] rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in duration-150">
+            <div className="absolute top-16 left-4 right-4 bg-[var(--card)] border border-[var(--rule)] rounded-2xl py-1.5 z-50 animate-in fade-in duration-150">
               {[
                 { id: 'gemini-3.6-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
                 { id: 'gemini-3.1-pro-preview', name: 'Signal87 Deep', desc: 'Deep synthesis & reasoning' },
@@ -821,8 +821,8 @@ export default function App() {
                     setShowMobileModelMenu(false);
                   }}
                   className={`w-full text-left px-4 py-2.5 hover:bg-[var(--raised)] transition-colors cursor-pointer flex flex-col gap-0.5 ${
-                    selectedModel === m.id ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--ink-2)]'
-                  }`}
+ selectedModel === m.id ? 'bg-[var(--raised)] text-[var(--ink)] font-semibold' : 'text-[var(--ink-2)]'
+ }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span>{m.name}</span>

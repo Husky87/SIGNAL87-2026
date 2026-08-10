@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="py-3.5 px-6 sm:px-8 bg-[var(--paper)]/95 backdrop-blur-md border-b border-[var(--rule)] flex items-center justify-between gap-4 sticky top-0 z-30 text-[var(--ink)] shadow-sm">
+    <header className="py-3.5 px-6 sm:px-8 bg-[var(--paper)]/95 backdrop-blur-md border-b border-[var(--rule)] flex items-center justify-between gap-4 sticky top-0 z-30 text-[var(--ink)]">
       {/* Left: Mobile Menu Toggle + Workspace Title & Brand */}
       <div className="flex items-center gap-3">
         <button
@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             onClick={() => setShowModelMenu(!showModelMenu)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] rounded-full text-xs font-semibold text-[var(--ink-2)] transition-colors cursor-pointer shadow-sm min-h-[44px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] rounded-full text-xs font-semibold text-[var(--ink-2)] transition-colors cursor-pointer min-h-[44px]"
           >
             <Sparkles size={13} className="text-[var(--accent)]" />
             <span className="truncate max-w-[90px] sm:max-w-none">{getModelLabel(selectedModel)}</span>
@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {showModelMenu && (
-            <div className="absolute left-0 mt-2 w-72 bg-[var(--card)] border border-[var(--rule)] rounded-2xl shadow-2xl py-2 z-50 text-[var(--ink-2)]">
+            <div className="absolute left-0 mt-2 w-72 bg-[var(--card)] border border-[var(--rule)] rounded-2xl py-2 z-50 text-[var(--ink-2)]">
               <div className="px-3 py-1.5 border-b border-[var(--rule)] text-[11px] font-bold text-[var(--slate)] uppercase tracking-wider flex items-center gap-1.5">
                 <Cpu size={12} className="text-[var(--accent)]" /> Signal87 Engine Selection
               </div>
@@ -133,8 +133,8 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
-                  selectedModel === 'gemini-3.1-flash-lite' ? 'bg-[var(--raised)] border-l-4 border-amber-400' : ''
-                }`}
+ selectedModel === 'gemini-3.1-flash-lite' ? 'bg-[var(--raised)] border-l-4 border-amber-400' : ''
+ }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
                   <Zap size={13} className="text-amber-400" /> Signal87 Fast Engine
@@ -149,8 +149,8 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
-                  selectedModel === 'gemini-3.5-flash' || selectedModel === 'gemini-3.6-flash' ? 'bg-[var(--raised)] border-l-4 border-sky-400' : ''
-                }`}
+ selectedModel === 'gemini-3.5-flash' || selectedModel === 'gemini-3.6-flash' ? 'bg-[var(--raised)] border-l-4 border-sky-400' : ''
+ }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
                   <Sparkles size={13} className="text-sky-400" /> Signal87 Standard Engine
@@ -165,8 +165,8 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
-                  selectedModel === 'gemini-3.1-pro-preview' ? 'bg-[var(--raised)] border-l-4 border-purple-400' : ''
-                }`}
+ selectedModel === 'gemini-3.1-pro-preview' ? 'bg-[var(--raised)] border-l-4 border-purple-400' : ''
+ }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
                   <Bot size={13} className="text-purple-400" /> Signal87 Deep Engine
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative hidden sm:block">
           <button
             onClick={() => setShowQuickActions(!showQuickActions)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--teal)] hover:opacity-90 text-white font-extrabold rounded-full text-xs shadow-md transition-all cursor-pointer min-h-[44px]"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--teal)] hover:opacity-90 text-white font-extrabold rounded-full text-xs transition-all cursor-pointer min-h-[44px]"
           >
             <Plus size={15} className="stroke-[3]" />
             <span>Action</span>
@@ -193,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {showQuickActions && (
-            <div className="absolute right-0 mt-2 w-56 bg-[var(--card)] border border-[var(--rule)] rounded-2xl shadow-2xl py-2 z-50 text-[var(--ink-2)]">
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--card)] border border-[var(--rule)] rounded-2xl py-2 z-50 text-[var(--ink-2)]">
               <button
                 onClick={() => {
                   setShowQuickActions(false);
@@ -259,11 +259,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <img
                   src={activeUser.photoURL}
                   alt="Profile"
-                  className="w-8 h-8 rounded-full border border-[var(--rule)] object-cover shadow-sm"
+                  className="w-8 h-8 rounded-full border border-[var(--rule)] object-cover"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[var(--raised)] border border-[var(--rule)] text-[var(--accent)] font-extrabold text-xs flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-[var(--raised)] border border-[var(--rule)] text-[var(--accent)] font-extrabold text-xs flex items-center justify-center">
                   {activeUser.displayName ? activeUser.displayName.substring(0, 2).toUpperCase() : 'S87'}
                 </div>
               )}
@@ -281,7 +281,7 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <button
               onClick={handleGoogleSignIn}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] border border-[var(--rule)] hover:bg-[var(--raised)] text-[var(--ink)] rounded-full text-xs font-bold shadow-sm transition-colors cursor-pointer min-h-[44px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] border border-[var(--rule)] hover:bg-[var(--raised)] text-[var(--ink)] rounded-full text-xs font-bold transition-colors cursor-pointer min-h-[44px]"
               title="Sign in with your Google Account"
             >
               <LogIn size={15} className="text-[var(--accent)]" />
@@ -291,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {showUserMenu && activeUser && (
-            <div className="absolute right-0 mt-2 w-64 bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] rounded-2xl shadow-2xl py-2 z-50">
+            <div className="absolute right-0 mt-2 w-64 bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] rounded-2xl py-2 z-50">
               <div className="px-4 py-2 border-b border-[var(--rule)]">
                 <p className="text-xs font-bold text-[var(--ink)] truncate">
                   {activeUser.displayName || 'Google User'}

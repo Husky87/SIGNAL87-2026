@@ -22,7 +22,7 @@ export const Signal87Logo: React.FC<Signal87LogoProps> = ({
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="flex-shrink-0 shadow-sm rounded-2xl"
+        className="flex-shrink-0 rounded-2xl"
       >
         {/* Dark Squircle Background */}
         <rect width="100" height="100" rx="24" fill="#18181b" />

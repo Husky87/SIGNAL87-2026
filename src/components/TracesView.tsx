@@ -52,7 +52,7 @@ export const TracesView: React.FC<TracesViewProps> = ({ onSelectTrace }) => {
           <div
             key={trace.id}
             onClick={() => onSelectTrace?.(trace.query)}
-            className="p-3.5 bg-[#FFFFFF] border border-[#D3D9DE] rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:border-[#131C25] transition-colors shadow-2xs"
+            className="p-3.5 bg-[#FFFFFF] border border-[#D3D9DE] rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:border-[#131C25] transition-colors"
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <span className="font-mono text-[10px] font-bold text-[#6E7C89] uppercase w-12 flex-shrink-0">
@@ -66,10 +66,10 @@ export const TracesView: React.FC<TracesViewProps> = ({ onSelectTrace }) => {
             <div className="flex items-center gap-2 flex-shrink-0">
               <span
                 className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                  trace.status === 'verified'
-                    ? 'bg-[#E8F2F0] text-[#0F6E66]'
-                    : 'bg-[#FBEECB] text-[#8A6414]'
-                }`}
+ trace.status === 'verified'
+ ? 'bg-[#E8F2F0] text-[#0F6E66]'
+ : 'bg-[#FBEECB] text-[#8A6414]'
+ }`}
               >
                 {trace.citationsCount} {trace.citationsCount === 1 ? 'CLAIM' : 'CLAIMS'}
               </span>

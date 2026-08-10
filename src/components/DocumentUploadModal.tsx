@@ -237,7 +237,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[#131C25]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-[#FFFFFF] rounded-2xl max-w-xl w-full border border-[#D3D9DE] text-[#131C25] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-[#FFFFFF] rounded-2xl max-w-xl w-full border border-[#D3D9DE] text-[#131C25] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-5 py-4 border-b border-[#D3D9DE] flex items-center justify-between bg-[#F8F9FA]">
           <div className="flex items-center gap-2.5">
@@ -273,10 +273,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 relative overflow-hidden ${
-              dragActive
-                ? 'border-[#0F6E66] bg-[#E8F2F0] scale-[0.99]'
-                : 'border-[#D3D9DE] hover:border-[#131C25] bg-[#F8F9FA] hover:bg-[#EDEFF2]/60'
-            }`}
+ dragActive
+ ? 'border-[#0F6E66] bg-[#E8F2F0] scale-[0.99]'
+ : 'border-[#D3D9DE] hover:border-[#131C25] bg-[#F8F9FA] hover:bg-[#EDEFF2]/60'
+ }`}
           >
             <input
               ref={fileInputRef}
@@ -292,7 +292,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               }}
             />
 
-            <div className="w-12 h-12 rounded-full bg-[#131C25] text-[#F0B429] flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 rounded-full bg-[#131C25] text-[#F0B429] flex items-center justify-center">
               <Cloud size={24} />
             </div>
 
@@ -333,7 +333,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               {/* Animated Progress Bar Track */}
               <div className="w-full h-3 bg-[#D3D9DE] rounded-full overflow-hidden p-0.5 relative">
                 <div
-                  className="h-full bg-gradient-to-r from-[#0F6E66] to-[#F0B429] rounded-full transition-all duration-300 shadow-sm"
+                  className="h-full bg-gradient-to-r from-[#0F6E66] to-[#F0B429] rounded-full transition-all duration-300"
                   style={{ width: `${totalProgress}%` }}
                 />
               </div>
@@ -362,7 +362,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                 {uploadingFiles.map((file) => (
                   <div
                     key={file.id}
-                    className="p-3 bg-[#FFFFFF] border border-[#D3D9DE] rounded-xl space-y-2 shadow-2xs"
+                    className="p-3 bg-[#FFFFFF] border border-[#D3D9DE] rounded-xl space-y-2"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
@@ -407,10 +407,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                       <div className="w-full h-1.5 bg-[#EDEFF2] rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${
-                            file.status === 'ready'
-                              ? 'bg-[#0F6E66]'
-                              : 'bg-[#F0B429]'
-                          }`}
+ file.status === 'ready'
+ ? 'bg-[#0F6E66]'
+ : 'bg-[#F0B429]'
+ }`}
                           style={{ width: `${file.progress}%` }}
                         />
                       </div>

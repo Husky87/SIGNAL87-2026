@@ -134,7 +134,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {EXAMPLE_QUESTIONS.map((q, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] flex items-center gap-3 text-left shadow-2xs"
+                  className="p-3 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] flex items-center gap-3 text-left"
                 >
                   <span
                     className="text-xs font-mono font-bold text-[var(--accent)] flex-shrink-0"
@@ -156,7 +156,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="pt-4 flex flex-wrap items-center gap-3">
               <button
                 onClick={onGoogleSignIn}
-                className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] font-bold text-sm rounded-[4px] shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--paper)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span>Sign In with Google</span>
                 <ArrowUpRight size={18} />
@@ -167,7 +167,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* Right Column: UI Mockup Card */}
           <div id="mockup" className="lg:col-span-6 relative">
             {/* Citation Badge */}
-            <div className="absolute -top-4 right-4 z-20 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] px-3.5 py-1.5 text-right shadow-md">
+            <div className="absolute -top-4 right-4 z-20 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] px-3.5 py-1.5 text-right">
               <span
                 className="text-[9px] font-mono text-[var(--slate)] uppercase tracking-[0.09em] block font-bold"
                 style={{ fontFamily: MONO }}
@@ -178,7 +178,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
 
             {/* Main Interactive Card Container */}
-            <div className="bg-[var(--card)] border border-[var(--rule)] rounded-[6px] p-5 shadow-lg space-y-4 relative">
+            <div className="bg-[var(--card)] border border-[var(--rule)] rounded-[6px] p-5 space-y-4 relative">
               {/* Inside Header Bar */}
               <div className="flex items-center justify-between border-b border-[var(--rule-2)] pb-3">
                 <div className="flex items-center gap-2">
@@ -216,10 +216,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       key={src.title}
                       onClick={() => setActiveSource(src.title)}
                       className={`p-2 rounded-[4px] border text-left cursor-pointer transition-all flex items-center justify-between text-xs ${
-                        activeSource === src.title
-                          ? 'bg-[var(--raised)] border-[var(--rule)] text-[var(--ink)] font-bold'
-                          : 'bg-[var(--card)] border border-[var(--rule-2)] text-[var(--ink-2)] hover:bg-[var(--raised)]'
-                      }`}
+ activeSource === src.title
+ ? 'bg-[var(--raised)] border-[var(--rule)] text-[var(--ink)] font-bold'
+ : 'bg-[var(--card)] border border-[var(--rule-2)] text-[var(--ink-2)] hover:bg-[var(--raised)]'
+ }`}
                     >
                       <span className="truncate pr-1 text-[11px]">{src.title}</span>
                       <span

@@ -20,14 +20,14 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-[#004a77]/40 border border-[#004a77] text-[#7dd3fc] px-3.5 py-1.5 rounded-xl text-xs font-semibold">
-          <Award size={16} className="text-[#7dd3fc]" /> Enterprise Plan (Unlimited Storage)
+        <div className="flex items-center gap-1.5 text-[13px] text-[var(--muted)]">
+          <Award size={15} /> Enterprise plan · Unlimited storage
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 space-y-4">
             <h2 className="text-sm font-bold text-[#e3e3e3]">Organization Overview</h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -48,38 +48,26 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
             </div>
           </div>
 
-          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-[#e3e3e3]">SSO & OAuth Provider Status</h2>
+          <div>
+            <h2 className="text-[11px] font-medium text-[var(--muted)] uppercase pb-2" style={{ letterSpacing: '0.09em' }}>
+              Sign-in options
+            </h2>
 
-            <div className="space-y-3">
-              <div className="p-3.5 bg-[#131314] border border-[#37393b] rounded-xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#004a77] text-white font-bold flex items-center justify-center">
-                    G
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[#e3e3e3]">Google Workspace OAuth</h4>
-                    <span className="text-[10px] text-[#c4c7c5]">Domain: @signal87.ai</span>
-                  </div>
+            <div>
+              <div className="py-3.5 border-b border-[var(--rule-2)] flex items-center justify-between text-[13.5px]">
+                <div>
+                  <h4 className="text-[var(--ink)]">Google Workspace</h4>
+                  <span className="text-[12px] text-[var(--muted)]">Domain: @signal87.ai</span>
                 </div>
-                <span className="text-emerald-400 font-bold text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-                  Connected
-                </span>
+                <span className="text-[12px] text-[var(--muted)]">Connected</span>
               </div>
 
-              <div className="p-3.5 bg-[#131314] border border-[#37393b] rounded-xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-900 text-indigo-200 font-bold flex items-center justify-center">
-                    MS
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[#e3e3e3]">Microsoft Azure AD SSO</h4>
-                    <span className="text-[10px] text-[#c4c7c5]">Enterprise Single Sign-On</span>
-                  </div>
+              <div className="py-3.5 border-b border-[var(--rule-2)] last:border-b-0 flex items-center justify-between text-[13.5px]">
+                <div>
+                  <h4 className="text-[var(--ink)]">Microsoft Azure AD</h4>
+                  <span className="text-[12px] text-[var(--muted)]">Single sign-on</span>
                 </div>
-                <span className="text-emerald-400 font-bold text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-                  Connected
-                </span>
+                <span className="text-[12px] text-[var(--muted)]">Connected</span>
               </div>
             </div>
           </div>

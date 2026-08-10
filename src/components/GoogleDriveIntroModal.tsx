@@ -26,7 +26,7 @@ export const GoogleDriveIntroModal: React.FC<GoogleDriveIntroModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-[#18191a] border border-[#37393b] rounded-3xl max-w-xl w-full text-[#e3e3e3] shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-[#18191a] border border-[#37393b] rounded-3xl max-w-xl w-full text-[#e3e3e3] overflow-hidden relative animate-in fade-in zoom-in duration-200">
         
         {/* Top Gradient Accent Header */}
         <div className="h-2 bg-gradient-to-r from-[#1a73e8] via-[#34a853] to-[#fbbc05]" />
@@ -41,7 +41,7 @@ export const GoogleDriveIntroModal: React.FC<GoogleDriveIntroModalProps> = ({
         <div className="p-6 sm:p-8 space-y-6">
           {/* Badge & Icon */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#28292a] border border-[#37393b] flex items-center justify-center text-[#7dd3fc] shadow-inner">
+            <div className="w-12 h-12 rounded-2xl bg-[#28292a] border border-[#37393b] flex items-center justify-center text-[#7dd3fc]">
               <svg className="w-7 h-7 fill-current" viewBox="0 0 87.3 78">
                 <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
                 <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
@@ -127,7 +127,7 @@ export const GoogleDriveIntroModal: React.FC<GoogleDriveIntroModalProps> = ({
                 onClose();
                 onConnectDrive();
               }}
-              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#1a73e8] to-sky-500 hover:from-[#1557b0] hover:to-sky-400 text-white font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg active:scale-95"
+              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#1a73e8] to-sky-500 hover:from-[#1557b0] hover:to-sky-400 text-white font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
             >
               <Sparkles size={16} />
               <span>Connect Google Workspace Now</span>

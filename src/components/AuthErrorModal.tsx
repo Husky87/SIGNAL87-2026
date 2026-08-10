@@ -35,7 +35,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-5">
+      <div className="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl max-w-lg w-full p-6 relative space-y-5">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -132,7 +132,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
               onClose();
               onEnterGuestMode();
             }}
-            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <UserCheck size={16} />
             <span>Enter as Guest User</span>
