@@ -37,33 +37,51 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   useEffect(() => {
     let mounted = true;
     setError(null);
+    setLoading(true);
+    setPdfFile(null);
 
+    // Only use cached data when it is actually a PDF. Older versions of the
+    // upload flow cached the original DOCX/XLSX bytes under the document id,
+    // which caused pdf.js to report "Invalid PDF structure".
     if (docId && fileDataCache.has(docId)) {
       const cachedBuffer = fileDataCache.get(docId);
       if (cachedBuffer) {
-        setPdfFile({ data: new Uint8Array(cachedBuffer) });
-        setLoading(false);
-        return;
+        const header = new TextDecoder().decode(new Uint8Array(cachedBuffer).subarray(0, 5));
+        if (header === '%PDF-') {
+          setPdfFile({ data: new Uint8Array(cachedBuffer) });
+          setLoading(false);
+          return () => { mounted = false; };
+        }
+        fileDataCache.delete(docId);
       }
     }
 
+    if (!fileUrl) {
+      setError('No document preview is available.');
+      setLoading(false);
+      return () => { mounted = false; };
+    }
+
     if (fileUrl.startsWith('blob:')) {
-      setLoading(true);
       fetch(fileUrl)
         .then((res) => {
-          if (!res.ok) throw new Error(`Failed to fetch blob: ${res.statusText}`);
+          if (!res.ok) throw new Error(`Failed to fetch document: ${res.statusText}`);
           return res.arrayBuffer();
         })
         .then((arrayBuffer) => {
-          if (mounted) {
-            setPdfFile({ data: new Uint8Array(arrayBuffer) });
-            setLoading(false);
+          if (!mounted) return;
+          const header = new TextDecoder().decode(new Uint8Array(arrayBuffer).subarray(0, 5));
+          if (header !== '%PDF-') {
+            throw new Error(`The preview source is not a valid PDF (${fileName}).`);
           }
+          if (docId) fileDataCache.set(docId, arrayBuffer);
+          setPdfFile({ data: new Uint8Array(arrayBuffer) });
+          setLoading(false);
         })
         .catch((err) => {
           if (mounted) {
-            console.warn('Failed to fetch blob for react-pdf, falling back to direct blob URL string:', err);
-            setPdfFile(fileUrl);
+            console.error('Failed to load PDF preview:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load PDF document.');
             setLoading(false);
           }
         });
@@ -73,7 +91,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     }
 
     return () => { mounted = false; };
-  }, [fileUrl, docId]);
+  }, [fileUrl, docId, fileName]);
 
   useEffect(() => {
     const element = containerRef.current;
