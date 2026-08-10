@@ -8,6 +8,7 @@ import {
   Plus,
   Bookmark,
   Settings,
+  Upload,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { Signal87Logo } from './Signal87Logo';
@@ -61,13 +62,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobileMenu,
   currentUser,
   onNewSession,
+  onOpenUpload,
 }) => {
   const navItems: {
-    id: NavTab | 'new';
+    id: NavTab | 'new' | 'upload';
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
     { id: 'new', label: 'New', icon: Plus },
+    { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
     { id: 'saved', label: 'Saved', icon: Bookmark },
@@ -147,8 +150,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isNew = item.id === 'new';
+            const isUpload = item.id === 'upload';
             const isActive =
               !isNew &&
+              !isUpload &&
               ((item.id === 'research' && currentTab === 'research') ||
                 (item.id === 'documents' && currentTab === 'documents') ||
                 (item.id === 'saved' && currentTab === 'saved') ||
@@ -161,12 +166,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => {
                   if (isNew) {
                     handleNewThread();
+                  } else if (isUpload) {
+                    if (onOpenUpload) onOpenUpload();
+                    if (onCloseMobileMenu) onCloseMobileMenu();
                   } else {
                     onSelectTab(item.id as NavTab);
                     if (onCloseMobileMenu) onCloseMobileMenu();
                   }
                 }}
-                title={isNew ? 'Start a new question' : undefined}
+                title={isNew ? 'Start a new question' : isUpload ? 'Upload a document' : undefined}
                 className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
  isNew
  ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
