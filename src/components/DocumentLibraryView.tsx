@@ -322,7 +322,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       case 'img':
         return <div className="w-5 h-5 rounded bg-purple-600 text-white flex items-center justify-center font-black text-[9px] flex-shrink-0">IMG</div>;
       default:
-        return <div className="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center font-black text-[9px] flex-shrink-0">DOC</div>;
+        return <div className="w-5 h-5 rounded bg-[var(--teal)] text-white flex items-center justify-center font-black text-[9px] flex-shrink-0">DOC</div>;
     }
   };
 

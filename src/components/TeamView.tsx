@@ -282,7 +282,7 @@ export const TeamView: React.FC = () => {
                       itemProp="image"
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b] shadow-sm"
                     />
-                    <span className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
+                    <span className="absolute -bottom-1 -right-1 bg-[var(--teal)] text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
                       <ShieldCheck size={12} />
                     </span>
                   </div>

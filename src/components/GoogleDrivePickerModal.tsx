@@ -190,7 +190,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-[#28292a] flex items-center justify-between bg-[#131314] flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white flex items-center justify-center shadow-md border border-sky-400/30">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--teal)] text-white flex items-center justify-center shadow-md">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 87.3 78">
                 <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
                 <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>

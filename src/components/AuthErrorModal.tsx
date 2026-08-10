@@ -132,7 +132,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
               onClose();
               onEnterGuestMode();
             }}
-            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-slate-950 rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <UserCheck size={16} />
             <span>Enter as Guest User</span>

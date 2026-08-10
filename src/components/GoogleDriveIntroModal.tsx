@@ -104,10 +104,10 @@ export const GoogleDriveIntroModal: React.FC<GoogleDriveIntroModalProps> = ({
               <div>
                 <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
                   <Cpu size={13} className="text-amber-400" />
-                  Automated OCR & Vector Memory
+                  Automatic reading
                 </h4>
                 <p className="text-[11px] text-[#8e918f] mt-0.5 leading-relaxed">
-                  Signal87 automatically parses entities, risk clauses, and vector embeddings so you can query files immediately.
+                  Signal87 reads each file and picks out key people, terms, and risks so you can ask questions right away.
                 </p>
               </div>
             </div>

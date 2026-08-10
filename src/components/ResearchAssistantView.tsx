@@ -66,6 +66,8 @@ export interface ResearchAssistantViewProps {
   onSelectDocument?: (doc: DocumentItem) => void;
   onSaveAnswer?: (msg: ChatMessage, question: string) => void;
   savedAnswerIds?: Set<string>;
+  initialQuery?: string | null;
+  onInitialQueryConsumed?: () => void;
 }
 
 const parseInlineStyles = (text: string) => {
@@ -237,7 +239,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   onGoogleSignIn,
   onSelectDocument,
   onSaveAnswer,
-  savedAnswerIds
+  savedAnswerIds,
+  initialQuery,
+  onInitialQueryConsumed
 }) => {
   const [mode, setMode] = useState<'quick' | 'deep'>('quick');
   const [inputQuery, setInputQuery] = useState('');
@@ -593,7 +597,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         citations: data.citations || [
           {
             docId: activeDocs[0]?.id || 'doc-101',
-            docTitle: activeDocs[0]?.title || 'Repository Document',
+            docTitle: activeDocs[0]?.title || 'Document',
             paragraphRef: 'Sec 4, Para 2',
             snippet: activeDocs[0]?.summary || 'Relevant citation match',
             confidence: 96
@@ -638,6 +642,15 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       setLoading(false);
     }
   };
+
+  // A question asked from the home screen arrives here and sends itself.
+  useEffect(() => {
+    if (initialQuery) {
+      handleSendQuery(initialQuery);
+      if (onInitialQueryConsumed) onInitialQueryConsumed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -704,7 +717,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     {
       id: 'draft',
       label: '📝 Draft Executive Report',
-      prompt: 'Draft a comprehensive publication-grade executive brief synthesizing all active repository documents.',
+      prompt: 'Draft a comprehensive publication-grade executive brief synthesizing all active documents.',
       mode: 'deep' as const
     },
     {

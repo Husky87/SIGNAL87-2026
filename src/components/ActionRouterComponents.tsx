@@ -85,7 +85,7 @@ export const parseInlineStyles = (
                 } else {
                   onSelectDocument({
                     id: cite.docId || `doc-${Date.now()}`,
-                    title: cite.docTitle || 'Repository Document',
+                    title: cite.docTitle || 'Document',
                     type: 'PDF',
                     sizeBytes: 1024 * 1024 * 2.4,
                     uploadDate: new Date().toLocaleDateString(),
@@ -434,7 +434,7 @@ export const GeminiMarkdownRenderer: React.FC<{
                   } else {
                     onSelectDocument({
                       id: c.docId || `doc-${Date.now()}`,
-                      title: c.docTitle || 'Repository Document',
+                      title: c.docTitle || 'Document',
                       type: 'PDF',
                       sizeBytes: 1024 * 1024 * 2.4,
                       uploadDate: new Date().toLocaleDateString(),

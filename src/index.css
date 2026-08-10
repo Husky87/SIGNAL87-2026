@@ -214,4 +214,5 @@
 .s87-app .rounded-xl  { border-radius: 11px; }
 .s87-app .rounded-lg  { border-radius: 9px; }
 .s87-app .shadow-2xl, .s87-app .shadow-xl, .s87-app .shadow-lg,
-.s87-app .shadow-sm,  .s87-app .shadow { box-shadow: none !important; }
+.s87-app .shadow-md,  .s87-app .shadow-sm, .s87-app .shadow,
+.s87-app .shadow-xs,  .s87-app .shadow-2xs { box-shadow: none !important; }

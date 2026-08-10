@@ -158,7 +158,7 @@ export const QuickAIAgentWidget: React.FC<QuickAIAgentWidgetProps> = ({
         >
           <div className="relative flex items-center justify-center">
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-sky-400 rounded-full animate-ping"></span>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-slate-950 font-bold shadow-md">
+            <div className="w-8 h-8 rounded-full bg-[var(--teal)] flex items-center justify-center text-white font-bold shadow-md">
               <Sparkles size={16} />
             </div>
           </div>
@@ -177,7 +177,7 @@ export const QuickAIAgentWidget: React.FC<QuickAIAgentWidgetProps> = ({
           {/* Header */}
           <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-slate-950 font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-[var(--teal)] flex items-center justify-center text-white font-bold shadow-md">
                 <Bot size={20} />
               </div>
               <div>

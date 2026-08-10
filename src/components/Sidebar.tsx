@@ -2,14 +2,12 @@ import React from 'react';
 import {
   FolderOpen,
   Search,
-  Activity,
-  User as UserIcon,
   ChevronLeft,
   ChevronRight,
   X,
-  Upload,
-  Home,
+  Plus,
   Bookmark,
+  Settings,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { Signal87Logo } from './Signal87Logo';
@@ -54,15 +52,6 @@ interface SidebarProps {
   onOpenUpload?: () => void;
 }
 
-const GooglePlusIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 36 36" className="flex-shrink-0 animate-in zoom-in-50 duration-200">
-    <path fill="#34A853" d="M16 16v14h4V20z" />
-    <path fill="#4285F4" d="M30 16H20v4h10z" />
-    <path fill="#FBBC05" d="M6 16h10v4H6z" />
-    <path fill="#EA4335" d="M20 16V6h-4v10z" />
-  </svg>
-);
-
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
@@ -72,19 +61,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobileMenu,
   currentUser,
   onNewSession,
-  onOpenUpload,
 }) => {
   const navItems: {
-    id: NavTab;
+    id: NavTab | 'new';
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
-    { id: 'dashboard', label: 'Home', icon: Home },
-    { id: 'documents', label: 'Documents', icon: FolderOpen },
-    { id: 'research', label: 'AI Research Chat', icon: Search },
-    { id: 'saved', label: 'Saved Items', icon: Bookmark },
-    { id: 'traces', label: 'Recent Activity', icon: Activity },
-    { id: 'admin', label: 'Storage & Account', icon: UserIcon },
+    { id: 'new', label: 'New', icon: Plus },
+    { id: 'research', label: 'Ask', icon: Search },
+    { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'admin', label: 'Settings', icon: Settings },
   ];
 
   const handleNewThread = () => {
@@ -155,63 +142,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons: New Thread & Upload */}
-        <div className="space-y-3 pt-1">
-          <button
-            onClick={handleNewThread}
-            className={`flex items-center justify-center gap-3 bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink)] border border-[var(--rule)] transition-all cursor-pointer shadow-md hover:shadow-lg rounded-full px-5 py-3 font-semibold text-sm w-full md:w-auto ${
-              collapsed && !mobileMenuOpen ? 'p-3 rounded-full w-12 h-12' : ''
-            }`}
-            title="Start a new chat thread"
-          >
-            <GooglePlusIcon />
-            {(!collapsed || mobileMenuOpen) && <span className="font-medium pr-1 text-[13px]">New thread</span>}
-          </button>
-
-          <button
-            onClick={() => {
-              if (onOpenUpload) onOpenUpload();
-              if (onCloseMobileMenu) onCloseMobileMenu();
-            }}
-            className={`flex items-center justify-center gap-3 bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] transition-all cursor-pointer shadow-xs rounded-full px-5 py-2.5 font-semibold text-xs w-full md:w-auto ${
-              collapsed && !mobileMenuOpen ? 'p-2.5 rounded-full w-11 h-11' : ''
-            }`}
-            title="Upload a document"
-          >
-            <Upload size={14} className="text-[var(--accent)] flex-shrink-0" />
-            {(!collapsed || mobileMenuOpen) && <span className="font-medium pr-1">Upload file</span>}
-          </button>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="space-y-1 pt-2">
+        {/* Navigation: New, Ask, Files, Saved, Settings */}
+        <nav className="space-y-1 pt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isNew = item.id === 'new';
             const isActive =
-              (item.id === 'research' && currentTab === 'research') ||
-              (item.id === 'documents' && currentTab === 'documents') ||
-              (item.id === 'traces' && currentTab === 'traces') ||
-              (item.id === 'saved' && currentTab === 'saved') ||
-              (item.id === 'admin' &&
-                (currentTab === 'admin' || currentTab === 'organization'));
+              !isNew &&
+              ((item.id === 'research' && currentTab === 'research') ||
+                (item.id === 'documents' && currentTab === 'documents') ||
+                (item.id === 'saved' && currentTab === 'saved') ||
+                (item.id === 'admin' &&
+                  (currentTab === 'admin' || currentTab === 'organization')));
 
             return (
               <button
                 key={item.id}
                 onClick={() => {
-                  onSelectTab(item.id);
-                  if (onCloseMobileMenu) onCloseMobileMenu();
+                  if (isNew) {
+                    handleNewThread();
+                  } else {
+                    onSelectTab(item.id as NavTab);
+                    if (onCloseMobileMenu) onCloseMobileMenu();
+                  }
                 }}
+                title={isNew ? 'Start a new question' : undefined}
                 className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
-                  isActive
-                    ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold shadow-2xs'
+                  isNew
+                    ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
+                    : isActive
+                    ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
                     : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
                 } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
               >
                 <Icon
                   size={16}
                   className={`flex-shrink-0 ${
-                    isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
+                    isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
                   }`}
                 />
                 {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}

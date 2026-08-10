@@ -260,6 +260,7 @@ export default function App() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [inDemoMode, setInDemoMode] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
+  const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
   const [sessions, setSessions] = useState(() => {
     try {
       const stored = localStorage.getItem('signal87_sessions');
@@ -593,6 +594,18 @@ export default function App() {
     }
   };
 
+  const handleAskFromHome = (question: string) => {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    handleCreateNewSession();
+    setPendingHomeQuery(trimmed);
+  };
+
+  const handleOpenSessionFromHome = (id: string) => {
+    setActiveSessionId(id);
+    setCurrentTab('research');
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setAuthError(null);
@@ -827,16 +840,10 @@ export default function App() {
           {currentTab === 'dashboard' && (
             <div className="flex-1 overflow-y-auto">
               <DashboardView
-                documents={documents}
-                projects={folders}
-                stats={stats}
-                onSelectTab={(tab) => setCurrentTab(tab === 'projects' ? 'documents' : tab)}
-                onOpenUpload={() => setIsUploadOpen(true)}
-                onSelectDocument={setSelectedDocForDetail}
-                onSelectProject={(p) => {
-                  setSelectedFolderId(p.id);
-                  setCurrentTab('documents');
-                }}
+                currentUser={currentUser}
+                recentSessions={sessions}
+                onAskQuestion={handleAskFromHome}
+                onOpenSession={handleOpenSessionFromHome}
               />
             </div>
           )}
@@ -881,6 +888,8 @@ export default function App() {
               onSelectDocument={setSelectedDocForDetail}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
+              initialQuery={pendingHomeQuery}
+              onInitialQueryConsumed={() => setPendingHomeQuery(null)}
             />
           )}
 

@@ -125,7 +125,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('folder')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900 shadow-sm group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[var(--teal-soft)] text-[var(--teal)] flex items-center justify-center border border-[var(--teal)]/20 shadow-sm group-active:scale-95 transition-transform">
                   <FolderPlus size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Folder</span>

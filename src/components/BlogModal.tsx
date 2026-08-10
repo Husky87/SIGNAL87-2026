@@ -146,7 +146,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
                     <span className="text-slate-400 font-medium">{post.readTime}</span>
                   </div>
 
-                  <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-blue-600 transition-colors">
+                  <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-[var(--teal)] transition-colors">
                     {post.title}
                   </h3>
 

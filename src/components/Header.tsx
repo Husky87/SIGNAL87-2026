@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative hidden sm:block">
           <button
             onClick={() => setShowQuickActions(!showQuickActions)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-[var(--paper)] font-extrabold rounded-full text-xs shadow-md transition-all cursor-pointer min-h-[44px]"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--teal)] hover:opacity-90 text-white font-extrabold rounded-full text-xs shadow-md transition-all cursor-pointer min-h-[44px]"
           >
             <Plus size={15} className="stroke-[3]" />
             <span>Action</span>

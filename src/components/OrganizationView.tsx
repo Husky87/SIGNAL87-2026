@@ -88,10 +88,10 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
         <div className="space-y-6">
           <div className="bg-[#1e1f20] text-[#e3e3e3] p-6 rounded-2xl border border-[#37393b] space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2">
-              <Shield size={18} className="text-emerald-400" /> Enterprise Isolation Policy
+              <Shield size={18} className="text-emerald-400" /> Your workspace stays private
             </h3>
             <p className="text-xs text-[#c4c7c5] leading-relaxed">
-              All documents, vector embeddings, chat transcripts, and generated reports remain strictly bounded inside your organization workspace. Zero cross-tenant data leakage is enforced mathematically via isolated vector keys.
+              Every document, conversation, and report stays inside your own organization. No other company using Signal87 can ever see or reach your data.
             </p>
           </div>
         </div>

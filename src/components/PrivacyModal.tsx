@@ -47,7 +47,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center gap-2.5">
-            <Database size={18} className="text-blue-600 flex-shrink-0" />
+            <Database size={18} className="text-[var(--teal)] flex-shrink-0" />
             <div>
               <span className="text-xs font-bold text-slate-900 block">AES-256 & TLS 1.3</span>
               <span className="text-[10px] text-slate-500">Encrypted at rest and during transit.</span>
@@ -75,14 +75,14 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) =
           <section className="space-y-1.5">
             <h3 className="font-bold text-slate-900 text-sm sm:text-base">2. Strict Zero-Training Mandate</h3>
             <p className="text-slate-600">
-              No document, text chunk, vector embedding, or chat prompt processed through Signal87 is used to train, fine-tune, or improve public AI models (including Google Gemini or third-party foundation models). Your data is processed transiently in secure server memory and stored exclusively in your dedicated Firestore instance.
+              Nothing you upload or ask — no document, no piece of a document, no chat message — is ever used to train Google Gemini or any other AI model. Your data passes through secure server memory and is stored only in your own private database.
             </p>
           </section>
 
           <section className="space-y-1.5">
             <h3 className="font-bold text-slate-900 text-sm sm:text-base">3. Document Storage & Firebase Firestore</h3>
             <p className="text-slate-600">
-              Documents uploaded to Signal87 are parsed, indexed into local memory vectors, and stored securely using Firebase Firestore with granular security rules. Only authenticated members of your tenant organization can access or query these documents.
+              Documents you upload to Signal87 are read, made searchable, and stored securely using Firebase Firestore with strict access rules. Only signed-in members of your organization can see or search them.
             </p>
           </section>
 

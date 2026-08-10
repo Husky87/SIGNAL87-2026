@@ -85,10 +85,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       await new Promise((r) => setTimeout(r, 250));
     }
 
-    // Stage 2: Processing & OCR / Vector Embeddings (35 - 75%)
-    updateItem({ progress: 55, status: 'processing', stepMessage: 'Extracting text & running OCR...' });
+    // Stage 2: Reading the document (35 - 75%)
+    updateItem({ progress: 55, status: 'processing', stepMessage: 'Reading your document...' });
     await new Promise((r) => setTimeout(r, 300));
-    updateItem({ progress: 75, status: 'processing', stepMessage: 'Generating AI vector embeddings...' });
+    updateItem({ progress: 75, status: 'processing', stepMessage: 'Making it searchable...' });
 
     // Stage 3: Indexing in Backend
     let backendData: any = {};
@@ -110,7 +110,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     }
 
     // Stage 4: Ready (100%)
-    updateItem({ progress: 90, status: 'processing', stepMessage: 'Indexing in knowledge graph...' });
+    updateItem({ progress: 90, status: 'processing', stepMessage: 'Almost ready...' });
     await new Promise((r) => setTimeout(r, 200));
 
     const fileUrl = fileObj ? URL.createObjectURL(fileObj) : undefined;
@@ -126,7 +126,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         : 'pdf',
       sizeBytes,
       uploadDate: new Date().toISOString(),
-      tags: backendData.suggestedTags || ['Uploaded', 'Indexed', 'Legal'],
+      tags: backendData.suggestedTags || ['Uploaded', 'Ready', 'Legal'],
       owner: 'ceo@signal87.ai',
       organization: 'Signal87 Executive',
       status: 'ready',
@@ -144,8 +144,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       summary:
         backendData.summary ||
         (parsedResult
-          ? `Parsed ${parsedResult.summaryInfo}`
-          : 'Enterprise document uploaded and indexed for AI search.'),
+          ? `Ready — ${parsedResult.summaryInfo}`
+          : 'Document uploaded and ready to search.'),
       entities: backendData.entities || [
         { name: title, type: 'Contract', relevance: 90 }
       ],
@@ -166,7 +166,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       }
     }
 
-    updateItem({ progress: 100, status: 'ready', stepMessage: 'Verified & AI Indexed' });
+    updateItem({ progress: 100, status: 'ready', stepMessage: 'Ready' });
     onUploadSuccess(newDoc as DocumentItem, parsedResult);
   };
 
@@ -307,7 +307,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
             <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#0F6E66] font-bold">
               <ShieldCheck size={14} />
-              <span>Automatic OCR, Key Term Extraction & AI Embeddings</span>
+              <span>We read and index every file automatically</span>
             </div>
           </div>
 
@@ -341,8 +341,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               <p className="text-[11px] font-mono text-[#6E7C89] flex items-center justify-between">
                 <span>
                   {isProcessing
-                    ? 'Extracting text content and generating vector embeddings...'
-                    : 'All documents indexed and ready for AI queries'}
+                    ? 'Reading your documents...'
+                    : 'All documents ready to search'}
                 </span>
                 <span className="font-bold text-[#131C25]">
                   {completedCount}/{uploadingFiles.length}

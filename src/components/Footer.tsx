@@ -52,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onSelectTab('team')}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-blue-600 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
                 >
                   <Users size={14} className="text-slate-500" />
                   <span>Team</span>
@@ -61,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={onOpenBlog}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-blue-600 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
                 >
                   <BookOpen size={14} className="text-slate-500" />
                   <span>Blog & Insights</span>
@@ -70,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={onOpenMedia}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-blue-600 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
                 >
                   <Tv size={14} className="text-slate-500" />
                   <span>Media & Press</span>
@@ -109,7 +109,7 @@ export const Footer: React.FC<FooterProps> = ({
               <CheckCircle2 size={12} className="text-emerald-600" /> AES-256 Encrypted
             </span>
             <span className="flex items-center gap-1">
-              <CheckCircle2 size={12} className="text-blue-600" /> Firestore Synced
+              <CheckCircle2 size={12} className="text-[var(--teal)]" /> Firestore Synced
             </span>
           </div>
         </div>

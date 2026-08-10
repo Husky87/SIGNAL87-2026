@@ -51,14 +51,14 @@ export const MediaModal: React.FC<MediaModalProps> = ({ isOpen, onClose }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-2xs">
             <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2 uppercase tracking-wider">
-              <Mail size={15} className="text-blue-600" /> Press Contact
+              <Mail size={15} className="text-[var(--teal)]" /> Press Contact
             </h3>
             <p className="text-xs text-slate-600">
               For interview requests, executive commentary, or media accreditation:
             </p>
             <a
               href="mailto:press@signal87.ai"
-              className="text-xs font-bold text-blue-600 hover:underline block pt-1"
+              className="text-xs font-bold text-[var(--teal)] hover:underline block pt-1"
             >
               press@signal87.ai
             </a>
