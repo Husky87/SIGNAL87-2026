@@ -93,8 +93,8 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const getModelLabel = (model: string) => {
-    if (model === 'gemini-3.1-pro-preview') return 'Signal87 Pro';
-    if (model === 'gemini-3.1-flash-lite') return 'Signal87 Fast';
+    if (model === 'gemini-2.5-pro') return 'Signal87 Pro';
+    if (model === 'gemini-2.5-flash-lite') return 'Signal87 Fast';
     return 'Signal87 Standard';
   };
 
@@ -129,11 +129,11 @@ export const Header: React.FC<HeaderProps> = ({
               
               <button
                 onClick={() => {
-                  onChangeModel('gemini-3.1-flash-lite');
+                  onChangeModel('gemini-2.5-flash-lite');
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
- selectedModel === 'gemini-3.1-flash-lite' ? 'bg-[var(--raised)] border-l-4 border-amber-400' : ''
+ selectedModel === 'gemini-2.5-flash-lite' ? 'bg-[var(--raised)] border-l-4 border-amber-400' : ''
  }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
@@ -145,11 +145,11 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => {
-                  onChangeModel('gemini-3.6-flash');
+                  onChangeModel('gemini-2.5-flash');
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
- selectedModel === 'gemini-3.5-flash' || selectedModel === 'gemini-3.6-flash' ? 'bg-[var(--raised)] border-l-4 border-sky-400' : ''
+ selectedModel === 'gemini-2.5-flash' || selectedModel === 'gemini-2.5-flash' ? 'bg-[var(--raised)] border-l-4 border-sky-400' : ''
  }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
@@ -161,11 +161,11 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => {
-                  onChangeModel('gemini-3.1-pro-preview');
+                  onChangeModel('gemini-2.5-pro');
                   setShowModelMenu(false);
                 }}
                 className={`w-full px-3 py-2 text-left flex flex-col hover:bg-[var(--raised)]/80 transition-colors cursor-pointer ${
- selectedModel === 'gemini-3.1-pro-preview' ? 'bg-[var(--raised)] border-l-4 border-purple-400' : ''
+ selectedModel === 'gemini-2.5-pro' ? 'bg-[var(--raised)] border-l-4 border-purple-400' : ''
  }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
