@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FolderOpen,
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Plus,
   Bookmark,
   Settings,
   Upload,
+  Clock,
+  Star,
+  Share2,
+  Trash2,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { Signal87Logo } from './Signal87Logo';
@@ -26,6 +31,8 @@ export type NavTab =
   | 'team'
   | 'organization'
   | 'saved';
+
+export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
 export interface ChatSessionSummary {
   id: string;
@@ -51,7 +58,17 @@ interface SidebarProps {
   onDeleteSession?: (id: string) => void;
   onOpenDrivePicker?: () => void;
   onOpenUpload?: () => void;
+  filesView?: FilesView;
+  onSelectFilesView?: (view: FilesView) => void;
 }
+
+const FILES_SUB_ITEMS: { id: FilesView; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'workspace', label: 'My Workspace', icon: FolderOpen },
+  { id: 'recent', label: 'Recent', icon: Clock },
+  { id: 'starred', label: 'Starred', icon: Star },
+  { id: 'shared', label: 'Shared', icon: Share2 },
+  { id: 'trash', label: 'Trash', icon: Trash2 },
+];
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
@@ -63,7 +80,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   onNewSession,
   onOpenUpload,
+  filesView = 'workspace',
+  onSelectFilesView,
 }) => {
+  const [filesExpanded, setFilesExpanded] = useState(true);
+
   const navItems: {
     id: NavTab | 'new' | 'upload';
     label: string;
@@ -72,7 +93,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'new', label: 'New', icon: Plus },
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'research', label: 'Ask', icon: Search },
-    { id: 'documents', label: 'Files', icon: FolderOpen },
     { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'admin', label: 'Settings', icon: Settings },
   ];
@@ -91,6 +111,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .toUpperCase()
         .slice(0, 2)
     : 'BW';
+
+  const renderNavItem = (item: { id: NavTab | 'new' | 'upload'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
+    const Icon = item.icon;
+    const isNew = item.id === 'new';
+    const isUpload = item.id === 'upload';
+    const isActive =
+      !isNew &&
+      !isUpload &&
+      ((item.id === 'research' && currentTab === 'research') ||
+        (item.id === 'saved' && currentTab === 'saved') ||
+        (item.id === 'admin' &&
+          (currentTab === 'admin' || currentTab === 'organization')));
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          if (isNew) {
+            handleNewThread();
+          } else if (isUpload) {
+            if (onOpenUpload) onOpenUpload();
+            if (onCloseMobileMenu) onCloseMobileMenu();
+          } else {
+            onSelectTab(item.id as NavTab);
+            if (onCloseMobileMenu) onCloseMobileMenu();
+          }
+        }}
+        title={isNew ? 'Start a new question' : isUpload ? 'Upload a document' : undefined}
+        className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
+ isNew
+ ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
+ : isActive
+ ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
+ : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
+ } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
+      >
+        <Icon
+          size={16}
+          className={`flex-shrink-0 ${
+ isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
+ }`}
+        />
+        {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
+      </button>
+    );
+  };
 
   const sidebarContent = (
     <div className="flex flex-col justify-between h-full bg-[var(--paper)] text-[var(--ink)] select-none p-4 space-y-5">
@@ -145,54 +211,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation: New, Ask, Files, Saved, Settings */}
+        {/* Navigation: New, Upload, Ask, Files (tree), Saved, Settings */}
         <nav className="space-y-1 pt-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isNew = item.id === 'new';
-            const isUpload = item.id === 'upload';
-            const isActive =
-              !isNew &&
-              !isUpload &&
-              ((item.id === 'research' && currentTab === 'research') ||
-                (item.id === 'documents' && currentTab === 'documents') ||
-                (item.id === 'saved' && currentTab === 'saved') ||
-                (item.id === 'admin' &&
-                  (currentTab === 'admin' || currentTab === 'organization')));
+          {navItems.slice(0, 3).map((item) => renderNavItem(item))}
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (isNew) {
-                    handleNewThread();
-                  } else if (isUpload) {
-                    if (onOpenUpload) onOpenUpload();
-                    if (onCloseMobileMenu) onCloseMobileMenu();
-                  } else {
-                    onSelectTab(item.id as NavTab);
-                    if (onCloseMobileMenu) onCloseMobileMenu();
-                  }
-                }}
-                title={isNew ? 'Start a new question' : isUpload ? 'Upload a document' : undefined}
-                className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
- isNew
- ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
- : isActive
- ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
- : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
+          {/* Files — expandable tree: My Workspace / Recent / Starred / Shared / Trash */}
+          <div>
+            <button
+              onClick={() => {
+                if (collapsed && !mobileMenuOpen) {
+                  if (onSelectFilesView) onSelectFilesView('workspace');
+                  onSelectTab('documents');
+                  if (onCloseMobileMenu) onCloseMobileMenu();
+                } else {
+                  setFilesExpanded((prev) => !prev);
+                }
+              }}
+              className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border bg-transparent border-transparent ${
+ currentTab === 'documents'
+ ? 'text-[var(--ink)] font-semibold'
+ : 'text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
  } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
-              >
-                <Icon
-                  size={16}
-                  className={`flex-shrink-0 ${
- isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
+            >
+              <FolderOpen size={16} className={`flex-shrink-0 ${currentTab === 'documents' ? 'text-[var(--accent)]' : 'text-[var(--slate)]'}`} />
+              {(!collapsed || mobileMenuOpen) && (
+                <>
+                  <span className="flex-1">Files</span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-[var(--slate)] transition-transform ${filesExpanded ? '' : '-rotate-90'}`}
+                  />
+                </>
+              )}
+            </button>
+
+            {filesExpanded && (!collapsed || mobileMenuOpen) && (
+              <div className="mt-0.5 ml-4 pl-3 border-l border-[var(--rule)] space-y-0.5">
+                {FILES_SUB_ITEMS.map((sub) => {
+                  const SubIcon = sub.icon;
+                  const isSubActive = currentTab === 'documents' && filesView === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        if (onSelectFilesView) onSelectFilesView(sub.id);
+                        onSelectTab('documents');
+                        if (onCloseMobileMenu) onCloseMobileMenu();
+                      }}
+                      className={`w-full rounded-full px-3 py-2 text-[12.5px] font-medium flex items-center gap-2.5 transition-all text-left cursor-pointer ${
+ isSubActive
+ ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
+ : 'text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
  }`}
-                />
-                {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+                    >
+                      <SubIcon size={14} className={`flex-shrink-0 ${isSubActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'}`} />
+                      <span>{sub.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {navItems.slice(3).map((item) => renderNavItem(item))}
         </nav>
       </div>
 

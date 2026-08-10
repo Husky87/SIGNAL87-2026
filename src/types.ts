@@ -56,6 +56,9 @@ export interface DocumentItem {
   fileUrl?: string;
   folderId?: string;
   projectIds?: string[];
+  starred?: boolean;
+  trashed?: boolean;
+  trashedAt?: string;
 }
 
 export interface Citation {

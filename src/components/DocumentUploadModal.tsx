@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload, X, Cloud, Sparkles, CheckCircle2, AlertCircle, Loader2,
   File as FileIcon, FolderPlus, ArrowRight, Database, Check, ShieldCheck, Zap
@@ -15,6 +15,10 @@ interface DocumentUploadModalProps {
   documents: DocumentItem[];
   onSelectExistingDocument?: (doc: DocumentItem) => void;
   onOpenDrivePicker?: () => void;
+  // Files dropped directly onto the Files browser (outside this modal) get
+  // fed straight into the same upload pipeline once the modal opens.
+  initialFiles?: File[];
+  onInitialFilesConsumed?: () => void;
 }
 
 interface FileProgressItem {
@@ -28,7 +32,7 @@ interface FileProgressItem {
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen, onClose, onUploadSuccess, onOpenDrivePicker
+  isOpen, onClose, onUploadSuccess, onOpenDrivePicker, initialFiles, onInitialFilesConsumed
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileProgressItem[]>([]);
@@ -36,6 +40,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const [overallProgress, setOverallProgress] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen && initialFiles && initialFiles.length > 0) {
+      handleFilesSelected(initialFiles);
+      if (onInitialFilesConsumed) onInitialFilesConsumed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialFiles]);
 
   if (!isOpen) return null;
 

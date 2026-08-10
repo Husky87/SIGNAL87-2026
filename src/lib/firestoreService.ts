@@ -114,7 +114,10 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
       category: docItem.category || 'General',
       summary: docItem.summary || '',
       contentPreview: docItem.contentPreview || '',
-      fileUrl: docItem.fileUrl && !docItem.fileUrl.startsWith('blob:') ? docItem.fileUrl : ''
+      fileUrl: docItem.fileUrl && !docItem.fileUrl.startsWith('blob:') ? docItem.fileUrl : '',
+      starred: docItem.starred || false,
+      trashed: docItem.trashed || false,
+      trashedAt: docItem.trashedAt || null
     });
     return docItem.id;
   } catch (error) {

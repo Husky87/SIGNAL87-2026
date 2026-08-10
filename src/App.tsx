@@ -232,6 +232,12 @@ export default function App() {
   const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
   const [isDriveIntroOpen, setIsDriveIntroOpen] = useState(false);
   const [selectedDocForDetail, setSelectedDocForDetail] = useState<DocumentItem | null>(null);
+  const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
+  const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
+  const handleFilesDropped = (files: File[]) => {
+    setPendingDroppedFiles(files);
+    setIsUploadOpen(true);
+  };
 
   const handleDrivePortSuccess = (newDocs: DocumentItem[]) => {
     setDocuments((prev) => [...newDocs, ...prev]);
@@ -499,9 +505,57 @@ export default function App() {
     }));
   };
 
+  // Soft delete — moves to Trash instead of removing immediately, matching
+  // Drive's model. Permanent removal only happens from the Trash view.
   const handleDeleteDocument = (docId: string) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, trashed: true, trashedAt: new Date().toISOString() } : d))
+    );
+    const doc = documents.find((d) => d.id === docId);
+    if (doc) saveDocumentToFirestore({ ...doc, trashed: true, trashedAt: new Date().toISOString() });
+  };
+
+  const handleRestoreDocument = (docId: string) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, trashed: false, trashedAt: undefined } : d))
+    );
+    const doc = documents.find((d) => d.id === docId);
+    if (doc) saveDocumentToFirestore({ ...doc, trashed: false, trashedAt: undefined });
+  };
+
+  const handlePermanentlyDeleteDocument = (docId: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    deleteDocumentFromFirestore(docId); // Delete from Firestore
+    deleteDocumentFromFirestore(docId);
+  };
+
+  const handleEmptyTrash = () => {
+    const trashedIds = documents.filter((d) => d.trashed).map((d) => d.id);
+    setDocuments((prev) => prev.filter((d) => !d.trashed));
+    trashedIds.forEach((id) => deleteDocumentFromFirestore(id));
+  };
+
+  const handleToggleStar = (docId: string) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, starred: !d.starred } : d))
+    );
+    const doc = documents.find((d) => d.id === docId);
+    if (doc) saveDocumentToFirestore({ ...doc, starred: !doc.starred });
+  };
+
+  const handleRenameDocument = (docId: string, newTitle: string) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, title: newTitle } : d))
+    );
+    const doc = documents.find((d) => d.id === docId);
+    if (doc) saveDocumentToFirestore({ ...doc, title: newTitle });
+  };
+
+  const handleChangeDocumentPermissions = (docId: string, permissions: DocumentItem['permissions']) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, permissions } : d))
+    );
+    const doc = documents.find((d) => d.id === docId);
+    if (doc) saveDocumentToFirestore({ ...doc, permissions });
   };
 
   const handleSaveReport = (newRep: GeneratedReport) => {
@@ -721,6 +775,12 @@ export default function App() {
         onDeleteSession={handleDeleteSession}
         onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
         onOpenUpload={() => setIsUploadOpen(true)}
+        filesView={filesView}
+        onSelectFilesView={(view) => {
+          setFilesView(view);
+          setCurrentTab('documents');
+          setMobileMenuOpen(false);
+        }}
       />
 
       {/* Main Workspace Area */}
@@ -853,15 +913,23 @@ export default function App() {
               <DocumentLibraryView
                 documents={documents}
                 folders={folders}
+                filesView={filesView}
                 onSelectDocument={setSelectedDocForDetail}
                 onOpenUpload={() => setIsUploadOpen(true)}
                 onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
                 onCompareSelected={handleCompareFromDocs}
                 onDeleteDocument={handleDeleteDocument}
+                onRestoreDocument={handleRestoreDocument}
+                onPermanentlyDeleteDocument={handlePermanentlyDeleteDocument}
+                onEmptyTrash={handleEmptyTrash}
+                onToggleStar={handleToggleStar}
+                onRenameDocument={handleRenameDocument}
+                onChangeDocumentPermissions={handleChangeDocumentPermissions}
                 onCreateFolder={handleCreateFolder}
                 onRenameFolder={handleRenameFolder}
                 onDeleteFolder={handleDeleteFolder}
                 onMoveDocument={handleMoveDocument}
+                onFilesDropped={handleFilesDropped}
                 initialFolderId={selectedFolderId}
                 onFolderChange={setSelectedFolderId}
               />
@@ -974,6 +1042,8 @@ export default function App() {
         onUploadSuccess={handleUploadSuccess}
         documents={documents}
         onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
+        initialFiles={pendingDroppedFiles}
+        onInitialFilesConsumed={() => setPendingDroppedFiles([])}
         onSelectExistingDocument={(doc) => {
           setAttachedFiles((prev) => [
             ...prev.filter((f) => f.id !== doc.id),
