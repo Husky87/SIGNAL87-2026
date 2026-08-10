@@ -103,7 +103,7 @@ const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI 
 // AI Chat Endpoint with Grounding & Multi-Provider Fallback
 app.post('/api/chat', async (req, res) => {
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = req.body;
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-2.5-flash' } = req.body;
 
     // Prepare attached images
     const imageParts: any[] = [];
@@ -235,7 +235,7 @@ app.post('/api/chat', async (req, res) => {
 // Flagship Research Agent Endpoint with Fallback
 app.post('/api/research', async (req, res) => {
   try {
-    const { researchGoal, documentIds, model = 'gemini-3.1-pro-preview', documents, ingestedFilesData } = req.body;
+    const { researchGoal, documentIds, model = 'gemini-2.5-pro', documents, ingestedFilesData } = req.body;
 
     if (!researchGoal) {
       return res.status(400).json({ error: 'Research goal is required' });
@@ -301,7 +301,7 @@ Structure your analysis with clean markdown:
     const aiResult = await generateWithFallback({
       prompt: prompt,
       systemInstruction,
-      model: model === 'gemini-3.1-pro-preview' ? 'gemini-3.6-flash' : model,
+      model: model === 'gemini-2.5-pro' ? 'gemini-2.5-flash' : model,
       fallbackModel: 'gpt-4o',
       temperature: 0.1
     });
@@ -366,7 +366,7 @@ Provide a JSON output comparing the documents with the following structure:
   "repeatedLanguage": ["bullet 1", "bullet 2"],
   "riskTrends": ["bullet 1", "bullet 2"]
 }`,
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
@@ -419,7 +419,7 @@ ${docContext || 'Entire repository knowledge'}`;
       systemInstruction: `You are an elite government, legal, and financial intelligence report generator for Signal87 AI.
 Generate a publication-grade report formatted in markdown with headers (#, ##, ###), bullet points, key metrics callouts, and citation footnotes ([1], [2]).
 Maintain a neutral, authoritative, enterprise tone.`,
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.2
     });
@@ -452,7 +452,7 @@ app.post('/api/documents/process', async (req, res) => {
   "riskHighlights": ["...", "..."],
   "suggestedTags": ["...", "..."]
 }`,
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
@@ -513,7 +513,7 @@ app.post('/api/knowledge-graph/extract', async (req, res) => {
   "nodes": [{"id": "k1", "label": "...", "type": "Company|Person|Law|Address", "details": "..."}],
   "links": [{"source": "k1", "target": "k2", "label": "...", "strength": 80}]
 }`,
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       fallbackModel: 'gpt-4o-mini',
       temperature: 0.1,
       responseMimeType: 'application/json'
