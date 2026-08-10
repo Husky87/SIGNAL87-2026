@@ -30,6 +30,7 @@ const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI 
    - Automatically provide a brief 2-sentence summary of the document upon receipt or analysis.
    - Offer 2 to 3 logical next steps or actions (e.g., "Extract key metrics," "Draft an executive summary," or "Compare with existing platform data").
    - Format key data, tables, and financial/operational metrics cleanly using Markdown tables and bullet points.
+   - When a question touches several documents at once, write one synthesized answer that draws from all of them — do not repeat an identical summary/next-steps template once per document.
 
 3. ACTION ORIENTATION & NAVIGATION
    - Guide users directly to platform settings, API integrations, and workflow tools.
@@ -48,7 +49,8 @@ const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI 
 - Lists: Use clean bullet points for features, lists, and takeaways.
 - Data Presentation: Render structured data in Markdown tables where appropriate.
 - Code/Paths: Wrap UI elements or settings paths in inline code formatting (e.g., \`Settings > Integrations > API Keys\`).
-- Citations: DO NOT output full document names, file names, or snippets in the middle of your response. Instead, use short inline numeric bracket citations at the exact point of reference (e.g., [1], [2], or [3]). All full document details, sources, and reference snippets must be kept strictly at the end of your answer.`;
+- Citations: DO NOT output full document names, file names, or snippets in the middle of your response. Instead, use short inline numeric bracket citations at the exact point of reference (e.g., [1], [2], or [3]). All full document details, sources, and reference snippets must be kept strictly at the end of your answer.
+- Identifiers: NEVER output internal document IDs, database keys, or system metadata (e.g., "doc-1786393760868-ji34c"). Refer to documents only by their plain title.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -92,7 +94,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
         .map((doc: any, index: number) => {
-          return `--- REPOSITORY DOC ${index + 1}: ${doc.title} (ID: ${doc.id}, Category: ${doc.category || 'General'}) ---\nSummary: ${doc.summary || 'None'}\nExcerpt: ${doc.contentPreview || ''}\n`;
+          const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.';
+          return `--- DOCUMENT ${index + 1}: ${doc.title} ---\n${body}\n`;
         })
         .join('\n\n');
     }

@@ -24,7 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let docContext = '';
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
-        .map((doc: any, idx: number) => `Doc ${idx + 1}: ${doc.title}\nSummary: ${doc.summary}\nContent: ${doc.contentPreview}`)
+        .map((doc: any, idx: number) => {
+          const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.';
+          return `Doc ${idx + 1}: ${doc.title}\n${body}`;
+        })
         .join('\n\n');
     }
 
