@@ -93,12 +93,18 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
     // blob: URLs only live for this browser tab — upload to Firebase Storage so the
     // real file survives a reload instead of falling back to a reconstructed preview.
+    // Firebase's uploadBytes retries network/5xx failures for up to 2 minutes by
+    // default before rejecting, which reads as a dead progress bar — bound it so
+    // a Storage problem degrades to the local-preview fallback instead of hanging.
     let fileUrl = fileObj ? URL.createObjectURL(fileObj) : undefined;
     if (fileObj) {
       try {
-        fileUrl = await uploadDocumentFile(fileObj, docId);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Storage upload timed out')), 15000)
+        );
+        fileUrl = await Promise.race([uploadDocumentFile(fileObj, docId), timeoutPromise]);
       } catch (storageErr) {
-        console.warn('Firebase Storage upload failed, using local preview only:', storageErr);
+        console.warn('Firebase Storage upload failed or timed out, using local preview only:', storageErr);
       }
     }
 
