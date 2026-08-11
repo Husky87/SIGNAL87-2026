@@ -38,7 +38,8 @@ import {
   Menu,
   LogIn,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  FolderOpen
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation, GeneratedReport } from '../types';
@@ -46,6 +47,7 @@ import { fetchChatMessagesFromFirestore, saveChatMessageToFirestore } from '../l
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, determineDeliverableType } from './ActionRouterComponents';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
+import { AttachExistingDocumentModal } from './AttachExistingDocumentModal';
 
 export interface ResearchAssistantViewProps {
   documents: DocumentItem[];
@@ -247,6 +249,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const [inputQuery, setInputQuery] = useState('');
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showFilePicker, setShowFilePicker] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>(documents.map((d) => d.id));
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -332,6 +335,36 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       console.error('Error ingesting file:', err);
       setIsParsingFile(false);
     }
+  };
+
+  // Attach a document already in the workspace instead of re-uploading it —
+  // feeds the same ingestedFiles/attachedFiles pipeline as a fresh upload.
+  const handleToggleAttachExisting = (doc: DocumentItem & { fullText?: string }) => {
+    const isAttached = attachedFiles.some((f) => f.id === doc.id);
+    if (isAttached) {
+      setAttachedFiles((prev) => prev.filter((f) => f.id !== doc.id));
+      setIngestedFiles((prev) => prev.filter((f) => f.id !== doc.id));
+      return;
+    }
+
+    const extractedText = doc.fullText || doc.contentPreview || doc.summary || '';
+    const sizeLabel = doc.sizeBytes >= 1_000_000 ? `${(doc.sizeBytes / 1_000_000).toFixed(1)} MB` : `${(doc.sizeBytes / 1024).toFixed(1)} KB`;
+
+    const parsed: ParsedFileResult = {
+      id: doc.id,
+      fileName: doc.title,
+      fileSizeFormatted: sizeLabel,
+      sizeBytes: doc.sizeBytes,
+      fileType: (['pdf', 'docx', 'xlsx', 'csv', 'txt'].includes(doc.type) ? doc.type : 'other') as ParsedFileResult['fileType'],
+      extractedText,
+      charCount: extractedText.length,
+      wordCount: extractedText.trim() ? extractedText.trim().split(/\s+/).length : 0,
+      summaryInfo: sizeLabel
+    };
+
+    setIngestedFiles((prev) => [...prev.filter((f) => f.id !== doc.id), parsed]);
+    setAttachedFiles((prev) => [...prev.filter((f) => f.id !== doc.id), { id: doc.id, name: doc.title, size: sizeLabel }]);
+    setSelectedDocIds((prev) => Array.from(new Set([...prev, doc.id])));
   };
 
   const [savedReportIds, setSavedReportIds] = useState<Set<string>>(new Set());
@@ -1020,6 +1053,18 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         type="button"
                         onClick={() => {
                           setShowAttachMenu(false);
+                          setShowFilePicker(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer"
+                      >
+                        <FolderOpen size={15} className="text-[var(--slate)]" />
+                        <span>Choose from Files</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAttachMenu(false);
                           fileInputRef.current?.click();
                         }}
                         disabled={isParsingFile}
@@ -1149,6 +1194,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           </div>
         )}
       </div>
+
+      <AttachExistingDocumentModal
+        isOpen={showFilePicker}
+        onClose={() => setShowFilePicker(false)}
+        documents={documents}
+        attachedIds={attachedFiles.map((f) => f.id)}
+        onToggleAttach={handleToggleAttachExisting}
+      />
     </div>
   );
 };
