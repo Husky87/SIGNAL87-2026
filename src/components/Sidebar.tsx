@@ -16,6 +16,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
+import { getTrialStatus } from '../lib/trial';
 import { Signal87Logo } from './Signal87Logo';
 
 export type NavTab =
@@ -111,6 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .toUpperCase()
         .slice(0, 2)
     : 'BW';
+
+  // Everyone is on the free trial until Stripe billing is wired up — this
+  // footer status should switch to reflect real plan state once that lands.
+  const trialStatus = currentUser ? getTrialStatus(currentUser) : null;
 
   const renderNavItem = (item: { id: NavTab | 'new' | 'upload'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
     const Icon = item.icon;
@@ -285,7 +290,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!collapsed || mobileMenuOpen ? (
           <div className="flex items-center justify-between px-1">
             <span>Signal87 Platform</span>
-            <span className="text-[var(--verify)] font-bold">ACTIVE</span>
+            {trialStatus ? (
+              <span className={trialStatus.daysRemaining <= 1 ? 'text-[var(--warn)] font-bold' : 'text-[var(--verify)] font-bold'}>
+                {trialStatus.daysRemaining}D LEFT IN TRIAL
+              </span>
+            ) : (
+              <span className="text-[var(--verify)] font-bold">ACTIVE</span>
+            )}
           </div>
         ) : (
           <div className="text-center font-bold text-[8px] text-[var(--accent)]">DOCS</div>

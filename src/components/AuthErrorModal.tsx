@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle, ExternalLink, ArrowRight, UserCheck, X, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, X } from 'lucide-react';
 
 interface AuthErrorModalProps {
   isOpen: boolean;
@@ -8,7 +8,6 @@ interface AuthErrorModalProps {
     message?: string;
   } | null;
   onClose: () => void;
-  onEnterGuestMode: () => void;
   onRetryGoogleSignIn: () => void;
 }
 
@@ -16,7 +15,6 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
   isOpen,
   error,
   onClose,
-  onEnterGuestMode,
   onRetryGoogleSignIn
 }) => {
   if (!isOpen || !error) return null;
@@ -84,7 +82,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
                 <span>Pop-up Window Blocked</span>
               </div>
               <p className="text-slate-300">
-                Your browser blocked the Google Authentication popup window. Please allow popups for this site or use Guest Access below.
+                Your browser blocked the Google Authentication popup window. Please allow popups for this site and try again.
               </p>
             </>
           ) : isPopupClosed ? (
@@ -110,33 +108,13 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
           )}
         </div>
 
-        {/* Quick Resolution Callout */}
-        <div className="bg-sky-500/10 border border-sky-500/20 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-sky-400 flex-shrink-0" />
-            <span className="text-sky-200 font-medium">You can enter the workspace right now in Demo Guest Mode!</span>
-          </div>
-        </div>
-
         {/* Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
+        <div className="pt-2 flex items-center justify-end gap-3">
           <button
             onClick={onRetryGoogleSignIn}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black transition-all cursor-pointer"
           >
             Retry Google Login
-          </button>
-
-          <button
-            onClick={() => {
-              onClose();
-              onEnterGuestMode();
-            }}
-            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <UserCheck size={16} />
-            <span>Enter as Guest User</span>
-            <ArrowRight size={14} />
           </button>
         </div>
       </div>

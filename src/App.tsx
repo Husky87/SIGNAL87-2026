@@ -22,6 +22,8 @@ import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
 import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
+import { PaywallView } from './components/PaywallView';
+import { getTrialStatus } from './lib/trial';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { SavedView } from './components/SavedView';
@@ -264,7 +266,6 @@ export default function App() {
   const [isBlogOpen, setIsBlogOpen] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
-  const [inDemoMode, setInDemoMode] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
   const [sessions, setSessions] = useState(() => {
@@ -567,18 +568,6 @@ export default function App() {
     setCurrentTab('compare');
   };
 
-  const handleEnterDemoMode = () => {
-    const guestUser = {
-      uid: 'demo-executive-87',
-      displayName: 'Signal87 Guest',
-      email: 'guest@signal87.ai',
-      photoURL: ''
-    };
-    setCurrentUser(guestUser as any);
-    setInDemoMode(true);
-    setAuthError(null);
-  };
-
   const handleSignOut = async () => {
     try {
       await auth.signOut();
@@ -595,7 +584,6 @@ export default function App() {
 
     // Reset inputs, active views, and state variables to initial defaults
     setCurrentUser(null);
-    setInDemoMode(false);
     setAuthError(null);
     setCurrentTab('research');
     setSelectedDocForDetail(null);
@@ -725,7 +713,6 @@ export default function App() {
           isOpen={Boolean(authError)}
           error={authError}
           onClose={() => setAuthError(null)}
-          onEnterGuestMode={handleEnterDemoMode}
           onRetryGoogleSignIn={handleGoogleSignIn}
         />
 
@@ -743,6 +730,11 @@ export default function App() {
         />
       </>
     );
+  }
+
+  const trialStatus = getTrialStatus(currentUser);
+  if (trialStatus.isExpired) {
+    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
   }
 
   return (
