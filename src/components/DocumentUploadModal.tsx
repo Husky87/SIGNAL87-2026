@@ -19,6 +19,9 @@ interface DocumentUploadModalProps {
   // fed straight into the same upload pipeline once the modal opens.
   initialFiles?: File[];
   onInitialFilesConsumed?: () => void;
+  // Called once every queued file finishes, right before the modal
+  // auto-closes, so the app can navigate back to where the results live.
+  onAllUploadsComplete?: () => void;
 }
 
 interface FileProgressItem {
@@ -32,7 +35,7 @@ interface FileProgressItem {
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen, onClose, onUploadSuccess, onOpenDrivePicker, initialFiles, onInitialFilesConsumed
+  isOpen, onClose, onUploadSuccess, onOpenDrivePicker, initialFiles, onInitialFilesConsumed, onAllUploadsComplete
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileProgressItem[]>([]);
@@ -158,6 +161,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       setOverallProgress(Math.round((finished / files.length) * 100));
     }
     setIsProcessing(false);
+
+    // Let the "Upload Complete 100%" state register, then take the user
+    // back to where the files actually live instead of leaving the modal
+    // sitting open over whatever screen it was triggered from.
+    setTimeout(() => {
+      if (onAllUploadsComplete) onAllUploadsComplete();
+      handleCloseModal();
+    }, 1200);
   };
 
   const handleDrag = (e: React.DragEvent) => {

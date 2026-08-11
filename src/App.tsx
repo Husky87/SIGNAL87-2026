@@ -1044,6 +1044,10 @@ export default function App() {
         onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
         initialFiles={pendingDroppedFiles}
         onInitialFilesConsumed={() => setPendingDroppedFiles([])}
+        onAllUploadsComplete={() => {
+          setFilesView('workspace');
+          setCurrentTab('documents');
+        }}
         onSelectExistingDocument={(doc) => {
           setAttachedFiles((prev) => [
             ...prev.filter((f) => f.id !== doc.id),
