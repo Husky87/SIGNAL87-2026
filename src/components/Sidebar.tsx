@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { getTrialStatus } from '../lib/trial';
+import { isAdminEmail } from '../lib/admins';
 import { Signal87Logo } from './Signal87Logo';
 
 export type NavTab =
@@ -115,7 +116,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Everyone is on the free trial until Stripe billing is wired up — this
   // footer status should switch to reflect real plan state once that lands.
-  const trialStatus = currentUser ? getTrialStatus(currentUser) : null;
+  const isAdmin = isAdminEmail(currentUser?.email);
+  const trialStatus = currentUser && !isAdmin ? getTrialStatus(currentUser) : null;
 
   const renderNavItem = (item: { id: NavTab | 'new' | 'upload'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
     const Icon = item.icon;

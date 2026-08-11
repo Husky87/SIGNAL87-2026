@@ -17,7 +17,7 @@ const SANS = '"Public Sans", -apple-system, BlinkMacSystemFont, sans-serif';
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 interface LandingPageViewProps {
-  onGoogleSignIn: () => void;
+  onOpenEmailAuth: () => void;
   onOpenPrivacy: () => void;
   onOpenBlog: () => void;
   onOpenMedia: () => void;
@@ -34,7 +34,7 @@ const EXAMPLE_QUESTIONS = [
 const ROMAN_NUMERALS = ['I.', 'II.', 'III.', 'IV.'];
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
-  onGoogleSignIn,
+  onOpenEmailAuth,
   onOpenPrivacy,
   onOpenBlog,
   onOpenMedia,
@@ -88,10 +88,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* Right Action CTA */}
           <div className="flex items-center gap-3">
             <button
-              onClick={onGoogleSignIn}
+              onClick={onOpenEmailAuth}
+              className="px-3 py-2 text-[var(--ink-2)] hover:text-[var(--ink)] text-xs font-bold transition-all cursor-pointer"
+            >
+              Log in
+            </button>
+            <button
+              onClick={onOpenEmailAuth}
               className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <span>Sign In with Google</span>
+              <span>Sign up free</span>
             </button>
           </div>
         </div>
@@ -155,11 +161,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* CTA Buttons */}
             <div className="pt-4 flex flex-wrap items-center gap-3">
               <button
-                onClick={onGoogleSignIn}
+                onClick={onOpenEmailAuth}
                 className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
               >
-                <span>Sign In with Google</span>
+                <span>Start free trial</span>
                 <ArrowUpRight size={18} />
+              </button>
+              <button
+                onClick={onOpenEmailAuth}
+                className="px-6 py-3 text-[var(--ink-2)] hover:text-[var(--ink)] font-bold text-sm transition-all cursor-pointer"
+              >
+                Log in
               </button>
             </div>
           </div>

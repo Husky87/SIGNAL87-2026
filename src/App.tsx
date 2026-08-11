@@ -22,12 +22,14 @@ import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
 import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
+import { EmailAuthModal } from './components/EmailAuthModal';
 import { PaywallView } from './components/PaywallView';
 import { getTrialStatus } from './lib/trial';
+import { isAdminEmail } from './lib/admins';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { SavedView } from './components/SavedView';
-import { auth, onAuthStateChanged, User, signInWithPopup, googleProvider } from './lib/firebase';
+import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'lucide-react';
 
 import {
@@ -265,6 +267,7 @@ export default function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isBlogOpen, setIsBlogOpen] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
+  const [isEmailAuthOpen, setIsEmailAuthOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
@@ -664,6 +667,19 @@ export default function App() {
     }
   };
 
+  // Errors intentionally propagate to the caller — EmailAuthModal shows
+  // them inline next to the form instead of the separate Google-specific
+  // AuthErrorModal.
+  const handleEmailSignUp = async (email: string, password: string) => {
+    await signUpWithEmail(email, password);
+    setIsEmailAuthOpen(false);
+  };
+
+  const handleEmailSignIn = async (email: string, password: string) => {
+    await signInWithEmail(email, password);
+    setIsEmailAuthOpen(false);
+  };
+
   const getPageTitle = (tab: NavTab): string => {
     switch (tab) {
       case 'research':
@@ -695,7 +711,7 @@ export default function App() {
     return (
       <>
         <LandingPageView
-          onGoogleSignIn={handleGoogleSignIn}
+          onOpenEmailAuth={() => setIsEmailAuthOpen(true)}
           onOpenPrivacy={() => setIsPrivacyOpen(true)}
           onOpenBlog={() => setIsBlogOpen(true)}
           onOpenMedia={() => setIsMediaOpen(true)}
@@ -704,7 +720,7 @@ export default function App() {
               const el = document.getElementById('team');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             } else {
-              handleGoogleSignIn();
+              setIsEmailAuthOpen(true);
             }
           }}
         />
@@ -714,6 +730,14 @@ export default function App() {
           error={authError}
           onClose={() => setAuthError(null)}
           onRetryGoogleSignIn={handleGoogleSignIn}
+        />
+
+        <EmailAuthModal
+          isOpen={isEmailAuthOpen}
+          onClose={() => setIsEmailAuthOpen(false)}
+          onSignUp={handleEmailSignUp}
+          onSignIn={handleEmailSignIn}
+          onGoogleSignIn={() => { setIsEmailAuthOpen(false); handleGoogleSignIn(); }}
         />
 
         <PrivacyModal
@@ -733,7 +757,7 @@ export default function App() {
   }
 
   const trialStatus = getTrialStatus(currentUser);
-  if (trialStatus.isExpired) {
+  if (trialStatus.isExpired && !isAdminEmail(currentUser.email)) {
     return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
   }
 
