@@ -48,10 +48,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     setDocSearchQuery('');
     setActiveMatchIndex(0);
     setTotalPages(doc?.type === 'xlsx' || doc?.type === 'csv' ? 1 : 3);
-    // Only default to the PDF tab when a real file is available — otherwise
-    // getDocumentPdfUrl() silently reconstructs a lookalike PDF from extracted
-    // text, which reads as the platform "regenerating" the document.
-    setActiveTab(doc?.fileUrl ? 'pdf' : 'analysis');
+    setActiveTab('pdf');
   }, [doc]);
 
   useEffect(() => {
@@ -116,7 +113,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
 
-  const menuButtonClass = 'flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-2 py-1.5 text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer border-l border-[var(--rule)] first:border-l-0';
+  const menuButtonClass = 'flex flex-col items-center justify-center gap-1 px-3 py-2 text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer border-l border-[var(--rule)] first:border-l-0 min-w-fit';
 
   return (
     <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
@@ -137,7 +134,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-stretch flex-1 max-w-[720px] border border-[var(--rule)] rounded-lg overflow-hidden">
+          <div className="flex items-center flex-wrap gap-0 border border-[var(--rule)] rounded-lg overflow-hidden">
             <button
               onClick={() => setActiveTab('pdf')}
               className={`${menuButtonClass} ${activeTab === 'pdf' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
