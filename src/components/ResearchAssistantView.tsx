@@ -245,7 +245,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   initialQuery,
   onInitialQueryConsumed
 }) => {
-  const [mode, setMode] = useState<'quick' | 'deep'>('quick');
+  const [mode, setMode] = useState<'quick' | 'deep' | 'analyze'>('quick');
   const [inputQuery, setInputQuery] = useState('');
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -553,24 +553,36 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }));
 
     try {
-      const endpoint = targetMode === 'deep' ? '/api/research' : '/api/chat';
-      const bodyPayload =
-        targetMode === 'deep'
-          ? {
-              researchGoal: userMsgText,
-              documentIds: selectedDocIds,
-              model: selectedModel,
-              documents: fullTextDocumentPayload,
-              ingestedFilesData,
-              attachedFiles
-            }
-          : {
-              prompt: userMsgText,
-              documents: fullTextDocumentPayload,
-              model: selectedModel,
-              ingestedFilesData,
-              attachedFiles
-            };
+      let endpoint = '/api/chat';
+      let bodyPayload: any = {};
+
+      if (targetMode === 'deep') {
+        endpoint = '/api/research';
+        bodyPayload = {
+          researchGoal: userMsgText,
+          documentIds: selectedDocIds,
+          model: selectedModel,
+          documents: fullTextDocumentPayload,
+          ingestedFilesData,
+          attachedFiles
+        };
+      } else if (targetMode === 'analyze') {
+        endpoint = '/api/analyze';
+        bodyPayload = {
+          query: userMsgText,
+          documents: fullTextDocumentPayload,
+          analysisType: 'auto',
+          includeReasoningSteps: true
+        };
+      } else {
+        bodyPayload = {
+          prompt: userMsgText,
+          documents: fullTextDocumentPayload,
+          model: selectedModel,
+          ingestedFilesData,
+          attachedFiles
+        };
+      }
 
       const startTime = Date.now();
       const res = await fetch(endpoint, {
@@ -599,7 +611,42 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
       const data = await res.json();
       const actualLatency = Date.now() - startTime;
-      let responseText = data.text || 'Analysis synthesis complete.';
+
+      // Handle /api/analyze response format
+      let responseText = '';
+      let reasoningSteps = data.reasoningSteps || [];
+      let deliverableTypeOverride = '';
+
+      if (targetMode === 'analyze') {
+        responseText = data.answer || 'Analysis complete.';
+        reasoningSteps = data.reasoningSteps || [];
+        deliverableTypeOverride = data.analysisType || 'qa';
+
+        // Add confidence indicator for analyze mode
+        if (data.confidence) {
+          responseText = `**Confidence Level:** ${data.confidence.toUpperCase()}\n\n${responseText}`;
+        }
+
+        // Append quantitative data summary if available
+        if (data.quantitativeData) {
+          const qData = data.quantitativeData;
+          if (Object.keys(qData.metrics).length > 0 || qData.trends.length > 0 || qData.calculations.length > 0) {
+            responseText += `\n\n### Extracted Data\n`;
+            if (Object.keys(qData.metrics).length > 0) {
+              responseText += `**Metrics:** ${Object.values(qData.metrics).join(', ')}\n`;
+            }
+            if (qData.trends.length > 0) {
+              responseText += `**Trends:** ${qData.trends.join(', ')}\n`;
+            }
+            if (qData.calculations.length > 0) {
+              responseText += `**Calculations:** ${qData.calculations.slice(0, 3).join(', ')}\n`;
+            }
+          }
+        }
+      } else {
+        responseText = data.text || 'Analysis synthesis complete.';
+      }
+
       let excelExportData = null;
 
       // Check for Excel export trigger
@@ -618,7 +665,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         responseText += `\n\n*System Note: Excel export data "${excelExportData.filename}" is available for download.*`;
       }
 
-      const routedDeliverableType = determineDeliverableType(userMsgText, responseText, targetMode === 'deep');
+      const routedDeliverableType = deliverableTypeOverride || determineDeliverableType(userMsgText, responseText, targetMode === 'deep');
 
       const aiMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
@@ -646,8 +693,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           contextTokensProcessed: Math.floor(userMsgText.length * 3.5) + 12400,
           latencyMs: actualLatency
         },
-        reasoningSteps: data.reasoningSteps,
-        isDeepResearch: targetMode === 'deep'
+        reasoningSteps: reasoningSteps,
+        isDeepResearch: targetMode === 'deep' || targetMode === 'analyze'
       };
 
       setChatHistory((prev) => [...prev, aiMsg]);
@@ -763,13 +810,31 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       id: 'extract',
       label: '📊 Extract Financial Metrics',
       prompt: 'Extract all financial milestones, indemnification caps, and budget metrics into a clear Markdown table.',
-      mode: 'quick' as const
+      mode: 'analyze' as const
     },
     {
       id: 'audit',
       label: '🔍 Audit Compliance & Deadlines',
       prompt: 'Audit all compliance timelines, retroactive notice windows, and penalty triggers across active agreements.',
-      mode: 'quick' as const
+      mode: 'analyze' as const
+    },
+    {
+      id: 'quantitative',
+      label: '📈 Quantitative Analysis',
+      prompt: 'Analyze all numerical data, calculations, percentages, trends, and metrics in the documents. Provide concrete numbers and statistical insights.',
+      mode: 'analyze' as const
+    },
+    {
+      id: 'reasoning',
+      label: '🧠 Logical Reasoning & Causality',
+      prompt: 'Explain the causal relationships, logical chains, and underlying mechanisms in these documents. What causes what and why?',
+      mode: 'analyze' as const
+    },
+    {
+      id: 'qa',
+      label: '❓ Ask a Question',
+      prompt: 'Ask me anything about these documents and I will provide direct, evidence-based answers with reasoning steps.',
+      mode: 'analyze' as const
     }
   ];
 
