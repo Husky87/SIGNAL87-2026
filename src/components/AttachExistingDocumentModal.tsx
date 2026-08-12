@@ -27,7 +27,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col text-[var(--ink)]">
+      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col text-[var(--ink)]">
         <div className="flex items-center justify-between p-5 pb-3 border-b border-[var(--rule-2)]">
           <h2 className="text-[16px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
             Choose from Files
