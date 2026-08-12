@@ -171,9 +171,9 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       {/* Primary Bottom Navigation Bar - Material 3 Style */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden flex items-center justify-around flex-shrink-0 px-2 pt-2.5 pb-2 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full"
+        className="md:hidden flex items-center justify-between flex-shrink-0 px-1 sm:px-2 pt-3 pb-2.5 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full gap-1 sm:gap-2"
         style={{
-          paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
         }}
       >
         {tabs.map((tab) => {
@@ -198,23 +198,23 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               key={tab.id}
               onClick={handleClick}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors focus:outline-none`}
+              className={`flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors focus:outline-none py-1.5 px-2 flex-shrink-0`}
             >
               {/* Modern Google MD3 Active Accent Pill Indicator */}
               <div
-                className={`flex items-center justify-center px-5 py-1 rounded-full transition-all duration-200 ${
+                className={`flex items-center justify-center px-3 py-2 rounded-full transition-all duration-200 ${
  isActive
  ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
  : 'bg-transparent text-[var(--ink-2)] hover:bg-[var(--raised)]/40 hover:text-[var(--ink)]'
  }`}
               >
-                <Icon className="w-[18px] h-[18px]" />
+                <Icon className="w-5 h-5" />
               </div>
 
               {/* Tab Label */}
               <span
-                className={`text-[10px] font-medium leading-none tracking-tight transition-colors ${
- isActive ? 'text-[var(--accent-ink)] font-bold' : 'text-[var(--slate)]'
+                className={`text-[11px] font-semibold leading-tight tracking-tight transition-colors whitespace-nowrap ${
+ isActive ? 'text-[var(--accent-ink)]' : 'text-[var(--slate)]'
  }`}
               >
                 {tab.label}

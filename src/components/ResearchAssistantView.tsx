@@ -1035,14 +1035,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               )}
 
               {/* Single-row composer: "+" attach menu, input, send */}
-              <div className="relative bg-[var(--surface)] border border-[var(--rule)] rounded-[26px] p-1.5 sm:p-2 flex items-end gap-1.5 mt-auto transition-all focus-within:border-[var(--ink-2)]">
+              <div className="relative bg-[var(--surface)] border border-[var(--rule)] rounded-[26px] p-2 sm:p-2.5 flex items-end gap-2 sm:gap-2.5 mt-auto transition-all focus-within:border-[var(--ink-2)]">
                 <div className="relative flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowAttachMenu(!showAttachMenu)}
                     aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
                     aria-expanded={showAttachMenu}
-                    className="flex items-center justify-center w-11 h-11 md:w-9 md:h-9 rounded-full bg-[var(--raised)] hover:opacity-80 text-[var(--ink-2)] transition-colors cursor-pointer"
+                    className="flex items-center justify-center w-10 h-10 md:w-9 md:h-9 rounded-full bg-[var(--raised)] hover:opacity-80 text-[var(--ink-2)] transition-colors cursor-pointer"
                   >
                     {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
                   </button>
@@ -1117,14 +1117,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   onClick={() => handleSendQuery()}
                   disabled={!inputQuery.trim() || loading}
                   aria-label="Send"
-                  className={`flex-shrink-0 w-11 h-11 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  className={`flex-shrink-0 w-10 h-10 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                     inputQuery.trim() && !loading
                       ? 'bg-[var(--teal)] text-white hover:opacity-90'
                       : 'bg-[var(--raised)] text-[var(--muted)] cursor-not-allowed'
                   }`}
                   title="Send message"
                 >
-                  <ArrowUp size={18} strokeWidth={2.6} />
+                  <ArrowUp size={16} strokeWidth={2.6} />
                 </button>
               </div>
               {chatHistory.length === 0 && (
