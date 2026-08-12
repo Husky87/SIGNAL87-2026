@@ -7,10 +7,14 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
+
+// Sign-in asks for identity only (email + profile, which Firebase requests for us).
+// Drive scopes are deliberately NOT added here: adding them to the shared provider
+// made every plain login request full read/write/delete access to the user's Drive.
+// The Drive scope is requested separately, and only when the user explicitly
+// connects Drive — see requestDriveAuthProvider() in googleDriveService.ts.
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
-googleProvider.addScope('https://www.googleapis.com/auth/drive');
-googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
 
 export const signInWithGoogle = async () => {
   return signInWithPopup(auth, googleProvider);
@@ -41,5 +45,5 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   return getDownloadURL(storageRef);
 }
 
-export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithGoogleRedirect };
+export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider };
 export type { User };

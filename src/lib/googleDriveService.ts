@@ -1,4 +1,4 @@
-import { auth, googleProvider, signInWithPopup } from './firebase';
+import { auth, GoogleAuthProvider, signInWithPopup } from './firebase';
 import { parseFileContent, ParsedFileResult } from './fileParser';
 import { DocumentItem } from '../types';
 
@@ -25,10 +25,14 @@ export const getDriveAccessToken = (): string | null => {
 };
 
 export const authenticateGoogleDrive = async (): Promise<string> => {
-  googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
-  googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
-  
-  const result = await signInWithPopup(auth, googleProvider);
+  // A fresh provider per call, rather than the shared sign-in provider: addScope()
+  // mutates the instance, so reusing the shared one leaked Drive scopes into every
+  // subsequent plain login. drive.readonly is the only scope this file needs — it
+  // browses, downloads, and exports, and never creates or modifies Drive content.
+  const driveProvider = new GoogleAuthProvider();
+  driveProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+
+  const result = await signInWithPopup(auth, driveProvider);
   const credential = (result as any)._tokenResponse?.oauthAccessToken || 
                      (result as any).credential?.accessToken;
                      
