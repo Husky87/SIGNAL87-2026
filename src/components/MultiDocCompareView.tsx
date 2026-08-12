@@ -43,11 +43,18 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documents: activeDocs })
       });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(error.error || error.details || 'Failed to compare documents');
+      }
+
       const data = await res.json();
       setComparison(data);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error('Compare API error:', err);
+      alert(`Comparison failed: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
   };

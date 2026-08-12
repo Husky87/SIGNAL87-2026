@@ -54,6 +54,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         })
       });
 
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(error.error || error.details || 'Failed to generate report');
+      }
+
       const data = await res.json();
       setActiveReportText(data.reportText || 'Report generated successfully.');
 
@@ -72,7 +77,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       onSaveReport(newReport);
       setGenerating(false);
     } catch (err) {
-      console.error(err);
+      console.error('Report generation error:', err);
+      alert(`Report generation failed: ${err instanceof Error ? err.message : String(err)}`);
       setGenerating(false);
     }
   };
