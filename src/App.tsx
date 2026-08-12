@@ -117,7 +117,7 @@ export default function App() {
     } catch (e) {
       console.warn('Failed loading documents from localStorage', e);
     }
-    return INITIAL_DOCUMENTS;
+    return [];
   });
 
   const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>(() => {
