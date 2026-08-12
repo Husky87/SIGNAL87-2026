@@ -60,7 +60,6 @@ interface SidebarProps {
   activeSessionId?: string | null;
   onSelectSession?: (id: string) => void;
   onDeleteSession?: (id: string) => void;
-  onOpenDrivePicker?: () => void;
   onOpenUpload?: () => void;
   filesView?: FilesView;
   onSelectFilesView?: (view: FilesView) => void;

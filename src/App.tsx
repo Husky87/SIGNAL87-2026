@@ -21,9 +21,6 @@ import { LandingPageView } from './components/LandingPageView';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
-import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
-import { setDriveAccessToken } from './lib/googleDriveService';
-import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
 import { EmailAuthModal } from './components/EmailAuthModal';
 import { PaywallView } from './components/PaywallView';
@@ -236,8 +233,6 @@ export default function App() {
 
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
-  const [isDriveIntroOpen, setIsDriveIntroOpen] = useState(false);
   const [selectedDocForDetail, setSelectedDocForDetail] = useState<DocumentItem | null>(null);
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
@@ -246,18 +241,6 @@ export default function App() {
     setIsUploadOpen(true);
   };
 
-  const handleDrivePortSuccess = (newDocs: DocumentItem[]) => {
-    setDocuments((prev) => [...newDocs, ...prev]);
-    newDocs.forEach((doc) => {
-      setAttachedFiles((prev) => [
-        ...prev.filter((f) => f.id !== doc.id),
-        { id: doc.id, name: doc.title, size: `${(doc.sizeBytes / 1024).toFixed(1)} KB` }
-      ]);
-      saveDocumentToFirestore(doc).catch((err) =>
-        console.warn('Firestore document save fallback:', err)
-      );
-    });
-  };
   const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
   const [showMobileModelMenu, setShowMobileModelMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -382,9 +365,7 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       const onboardKey = `signal87_onboarded_${currentUser.uid}`;
-      const driveIntroKey = `signal87_gdrive_intro_seen_${currentUser.uid}`;
       const hasOnboarded = localStorage.getItem(onboardKey);
-      const hasSeenDriveIntro = localStorage.getItem(driveIntroKey);
 
       if (!hasOnboarded) {
         setIsWelcomeModalOpen(true);
@@ -399,9 +380,6 @@ export default function App() {
             name: currentUser.displayName
           })
         }).catch((err) => console.warn('Welcome Email Dispatch Error:', err));
-      } else if (!hasSeenDriveIntro) {
-        setIsDriveIntroOpen(true);
-        localStorage.setItem(driveIntroKey, 'true');
       }
     }
   }, [currentUser]);
@@ -607,11 +585,6 @@ export default function App() {
     } catch (e) {
       console.warn('Storage wipe notice:', e);
     }
-
-    // The Drive token lives in a module-level cache, so it outlives the storage
-    // wipe. Without this, the next account to sign in on this tab inherits the
-    // previous user's Drive access.
-    setDriveAccessToken(null);
 
     // Reset inputs, active views, and state variables to initial defaults
     setCurrentUser(null);
@@ -831,7 +804,6 @@ export default function App() {
         activeSessionId={activeSessionId}
         onSelectSession={setActiveSessionId}
         onDeleteSession={handleDeleteSession}
-        onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
         onOpenUpload={() => setIsUploadOpen(true)}
         filesView={filesView}
         onSelectFilesView={(view) => {
@@ -974,7 +946,6 @@ export default function App() {
                 filesView={filesView}
                 onSelectDocument={setSelectedDocForDetail}
                 onOpenUpload={() => setIsUploadOpen(true)}
-                onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
                 onCompareSelected={handleCompareFromDocs}
                 onDeleteDocument={handleDeleteDocument}
                 onRestoreDocument={handleRestoreDocument}
@@ -1002,7 +973,6 @@ export default function App() {
               selectedModel={selectedModel}
               onChangeModel={setSelectedModel}
               onOpenUpload={() => setIsUploadOpen(true)}
-              onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
               onUploadSuccess={handleUploadSuccess}
               onSaveReport={handleSaveReport}
               chatHistory={chatHistory}
@@ -1090,7 +1060,6 @@ export default function App() {
           onOpenMenu={() => setMobileMenuOpen(true)}
           documentCount={documents.length}
           onOpenUpload={() => setIsUploadOpen(true)}
-          onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
           onOpenNewFolderModal={() => {
             setCurrentTab('documents');
             // Dispatch custom event to trigger folder creation modal
@@ -1107,7 +1076,6 @@ export default function App() {
         onClose={() => setIsUploadOpen(false)}
         onUploadSuccess={handleUploadSuccess}
         documents={documents}
-        onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
         initialFiles={pendingDroppedFiles}
         onInitialFilesConsumed={() => setPendingDroppedFiles([])}
         onAllUploadsComplete={() => {
@@ -1120,19 +1088,6 @@ export default function App() {
             { id: doc.id, name: doc.title, size: `${(doc.sizeBytes / 1024).toFixed(1)} KB` }
           ]);
         }}
-      />
-
-      <GoogleDrivePickerModal
-        isOpen={isDrivePickerOpen}
-        onClose={() => setIsDrivePickerOpen(false)}
-        onPortSuccess={handleDrivePortSuccess}
-        onOpenIntro={() => setIsDriveIntroOpen(true)}
-      />
-
-      <GoogleDriveIntroModal
-        isOpen={isDriveIntroOpen}
-        onClose={() => setIsDriveIntroOpen(false)}
-        onConnectDrive={() => setIsDrivePickerOpen(true)}
       />
 
       <DocumentDetailModal

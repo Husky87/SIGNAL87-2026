@@ -36,7 +36,6 @@ interface DocumentLibraryViewProps {
   filesView?: FilesView;
   onSelectDocument: (doc: DocumentItem) => void;
   onOpenUpload: (folderId?: string) => void;
-  onOpenDrivePicker?: () => void;
   onCompareSelected?: (docs: DocumentItem[]) => void;
   onDeleteDocument: (docId: string) => void;
   onRestoreDocument?: (docId: string) => void;

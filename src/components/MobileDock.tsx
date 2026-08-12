@@ -8,7 +8,6 @@ import {
   FolderPlus,
   Upload,
   Sparkles,
-  Globe,
   X,
   Bookmark,
   Menu,
@@ -23,7 +22,6 @@ interface MobileDockProps {
   onOpenMenu?: () => void;
   documentCount?: number;
   onOpenUpload?: () => void;
-  onOpenDrivePicker?: () => void;
   onOpenNewFolderModal?: () => void;
 }
 
@@ -41,7 +39,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   onSelectTab,
   onNewSession,
   onOpenUpload,
-  onOpenDrivePicker,
   onOpenNewFolderModal,
   onOpenMenu,
 }) => {
@@ -56,7 +53,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     { id: 'more', label: 'More', icon: Menu },
   ];
 
-  const handleAction = (type: 'folder' | 'upload' | 'chat' | 'drive') => {
+  const handleAction = (type: 'folder' | 'upload' | 'chat') => {
     setIsBottomSheetOpen(false);
     setTimeout(() => {
       if (type === 'folder') {
@@ -74,8 +71,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       } else if (type === 'chat') {
         onNewSession();
         onSelectTab('research');
-      } else if (type === 'drive') {
-        if (onOpenDrivePicker) onOpenDrivePicker();
       }
     }, 150);
   };
@@ -153,16 +148,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">AI Chat</span>
               </button>
 
-              {/* Option 4: Link External */}
-              <button
-                onClick={() => handleAction('drive')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
-                  <Globe size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Cloud Files</span>
-              </button>
             </div>
           </div>
         </div>

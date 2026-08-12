@@ -25,8 +25,6 @@ interface HeaderProps {
   currentTab?: NavTab;
   onSearchQuery?: (query: string) => void;
   onOpenUpload: () => void;
-  onOpenDrivePicker?: () => void;
-  onOpenDriveIntro?: () => void;
   onSelectTab: (tab: NavTab) => void;
   selectedModel: string;
   onChangeModel: (model: string) => void;
@@ -40,8 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
   currentTab = 'dashboard',
   onSearchQuery,
   onOpenUpload,
-  onOpenDrivePicker,
-  onOpenDriveIntro,
   onSelectTab,
   selectedModel,
   onChangeModel,
@@ -205,25 +201,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Upload Documents</span>
               </button>
 
-              {onOpenDrivePicker && (
-                <button
-                  onClick={() => {
-                    setShowQuickActions(false);
-                    onOpenDrivePicker();
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-sky-300 hover:bg-[var(--raised)] flex items-center gap-2.5 font-semibold cursor-pointer bg-[var(--accent-soft)]"
-                >
-                  <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 87.3 78">
-                    <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                    <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                    <path d="m73.55 76.8c1.4-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 10.15z" fill="#ea4335"/>
-                    <path d="m43.65 25 13.75 23.8h27.5c0-1.55-.4-3.1-1.2-4.5l-25.4-44c-.8-1.4-1.9-2.5-3.3-3.3z" fill="#00832d"/>
-                    <path d="m57.4 48.8-13.75 23.8c1.4.8 2.95 1.2 4.5 1.2h54.8c1.55 0 3.1-.4 4.5-1.2l-13.75-23.8z" fill="#2684fc"/>
-                    <path d="m13.75 25 13.75 23.8 13.75-23.8-13.75-23.8z" fill="#ffba00"/>
-                  </svg>
-                  <span>Port from Google Workspace</span>
-                </button>
-              )}
               <button
                 onClick={() => {
                   setShowQuickActions(false);

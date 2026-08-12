@@ -56,7 +56,6 @@ export interface ResearchAssistantViewProps {
   selectedModel: string;
   onChangeModel: (model: string) => void;
   onOpenUpload?: () => void;
-  onOpenDrivePicker?: () => void;
   onUploadSuccess?: (doc: DocumentItem, parsedFile?: ParsedFileResult) => void;
   onSaveReport?: (rep: GeneratedReport) => void;
   chatHistory: ChatMessage[];
@@ -231,7 +230,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   selectedModel,
   onChangeModel,
   onOpenUpload,
-  onOpenDrivePicker,
   onUploadSuccess,
   onSaveReport,
   chatHistory,
@@ -1139,26 +1137,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         <span>Upload Document</span>
                       </button>
 
-                      {onOpenDrivePicker && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAttachMenu(false);
-                            onOpenDrivePicker();
-                          }}
-                          className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer"
-                        >
-                          <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 87.3 78">
-                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                            <path d="m43.65 25-13.75-23.8c-1.4.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                            <path d="m73.55 76.8c1.4-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 10.15z" fill="#ea4335"/>
-                            <path d="m43.65 25 13.75 23.8h27.5c0-1.55-.4-3.1-1.2-4.5l-25.4-44c-.8-1.4-1.9-2.5-3.3-3.3z" fill="#00832d"/>
-                            <path d="m57.4 48.8-13.75 23.8c1.4.8 2.95 1.2 4.5 1.2h54.8c1.55 0 3.1-.4 4.5-1.2l-13.75-23.8z" fill="#2684fc"/>
-                            <path d="m13.75 25 13.75 23.8 13.75-23.8-13.75-23.8z" fill="#ffba00"/>
-                          </svg>
-                          <span>Google Drive</span>
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>

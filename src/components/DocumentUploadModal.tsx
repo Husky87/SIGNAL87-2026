@@ -14,7 +14,6 @@ interface DocumentUploadModalProps {
   onUploadSuccess: (newDoc: DocumentItem, parsedFile?: ParsedFileResult) => void;
   documents: DocumentItem[];
   onSelectExistingDocument?: (doc: DocumentItem) => void;
-  onOpenDrivePicker?: () => void;
   // Files dropped directly onto the Files browser (outside this modal) get
   // fed straight into the same upload pipeline once the modal opens.
   initialFiles?: File[];
@@ -35,7 +34,7 @@ interface FileProgressItem {
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen, onClose, onUploadSuccess, onOpenDrivePicker, initialFiles, onInitialFilesConsumed, onAllUploadsComplete
+  isOpen, onClose, onUploadSuccess, initialFiles, onInitialFilesConsumed, onAllUploadsComplete
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileProgressItem[]>([]);

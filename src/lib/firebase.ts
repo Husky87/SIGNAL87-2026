@@ -8,11 +8,9 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 
-// Sign-in asks for identity only (email + profile, which Firebase requests for us).
-// Drive scopes are deliberately NOT added here: adding them to the shared provider
-// made every plain login request full read/write/delete access to the user's Drive.
-// The Drive scope is requested separately, and only when the user explicitly
-// connects Drive — see requestDriveAuthProvider() in googleDriveService.ts.
+// Sign-in asks for identity only — email and profile, which Firebase requests for us.
+// Nothing here may call addScope(): any Google API scope beyond identity puts the app
+// back into Google's OAuth verification review, which is why Drive import was dropped.
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
