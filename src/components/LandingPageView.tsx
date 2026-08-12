@@ -132,7 +132,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
             {/* Sub-line */}
             <p className="text-base text-[var(--ink-2)] max-w-lg leading-relaxed">
-              Every finding returns with the clause and the page it rests on.
+              Signal87 AI is an enterprise document memory and legal AI research platform engineered for real-time citation synthesis and zero-hallucination verification. Every finding returns with the clause and the page it rests on.
             </p>
 
             {/* Example Question Rows */}

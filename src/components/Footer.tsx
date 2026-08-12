@@ -82,16 +82,25 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Column 2: Governance & Security */}
           <div className="space-y-3">
             <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] text-slate-400 block">
-              Trust & Privacy
+              Trust & Legal
             </span>
             <ul className="space-y-1 text-xs">
               <li>
                 <button
-                  onClick={onOpenPrivacy}
+                  onClick={() => onSelectTab('privacy')}
                   className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-emerald-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
                 >
                   <Shield size={14} className="text-emerald-600" />
                   <span>Privacy Policy</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onSelectTab('terms')}
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                >
+                  <BookOpen size={14} className="text-slate-500" />
+                  <span>Terms of Service</span>
                 </button>
               </li>
             </ul>
