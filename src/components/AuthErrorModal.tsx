@@ -9,13 +9,15 @@ interface AuthErrorModalProps {
   } | null;
   onClose: () => void;
   onRetryGoogleSignIn: () => void;
+  onTryRedirectAuth?: () => void;
 }
 
 export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
   isOpen,
   error,
   onClose,
-  onRetryGoogleSignIn
+  onRetryGoogleSignIn,
+  onTryRedirectAuth
 }) => {
   if (!isOpen || !error) return null;
 
@@ -110,6 +112,14 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
 
         {/* Action Buttons */}
         <div className="pt-2 flex items-center justify-end gap-3">
+          {isPopupClosed && onTryRedirectAuth && (
+            <button
+              onClick={onTryRedirectAuth}
+              className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-black transition-all cursor-pointer"
+            >
+              Try Alternate Login
+            </button>
+          )}
           <button
             onClick={onRetryGoogleSignIn}
             className="w-full sm:w-auto px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white rounded-xl text-xs font-black transition-all cursor-pointer"

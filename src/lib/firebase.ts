@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, query, orderBy, limit, addDoc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -13,15 +13,11 @@ googleProvider.addScope('https://www.googleapis.com/auth/drive');
 googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
 
 export const signInWithGoogle = async () => {
-  try {
-    return await signInWithPopup(auth, googleProvider);
-  } catch (error: any) {
-    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
-      console.log('Popup sign-in failed, trying redirect method...');
-      return await signInWithRedirect(auth, googleProvider);
-    }
-    throw error;
-  }
+  return signInWithPopup(auth, googleProvider);
+};
+
+export const signInWithGoogleRedirect = async () => {
+  return signInWithRedirect(auth, googleProvider);
 };
 
 export const signUpWithEmail = async (email: string, password: string) => {
@@ -45,5 +41,5 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   return getDownloadURL(storageRef);
 }
 
-export { signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider };
+export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithGoogleRedirect };
 export type { User };

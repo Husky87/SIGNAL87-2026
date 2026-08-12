@@ -29,7 +29,7 @@ import { isAdminEmail } from './lib/admins';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { SavedView } from './components/SavedView';
-import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider } from './lib/firebase';
+import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider, getRedirectResult, signInWithGoogleRedirect } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'lucide-react';
 
 import {
@@ -414,6 +414,26 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Handle OAuth redirect result
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          setCurrentUser(result.user);
+          setAuthError(null);
+        }
+      })
+      .catch((error: any) => {
+        console.error('Redirect result error:', error);
+        if (error.code !== 'auth/no-redirect-result') {
+          setAuthError({
+            code: error.code || 'auth/redirect-error',
+            message: error.message || 'OAuth redirect failed'
+          });
+        }
+      });
+  }, []);
+
   // Initial Sync from Firestore
   useEffect(() => {
     async function syncFirestoreData() {
@@ -667,6 +687,19 @@ export default function App() {
     }
   };
 
+  const handleGoogleSignInRedirect = async () => {
+    try {
+      setAuthError(null);
+      await signInWithGoogleRedirect(auth);
+    } catch (err: any) {
+      console.error('Google Sign-In Redirect Error:', err);
+      setAuthError({
+        code: err.code || 'auth/redirect-failed',
+        message: err.message || 'OAuth redirect failed. Please try again.'
+      });
+    }
+  };
+
   // Errors intentionally propagate to the caller — EmailAuthModal shows
   // them inline next to the form instead of the separate Google-specific
   // AuthErrorModal.
@@ -730,6 +763,7 @@ export default function App() {
           error={authError}
           onClose={() => setAuthError(null)}
           onRetryGoogleSignIn={handleGoogleSignIn}
+          onTryRedirectAuth={handleGoogleSignInRedirect}
         />
 
         <EmailAuthModal
