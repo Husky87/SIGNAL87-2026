@@ -1108,7 +1108,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                     }
                   }}
                   placeholder="Ask anything..."
-                  className="flex-1 min-w-0 bg-transparent border-0 text-[16px] leading-[1.4] text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none resize-none min-h-[44px] md:min-h-[36px] max-h-32 px-1.5 py-[11px] md:py-[8px] font-sans"
+                  className="flex-1 min-w-0 bg-transparent border-0 text-[15px] sm:text-[16px] leading-[1.5] text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none resize-none min-h-[40px] md:min-h-[36px] max-h-24 px-2 py-2 md:py-1.5 font-sans"
                   rows={1}
                 />
 
