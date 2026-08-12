@@ -130,10 +130,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <span className="italic text-[var(--accent)]">records</span>?
             </h1>
 
-            {/* Sub-line */}
-            <p className="text-base text-[var(--ink-2)] max-w-lg leading-relaxed">
-              Signal87 AI is an enterprise document memory and legal AI research platform engineered for real-time citation synthesis and zero-hallucination verification. Every finding returns with the clause and the page it rests on.
-            </p>
+            {/* Sub-line: App Purpose */}
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-[var(--ink)] max-w-lg leading-relaxed">
+                Signal87 AI: Enterprise Document Memory & Legal AI Research Platform
+              </p>
+              <p className="text-base text-[var(--ink-2)] max-w-lg leading-relaxed">
+                Engineered for real-time citation synthesis and zero-hallucination verification. Every finding returns with the clause and the page it rests on—no hallucinations, no guesswork, just grounded legal intelligence.
+              </p>
+            </div>
 
             {/* Example Question Rows */}
             <div className="space-y-2 pt-2">
