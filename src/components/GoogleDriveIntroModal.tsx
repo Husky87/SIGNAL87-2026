@@ -77,7 +77,7 @@ export const GoogleDriveIntroModal: React.FC<GoogleDriveIntroModalProps> = ({
                   OAuth 2.0 Secure Authentication
                 </h4>
                 <p className="text-[11px] text-[#8e918f] mt-0.5 leading-relaxed">
-                  Connect your Google account with read-only permissions. Signal87 never modifies or stores your Workspace credentials.
+                  Pick files in Google's own dialog. Signal87 gets read access to only the documents you select — never the rest of your Drive — and never stores your Google credentials.
                 </p>
               </div>
             </div>

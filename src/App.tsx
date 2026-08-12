@@ -22,6 +22,7 @@ import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
+import { setDriveAccessToken } from './lib/googleDriveService';
 import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
 import { EmailAuthModal } from './components/EmailAuthModal';
@@ -606,6 +607,11 @@ export default function App() {
     } catch (e) {
       console.warn('Storage wipe notice:', e);
     }
+
+    // The Drive token lives in a module-level cache, so it outlives the storage
+    // wipe. Without this, the next account to sign in on this tab inherits the
+    // previous user's Drive access.
+    setDriveAccessToken(null);
 
     // Reset inputs, active views, and state variables to initial defaults
     setCurrentUser(null);

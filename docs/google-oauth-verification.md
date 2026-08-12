@@ -5,65 +5,65 @@ console changes that have to be made by hand. Code-side fixes are already commit
 
 ---
 
-## 1. Scopes: delete four, keep one
+## 1. Scopes: delete all five, add `drive.file`
 
-The consent screen currently requests five scopes. Four of them the code never used:
+The app now uses **`.../auth/drive.file`** and nothing else beyond basic sign-in.
+`drive.file` is **non-sensitive**, which means no restricted-scope review, no demo
+video, and no annual CASA security assessment.
 
-| Scope | Status | Why |
+| Scope | Action | Why |
 | --- | --- | --- |
 | `auth/drive` | **Remove** | Full read/write/delete. Nothing in the app writes to Drive. |
+| `auth/drive.readonly` | **Remove** | Restricted. Only needed to list a whole Drive; the Picker replaced that. |
 | `auth/spreadsheets` | **Remove** | The Sheets API was never called. Dead code, now deleted. |
 | `auth/spreadsheets.readonly` | **Remove** | Same as above. |
-| `auth/drive.file` | **Remove** | Not needed alongside `drive.readonly` for read-only browsing. |
-| `auth/drive.readonly` | **Keep** | The only scope the app actually uses. |
+| `auth/drive.file` | **Keep / add** | Per-file access, granted only for files the user picks. |
 
-`auth/drive` and `auth/spreadsheets` were being added to the shared sign-in provider at
-module load, so *every* plain "Sign in with Google" asked for full Drive read/write/delete
-and full Sheets access. That is now fixed: sign-in requests identity only, and
-`drive.readonly` is requested separately when the user explicitly connects Drive.
+Two things were wrong before. `auth/drive` and `auth/spreadsheets` were added to the
+shared sign-in provider at module load, so *every* plain "Sign in with Google" asked
+for full Drive read/write/delete plus full Sheets access. And file discovery used
+`files.list`, which can only work with the restricted `drive.readonly` scope.
 
-In **Data Access**, remove the four scopes above so only `drive.readonly` remains. That
-clears four of the five warning rows on its own.
+Both are fixed: sign-in requests identity only, and file discovery now goes through
+Google's own Picker, which grants access per picked file under `drive.file`.
 
-> **Read this before submitting:** `drive.readonly` is still a **restricted** scope.
-> Restricted scopes require verification *and* an annual third-party CASA security
-> assessment, which is slow and paid. See section 5 for the alternative that avoids
-> restricted-scope review entirely.
+Once the four scopes above are removed in **Data Access**, the "scope justification /
+intended data usage / demo video" errors should clear on their own — those fields are
+only demanded for sensitive and restricted scopes.
 
 ---
 
-## 2. Scope justification — `.../auth/drive.readonly`
+## 2. Scope justification — `.../auth/drive.file`
 
-> Signal87 AI is a document analysis platform. Users import documents they already store in
-> Google Drive so the application can extract the text and answer questions about those
-> documents with citations back to the source.
+Fill this in if the console still asks. It generally does not for non-sensitive scopes.
+
+> Signal87 AI is a document analysis platform. Users import documents they already
+> store in Google Drive so the application can extract the text and answer questions
+> about them with citations back to the source.
 >
-> `drive.readonly` is used for exactly two operations:
+> File selection happens entirely in the Google Picker. The application never lists or
+> searches the user's Drive; it receives access only to the specific files the user
+> chooses in the Picker. For each of those files it calls `files.get?alt=media` (or
+> `files.export` for native Google Docs, Sheets, and Slides) once, to read the content
+> for text extraction.
 >
-> 1. `files.list` — renders an in-app file browser so the user can find and choose which of
->    their own documents to import. The listing requests only the id, name, mimeType, size,
->    modifiedTime, and link fields.
-> 2. `files.get?alt=media` and `files.export` — downloads the content of only the specific
->    files the user selects, so the text can be extracted and indexed for search.
->
-> The application never creates, modifies, or deletes anything in the user's Drive, which is
-> why no write scope is requested. Read access to the file listing is required because the
-> user chooses their source documents from their existing Drive contents.
+> The application never creates, modifies, or deletes anything in the user's Drive.
 
 ---
 
 ## 3. Intended data usage
 
-> File content is downloaded only for the documents a user explicitly selects. The extracted
-> text is stored in that user's own private workspace in Firestore, readable only by their
-> authenticated account, and is used solely to answer that user's questions about their own
-> documents.
+> File content is downloaded only for the documents a user explicitly picks. The
+> extracted text is stored in that user's own private workspace in Firestore, readable
+> only by their authenticated account, and is used solely to answer that user's
+> questions about their own documents.
 >
-> Document text is sent to Google Gemini and OpenAI only to generate the summary or answer the
-> user requested. It is not used to train any model, is not sold, is not shared with
-> advertisers, and is not disclosed to any third party beyond those processing sub-processors.
-> Users can delete imported documents and their extracted text at any time. Drive access
-> tokens are held in memory for the active session only and are never persisted.
+> Document text is sent to Google Gemini and OpenAI only to generate the summary or
+> answer the user requested. It is not used to train any model, is not sold, is not
+> shared with advertisers, and is not disclosed to any third party beyond those
+> processing sub-processors. Users can delete imported documents and their extracted
+> text at any time. Drive access tokens are held in memory for the active session only,
+> are never persisted, and are discarded on sign-out.
 
 ---
 
@@ -71,67 +71,73 @@ clears four of the five warning rows on its own.
 
 ### "Your home page does not explain the purpose of your app."
 
-> The home page has been updated to state the application's purpose directly. The page title
-> is now "Signal87 AI — Enterprise Document Memory & Legal AI Research Platform", and the meta
-> description and hero section explain that Signal87 AI lets users upload contracts, reports,
-> and spreadsheets and ask questions in plain language, returning answers with citations to the
-> exact page and paragraph in their own documents. A no-JavaScript fallback carrying the same
-> description and links to the Privacy Policy and Terms of Service was added so the purpose is
-> visible in the raw HTML without executing scripts. The home page footer links to
-> https://signal87.ai/privacy and https://signal87.ai/terms.
+> The home page has been updated to state the application's purpose directly. The page
+> title is now "Signal87 AI — Enterprise Document Memory & Legal AI Research Platform",
+> and the meta description and hero section explain that Signal87 AI lets users upload
+> contracts, reports, and spreadsheets and ask questions in plain language, returning
+> answers with citations to the exact page and paragraph in their own documents. A
+> no-JavaScript fallback carrying the same description and links to the Privacy Policy
+> and Terms of Service was added so the purpose is visible in the raw HTML without
+> executing scripts. The home page footer links to https://signal87.ai/privacy and
+> https://signal87.ai/terms.
 
 ### "The app name 'Signal87 AI' ... does not match the app name on your home page."
 
-> The mismatch was caused by the home page title, which previously read "Michael Benezra |
-> Signal87 AI — CEO & Co-Founder" and led with the founder's name rather than the application
-> name. The title now reads "Signal87 AI — Enterprise Document Memory & Legal AI Research
-> Platform", and the application is identified as "Signal87 AI" consistently across the page
-> title, header navigation, Open Graph and Twitter metadata, and SoftwareApplication structured
-> data. This matches the app name configured on the OAuth consent screen exactly.
+> The mismatch was caused by the home page title, which previously read "Michael
+> Benezra | Signal87 AI — CEO & Co-Founder" and led with the founder's name rather than
+> the application name. The title now reads "Signal87 AI — Enterprise Document Memory &
+> Legal AI Research Platform", and the application is identified as "Signal87 AI"
+> consistently across the page title, header navigation, Open Graph and Twitter
+> metadata, and SoftwareApplication structured data. This matches the app name
+> configured on the OAuth consent screen exactly.
 
 ---
 
-## 5. The restricted-scope decision
+## 5. Enable the Picker API
 
-Two paths, and this is worth deciding before spending a verification cycle:
+The Picker needs one API turned on and one key reachable. Both are console-side:
 
-**A. Ship `drive.readonly` (current code).** Keeps the in-app Drive browser exactly as built.
-Cost: restricted-scope verification, demo video, and a CASA security assessment renewed
-annually.
-
-**B. Switch to Google Picker + `drive.file`.** `drive.file` is **non-sensitive** — it needs no
-verification, no demo video, and no CASA assessment. The user picks files through Google's own
-Picker dialog and the app receives access to only those files. Cost: the custom Drive browser
-in `fetchDriveFiles` gets replaced by the Picker, so the file-list UI changes.
-
-Option B is dramatically less ongoing work and cost. It requires a real code change, so it
-hasn't been made unilaterally.
+- **APIs & Services → Library → Google Picker API → Enable.** Without this the picker
+  fails to open.
+- The Picker uses the browser API key already in `firebase-applet-config.json`
+  (`apiKey`). If that key has **API restrictions** set, add *Google Picker API* to its
+  allowed list, and keep *Google Drive API* enabled too. If it has HTTP referrer
+  restrictions, they must cover the production domain.
+- No new environment variables are needed. The code reads the client ID, API key, and
+  project number (`messagingSenderId`, used as the Picker `appId`) from the existing
+  Firebase config file.
 
 ---
 
-## 6. Demo video (required for restricted scopes — path A only)
+## 6. Console checklist
 
-Unlisted YouTube is fine. It must show, in one continuous recording:
-
-1. The browser URL bar showing the production URL, to establish it's the app under review.
-2. The OAuth consent screen, readable, showing the app name "Signal87 AI" and the
-   `drive.readonly` grant. Do not cut away during consent.
-3. The Drive file browser listing files — this demonstrates `files.list`.
-4. Selecting one document and importing it — this demonstrates the download/export call.
-5. Asking a question about that document and receiving an answer with a citation. This is the
-   part that shows *why* the scope is needed rather than just that it's requested.
-
----
-
-## 7. Console checklist
-
-- [ ] **Data Access** — remove the four scopes in section 1; only `drive.readonly` remains
-- [ ] **Data Access** — paste sections 2 and 3 into scope justification / intended data usage
+- [ ] **Data Access** — remove the four scopes in section 1; add `.../auth/drive.file`
+- [ ] **APIs & Services** — enable the Google Picker API (section 5)
 - [ ] **Branding** — app name exactly `Signal87 AI`
 - [ ] **Branding** — home page `https://signal87.ai/`
 - [ ] **Branding** — privacy `https://signal87.ai/privacy`
 - [ ] **Branding** — terms `https://signal87.ai/terms`
 - [ ] **Branding** — authorized domains trimmed to 10 or fewer
-- [ ] Demo video recorded and linked (path A only)
-- [ ] **Confirm the deploy first** — `/privacy` and `/terms` must return 200 on the live domain
-      before submitting, or the policy-URL check fails again
+- [ ] **Confirm the deploy first** — `/privacy` and `/terms` must return 200 on the live
+      domain before submitting, or the policy-URL check fails again
+- [ ] Test the Drive import end to end in production once the Picker API is on — this
+      flow could not be exercised from the build environment
+
+---
+
+## 7. What changed in the code
+
+- `index.html` — title, meta description, OG/Twitter tags, and structured data now lead
+  with "Signal87 AI" and describe the product. Added a `<noscript>` block carrying the
+  purpose and policy links, since the app renders client-side and the raw HTML was
+  otherwise an empty root div.
+- `src/lib/firebase.ts` — dropped the `addScope` calls; sign-in requests identity only.
+- `src/lib/googleDriveService.ts` — replaced `authenticateGoogleDrive` + `fetchDriveFiles`
+  with `pickFilesFromDrive`, built on Google Identity Services (incremental `drive.file`
+  token) and the Google Picker. `importFileFromDrive` now clears the cached token on
+  401/403.
+- `src/components/GoogleDrivePickerModal.tsx` — the custom file browser, search, and
+  category filters are gone; the modal now stages the files returned by the Picker.
+- `src/lib/googleSheetsService.ts` — deleted; it was never imported.
+- `src/App.tsx` — sign-out clears the in-memory Drive token, which previously survived
+  logout and would have been inherited by the next account signing in on the same tab.
