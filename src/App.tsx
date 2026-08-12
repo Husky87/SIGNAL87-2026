@@ -19,6 +19,8 @@ import { MediaModal } from './components/MediaModal';
 import { QuickAIAgentWidget } from './components/QuickAIAgentWidget';
 import { LandingPageView } from './components/LandingPageView';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfService } from './pages/TermsOfService';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
 import { GoogleDriveIntroModal } from './components/GoogleDriveIntroModal';
 import { AuthErrorModal } from './components/AuthErrorModal';
@@ -1062,6 +1064,14 @@ export default function App() {
               selectedModel={selectedModel}
               onChangeModel={setSelectedModel}
             />
+          )}
+
+          {currentTab === 'privacy' && (
+            <PrivacyPolicy />
+          )}
+
+          {currentTab === 'terms' && (
+            <TermsOfService />
           )}
         </main>
 

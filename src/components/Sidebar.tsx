@@ -32,7 +32,9 @@ export type NavTab =
   | 'searches'
   | 'team'
   | 'organization'
-  | 'saved';
+  | 'saved'
+  | 'privacy'
+  | 'terms';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
