@@ -111,11 +111,32 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       }
     }
 
-    updateItem({ progress: 95, status: 'processing', stepMessage: 'Almost ready...' });
-    await new Promise((r) => setTimeout(r, 200));
-
     const extension = title.split('.').pop()?.toLowerCase() || '';
     const detectedType = extension === 'docx' ? 'docx' : extension === 'xlsx' || extension === 'xls' ? 'xlsx' : extension === 'csv' ? 'csv' : extension === 'pdf' ? 'pdf' : 'txt';
+
+    updateItem({ progress: 95, status: 'processing', stepMessage: 'Generating summary...' });
+
+    let aiSummary = '';
+    try {
+      const summaryRes = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentText: extractedText,
+          documentTitle: title,
+          documentType: detectedType
+        })
+      });
+      if (summaryRes.ok) {
+        const summaryData = await summaryRes.json();
+        aiSummary = summaryData.summary || '';
+      }
+    } catch (err) {
+      console.warn('Failed to generate AI summary:', err);
+    }
+
+    updateItem({ progress: 98, status: 'processing', stepMessage: 'Finalizing...' });
+    await new Promise((r) => setTimeout(r, 100));
 
     const newDoc: DocumentItem & { fullText?: string } = {
       id: docId,
@@ -128,7 +149,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       aiIndexed: true, embeddingsComplete: true,
       versionHistory: [{ version: 1, updatedAt: new Date().toISOString(), updatedBy: 'ceo@signal87.ai', changeNote: 'Initial deposit' }],
       permissions: 'Organization',
-      summary: backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
+      summary: aiSummary || backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
       entities: backendData.entities || [{ name: title, type: 'Contract', relevance: 90 }],
       riskHighlights: backendData.riskHighlights || ['Standard compliance verification complete'],
       contentPreview: extractedText, fullText: extractedText, category: 'Legal', projectIds: [], fileUrl
