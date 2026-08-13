@@ -126,14 +126,39 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </main>
 
-      <div id="team">
-        <Footer
-          onSelectTab={onSelectTab}
-          onOpenPrivacy={onOpenPrivacy}
-          onOpenBlog={onOpenBlog}
-          onOpenMedia={onOpenMedia}
-        />
-      </div>
+      <section id="team" className="px-5 sm:px-8 py-16 sm:py-20 border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#F3F3EE]">
+            Team
+          </h2>
+          <p className="mt-3 text-[15px] text-white/45 leading-relaxed max-w-xl">
+            Enterprise research AI should be verifiable. Every finding needs a citation, and nothing should disappear from memory.
+          </p>
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <article className="p-5 sm:p-6 rounded-[14px] bg-[#161818] border border-white/10">
+              <h3 className="text-[15px] font-semibold text-[#F3F3EE]">Michael Benezra</h3>
+              <p className="text-[13px] text-white/45">CEO & Co-Founder</p>
+              <p className="mt-4 text-[14px] leading-relaxed text-white/55">
+                Leads strategy, partnerships, and product direction. Focused on verifiable document memory for legal, municipal, and corporate teams.
+              </p>
+            </article>
+            <article className="p-5 sm:p-6 rounded-[14px] bg-[#161818] border border-white/10">
+              <h3 className="text-[15px] font-semibold text-[#F3F3EE]">Michael Chavira</h3>
+              <p className="text-[13px] text-white/45">Co-Founder & Chief Systems Architect</p>
+              <p className="mt-4 text-[14px] leading-relaxed text-white/55">
+                Builds the retrieval, parsing, and citation pipeline. Focused on fast, grounded answers without leaking data.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <Footer
+        onSelectTab={onSelectTab}
+        onOpenPrivacy={onOpenPrivacy}
+        onOpenBlog={onOpenBlog}
+        onOpenMedia={onOpenMedia}
+      />
     </div>
   );
 };

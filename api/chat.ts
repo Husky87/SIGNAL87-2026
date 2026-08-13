@@ -122,20 +122,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Handle multimodal input
     if (imageParts.length > 0) {
-      const ai = getGeminiClient();
-      const parts: any[] = [{ text: fullPrompt }, ...imageParts];
+      if (process.env.GEMINI_API_KEY) {
+        const ai = getGeminiClient();
+        const parts: any[] = [{ text: fullPrompt }, ...imageParts];
 
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ role: 'user', parts }],
-        config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
-      });
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: [{ role: 'user', parts }],
+          config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
+        });
 
-      return res.json({
-        text: response.text,
-        provider: 'gemini',
-        modelUsed: model,
-        fallbackTriggered: false
+        return res.json({
+          text: response.text,
+          provider: 'gemini',
+          modelUsed: model,
+          fallbackTriggered: false
+        });
+      }
+
+      if (process.env.OPENAI_API_KEY) {
+        const imageContent = imageParts.map((part) => ({
+          type: 'image_url' as const,
+          image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+        }));
+        const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION },
+              { role: 'user', content: [{ type: 'text', text: fullPrompt }, ...imageContent] }
+            ]
+          })
+        });
+        if (!openaiRes.ok) {
+          const detail = await openaiRes.text();
+          return res.status(502).json({ error: 'Image analysis failed', details: detail.slice(0, 300) });
+        }
+        const openaiJson = await openaiRes.json();
+        return res.json({
+          text: openaiJson.choices?.[0]?.message?.content || '',
+          provider: 'openai',
+          modelUsed: 'gpt-4o',
+          fallbackTriggered: true
+        });
+      }
+
+      return res.status(500).json({
+        error: 'AI service is not configured',
+        details: 'Image questions need GEMINI_API_KEY or OPENAI_API_KEY'
       });
     }
 
