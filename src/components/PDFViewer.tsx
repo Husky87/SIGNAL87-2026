@@ -4,8 +4,14 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2, AlertCircle, Download } from 'lucide-react';
 import { fileDataCache } from '../lib/pdfGenerator';
+import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// The worker ships with the app instead of being fetched from jsdelivr at
+// runtime. On the CDN version the viewer rendered nothing whenever that host was
+// unreachable — a VPN, an ad blocker, an offline moment or a strict CSP was
+// enough — and the failure surfaced only as a blank pane. Vite emits this as a
+// local asset, so it is always the exact version react-pdf expects.
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 interface PDFViewerProps {
   docId?: string;

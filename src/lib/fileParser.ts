@@ -1,9 +1,12 @@
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Configure pdfjs worker to matching ESM version on jsdelivr/unpkg CDN
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+// Bundled locally rather than pulled from a CDN. When that fetch failed, PDF
+// text extraction failed with it, so uploads produced documents with no
+// searchable body and no preview text.
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 export interface ParsedFileResult {
   id: string;

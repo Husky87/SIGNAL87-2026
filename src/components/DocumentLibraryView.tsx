@@ -25,6 +25,7 @@ import {
   ArrowUp,
   ArrowDown,
   GitFork,
+  Info,
   CheckSquare,
   Square,
   MinusSquare
@@ -132,10 +133,16 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   // arrow keys move. Conflating them makes shift+arrow collapse onto one item.
   const [rangeAnchorId, setRangeAnchorId] = useState<string | null>(null);
   const [cursorId, setCursorId] = useState<string | null>(null);
-  // Whether the single-selection details panel should be showing. Ticking a
-  // checkbox selects without opening it: on phones that panel is a full-screen
-  // overlay, so opening it on the first tick made the second checkbox
-  // unreachable and multi-select impossible by touch.
+  /**
+   * Whether the details panel is showing. Deliberately NOT tied to selection.
+   *
+   * The panel is in-flow on desktop, so opening it narrows and reflows the file
+   * list. When a single click opened it, the row moved out from under the
+   * pointer between the two clicks of a double-click — measured at 86px down and
+   * 220px narrower — so the second click missed and documents could not be
+   * opened at all. Drive treats its info panel the same way: a toggle, not a
+   * consequence of selecting something.
+   */
   const [detailsVisible, setDetailsVisible] = useState(false);
   const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
@@ -387,7 +394,6 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const handleItemClick = (e: React.MouseEvent | React.KeyboardEvent, docId: string) => {
     const ids = filteredDocs.map((d) => d.id);
-    setDetailsVisible(true);
 
     if (e.shiftKey && rangeAnchorId) {
       const from = ids.indexOf(rangeAnchorId);
@@ -828,6 +834,19 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           </button>
         )}
 
+        <button
+          onClick={() => {
+            setSelectedIds(new Set([doc.id]));
+            setRangeAnchorId(doc.id);
+            setCursorId(doc.id);
+            setDetailsVisible(true);
+            closeAllMenus();
+          }}
+          className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
+        >
+          <Info size={13} /> Details
+        </button>
+
         {doc.fileUrl && (
           <a
             href={doc.fileUrl}
@@ -1209,6 +1228,20 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 )}
               </div>
 
+              <button
+                onClick={() => setDetailsVisible((v) => !v)}
+                title={detailsVisible ? 'Hide details' : 'Show details'}
+                aria-label={detailsVisible ? 'Hide details' : 'Show details'}
+                aria-pressed={detailsVisible}
+                className={`p-2 rounded-full border cursor-pointer transition-colors min-h-[40px] flex items-center ${
+                  detailsVisible
+                    ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                    : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
+                }`}
+              >
+                <Info size={15} />
+              </button>
+
               {/* View toggle */}
               <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--rule)] rounded-full p-0.5">
                 <button
@@ -1247,11 +1280,14 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             })}
           </div>
 
-          {/* Selection bar — batch actions over everything currently selected */}
+          {/* Selection bar. Floated rather than placed in flow: as an in-flow band it
+              pushed the whole list down the moment anything was selected, moving a row
+              86px out from under the pointer between the two clicks of a double-click,
+              so documents could not be opened. Fixed positioning keeps the list still. */}
           {selectedDocs.length > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 flex-wrap px-3 py-2 bg-[var(--accent-soft)] border border-[var(--teal)] rounded-xl"
+              className="fixed left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
             >
               <button
                 onClick={clearSelection}
@@ -1275,8 +1311,6 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   Select all {filteredDocs.length}
                 </button>
               )}
-
-              <div className="flex-1 min-w-2" />
 
               {selectionDownloadable > 0 && (
                 <button
