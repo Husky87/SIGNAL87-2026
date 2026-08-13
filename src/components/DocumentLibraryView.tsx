@@ -24,9 +24,14 @@ import {
   Plus,
   ArrowUp,
   ArrowDown,
-  GitFork
+  GitFork,
+  Info,
+  CheckSquare,
+  Square,
+  MinusSquare
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
+import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
@@ -44,7 +49,8 @@ interface DocumentLibraryViewProps {
   onToggleStar?: (docId: string) => void;
   onRenameDocument?: (docId: string, newTitle: string) => void;
   onChangeDocumentPermissions?: (docId: string, permissions: DocumentItem['permissions']) => void;
-  onCreateFolder?: (name: string, color?: string) => void;
+  onCreateFolder?: (name: string, color?: string, parentId?: string | null) => void;
+  onMoveFolder?: (folderId: string, parentId: string | null) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
   onMoveDocument?: (docId: string, folderId: string | undefined) => void;
@@ -91,6 +97,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onRenameDocument,
   onChangeDocumentPermissions,
   onCreateFolder,
+  onMoveFolder,
   onRenameFolder,
   onDeleteFolder,
   onMoveDocument,
@@ -99,6 +106,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onFolderChange
 }) => {
   const [searchFilter, setSearchFilter] = useState('');
+  const [searchScope, setSearchScope] = useState<'folder' | 'everywhere'>('everywhere');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFolderId, setActiveFolderId] = useState<string | null>(initialFolderId);
 
@@ -118,7 +126,25 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Drive-style multi-select: a plain click replaces the selection, cmd/ctrl-click
+  // toggles one item, shift-click extends a range from the last item clicked.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Two separate marks: the anchor a shift-range measures from, and the cursor the
+  // arrow keys move. Conflating them makes shift+arrow collapse onto one item.
+  const [rangeAnchorId, setRangeAnchorId] = useState<string | null>(null);
+  const [cursorId, setCursorId] = useState<string | null>(null);
+  /**
+   * Whether the details panel is showing. Deliberately NOT tied to selection.
+   *
+   * The panel is in-flow on desktop, so opening it narrows and reflows the file
+   * list. When a single click opened it, the row moved out from under the
+   * pointer between the two clicks of a double-click — measured at 86px down and
+   * 220px narrower — so the second click missed and documents could not be
+   * opened at all. Drive treats its info panel the same way: a toggle, not a
+   * consequence of selecting something.
+   */
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingDocTitle, setRenamingDocTitle] = useState('');
 
@@ -132,7 +158,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [contextMoveOpen, setContextMoveOpen] = useState(false);
 
   const [draggingDocId, setDraggingDocId] = useState<string | null>(null);
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  // undefined = no crumb hovered; null = the root crumb is hovered
+  const [dragOverCrumbId, setDragOverCrumbId] = useState<string | null | undefined>(undefined);
   const [isExternalDropActive, setIsExternalDropActive] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
 
@@ -145,6 +174,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
   const [moveMenuDocId, setMoveMenuDocId] = useState<string | null>(null);
+  const [selectionMoveOpen, setSelectionMoveOpen] = useState(false);
 
   useEffect(() => {
     setActiveFolderId(initialFolderId);
@@ -157,7 +187,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       setActiveFolderId(null);
       if (onFolderChange) onFolderChange(null);
     }
-    setSelectedId(null);
+    clearSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filesView]);
 
@@ -186,6 +216,51 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const categories = ['All', 'Contracts', 'Financials', 'Legal', 'Research'];
   const currentFolder = folders.find((f) => f.id === activeFolderId);
 
+  const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
+
+  // Only the folders directly inside wherever we are. Previously every folder was
+  // listed at every level, so parentId went unused and there was one flat tier.
+  const childFolders = useMemo(
+    () => folders.filter((f) => (f.parentId ?? null) === activeFolderId),
+    [folders, activeFolderId]
+  );
+
+  /** Root-first chain of folders down to the current one, for the breadcrumb. */
+  const ancestors = useMemo(() => {
+    const chain: FolderItem[] = [];
+    const seen = new Set<string>();
+    let cursor = activeFolderId ? foldersById.get(activeFolderId) : undefined;
+    while (cursor && !seen.has(cursor.id)) {
+      seen.add(cursor.id); // a malformed parent cycle would otherwise spin forever
+      chain.unshift(cursor);
+      const parent = cursor.parentId ?? null;
+      cursor = parent ? foldersById.get(parent) : undefined;
+    }
+    return chain;
+  }, [activeFolderId, foldersById]);
+
+  /** Every folder with its full path, so move menus can target any depth. */
+  const folderPaths = useMemo(() => {
+    const pathOf = (folder: FolderItem) => {
+      const parts: string[] = [];
+      const seen = new Set<string>();
+      let cursor: FolderItem | undefined = folder;
+      while (cursor && !seen.has(cursor.id)) {
+        seen.add(cursor.id);
+        parts.unshift(cursor.name);
+        const parent = cursor.parentId ?? null;
+        cursor = parent ? foldersById.get(parent) : undefined;
+      }
+      return parts;
+    };
+    return folders
+      .map((folder) => {
+        const parts = pathOf(folder);
+        return { folder, path: parts.join(' / '), depth: parts.length - 1 };
+      })
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [folders, foldersById]);
+
   const getLastModified = (doc: DocumentItem) =>
     (doc.versionHistory && doc.versionHistory.length > 0
       ? doc.versionHistory[doc.versionHistory.length - 1].updatedAt
@@ -203,6 +278,34 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   }, [documents, filesView]);
 
   const uniqueOwners = useMemo(() => Array.from(new Set(documents.map((d) => d.owner))).filter(Boolean), [documents]);
+
+  /**
+   * Lowercased haystack per document, covering everything a user might search for
+   * rather than the filename alone. Memoised against `documents` so typing costs
+   * one substring test per document instead of re-lowercasing every summary and
+   * extracted body on each keystroke.
+   */
+  const searchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    for (const doc of documents) {
+      index.set(
+        doc.id,
+        [
+          doc.title,
+          doc.type,
+          doc.owner,
+          doc.summary ?? '',
+          doc.contentPreview ?? '',
+          (doc.tags ?? []).join(' '),
+          (doc.entities ?? []).map((e) => e.name).join(' '),
+          (doc.riskHighlights ?? []).join(' ')
+        ]
+          .join('\n')
+          .toLowerCase()
+      );
+    }
+    return index;
+  }, [documents]);
   const uniqueTypes = useMemo(() => Array.from(new Set(documents.map((d) => d.type))), [documents]);
 
   const filteredDocs = useMemo(() => {
@@ -210,7 +313,14 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     const now = Date.now();
 
     let list = basePool.filter((doc) => {
-      const folderMatch = filesView === 'workspace' && activeFolderId ? doc.folderId === activeFolderId : true;
+      // While browsing, the open folder scopes the list. While searching, the
+      // default is the whole library — a query that silently skipped matches in
+      // other folders looked like the document simply was not there.
+      const scopeToFolder = !query || searchScope === 'folder';
+      const folderMatch =
+        filesView === 'workspace' && activeFolderId && scopeToFolder
+          ? doc.folderId === activeFolderId
+          : true;
       const categoryMatch = activeCategory === 'All' || (doc.category || '').toLowerCase() === activeCategory.toLowerCase();
       const typeMatch = !filterType || doc.type === filterType;
       const ownerMatch = !filterOwner || doc.owner === filterOwner;
@@ -224,7 +334,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         (filterModified === 'month' && age < 1000 * 60 * 60 * 24 * 30) ||
         (filterModified === 'year' && age < 1000 * 60 * 60 * 24 * 365);
 
-      const searchMatch = !query || doc.title.toLowerCase().includes(query) || doc.type.toLowerCase().includes(query);
+      // Matches title, type, owner, summary, extracted body, tags, entities and
+      // risk highlights — previously only the title and file type.
+      const searchMatch = !query || (searchIndex.get(doc.id) ?? '').includes(query);
 
       return folderMatch && categoryMatch && typeMatch && ownerMatch && modifiedMatch && searchMatch;
     });
@@ -259,9 +371,206 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       });
     }
     return list;
-  }, [basePool, searchFilter, activeCategory, activeFolderId, filterType, filterOwner, filterModified, sortField, sortDir, filesView]);
+  }, [basePool, searchFilter, searchScope, searchIndex, activeCategory, activeFolderId, filterType, filterOwner, filterModified, sortField, sortDir, filesView]);
 
-  const selectedDoc = documents.find((d) => d.id === selectedId) || null;
+  // The details panel describes one document, so it only stands in for a single
+  // selection; batch actions live in the selection bar instead.
+  const selectedDoc =
+    detailsVisible && selectedIds.size === 1
+      ? documents.find((d) => selectedIds.has(d.id)) || null
+      : null;
+
+  const selectedDocs = useMemo(
+    () => filteredDocs.filter((d) => selectedIds.has(d.id)),
+    [filteredDocs, selectedIds]
+  );
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setRangeAnchorId(null);
+    setCursorId(null);
+    setDetailsVisible(false);
+  };
+
+  const handleItemClick = (e: React.MouseEvent | React.KeyboardEvent, docId: string) => {
+    const ids = filteredDocs.map((d) => d.id);
+
+    if (e.shiftKey && rangeAnchorId) {
+      const from = ids.indexOf(rangeAnchorId);
+      const to = ids.indexOf(docId);
+      if (from !== -1 && to !== -1) {
+        const [lo, hi] = from < to ? [from, to] : [to, from];
+        setSelectedIds(new Set(ids.slice(lo, hi + 1)));
+        return;
+      }
+    }
+
+    if (e.metaKey || e.ctrlKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(docId)) next.delete(docId);
+        else next.add(docId);
+        return next;
+      });
+      setRangeAnchorId(docId);
+      setCursorId(docId);
+      return;
+    }
+
+    setSelectedIds(new Set([docId]));
+    setRangeAnchorId(docId);
+    setCursorId(docId);
+  };
+
+  /** Toggles one item without disturbing the rest — what a checkbox should do. */
+  const toggleOne = (docId: string) => {
+    setDetailsVisible(false);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
+      return next;
+    });
+    setRangeAnchorId(docId);
+    setCursorId(docId);
+  };
+
+  const allVisibleSelected =
+    filteredDocs.length > 0 && filteredDocs.every((d) => selectedIds.has(d.id));
+
+  const toggleSelectAllVisible = () => {
+    setDetailsVisible(false);
+    if (allVisibleSelected) clearSelection();
+    else setSelectedIds(new Set(filteredDocs.map((d) => d.id)));
+  };
+
+  /** Columns currently laid out by the CSS grid, so Up/Down move a visual row. */
+  const gridColumnCount = () => {
+    const el = gridRef.current;
+    if (!el) return 1;
+    const cols = window.getComputedStyle(el).gridTemplateColumns;
+    const n = cols ? cols.split(' ').filter(Boolean).length : 1;
+    return n > 0 ? n : 1;
+  };
+
+  const moveCursor = (delta: number, extend: boolean) => {
+    const ids = filteredDocs.map((d) => d.id);
+    if (ids.length === 0) return;
+
+    const from = cursorId ? ids.indexOf(cursorId) : -1;
+    const to = from === -1 ? 0 : Math.min(ids.length - 1, Math.max(0, from + delta));
+    const nextId = ids[to];
+
+    if (extend) {
+      const anchor = rangeAnchorId ?? nextId;
+      const a = ids.indexOf(anchor);
+      const [lo, hi] = a <= to ? [a, to] : [to, a];
+      setSelectedIds(new Set(ids.slice(lo, hi + 1)));
+      setRangeAnchorId(anchor);
+    } else {
+      setSelectedIds(new Set([nextId]));
+      setRangeAnchorId(nextId);
+    }
+    setCursorId(nextId);
+
+    // Keep the cursor on screen without yanking the whole page around.
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-doc-id="${nextId}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+  };
+
+  // Batch actions operate on the visible selection, then clear it — leaving rows
+  // selected after they have been trashed or moved away is disorienting.
+  const runOnSelection = (fn: (doc: DocumentItem) => void) => {
+    selectedDocs.forEach(fn);
+    clearSelection();
+  };
+
+  const handleBatchDelete = () => {
+    const permanent = filesView === 'trash' && onPermanentlyDeleteDocument;
+    runOnSelection((doc) =>
+      permanent ? onPermanentlyDeleteDocument!(doc.id) : onDeleteDocument(doc.id)
+    );
+  };
+
+  /**
+   * Downloads fire as separate staggered anchor clicks; browsers drop several
+   * simultaneous navigations. Files stored cross-origin ignore the download
+   * attribute and open in a tab instead, matching the single-file behaviour in
+   * the details panel.
+   */
+  const handleBatchDownload = () => {
+    const downloadable = selectedDocs.filter((d) => d.fileUrl);
+    downloadable.forEach((doc, i) => {
+      window.setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = doc.fileUrl!;
+        a.download = doc.title;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, i * 350);
+    });
+  };
+
+  const selectionDownloadable = selectedDocs.filter((d) => d.fileUrl).length;
+
+  // Storage total is summed from the documents themselves rather than read from
+  // the org stats counter, which only ever increments on upload and so drifts
+  // upward as documents are deleted.
+  const libraryTotals = useMemo(() => {
+    const active = documents.filter((d) => !d.trashed);
+    return {
+      count: active.length,
+      bytes: active.reduce((sum, d) => sum + (d.sizeBytes || 0), 0)
+    };
+  }, [documents]);
+
+  // Drive-style keyboard handling for the file list. Skipped while focus is in a
+  // text field so search and inline rename keep working normally.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(new Set(filteredDocs.map((d) => d.id)));
+        return;
+      }
+
+      // In grid view Up/Down cross a visual row; in list view everything is ±1.
+      const step = viewMode === 'grid' ? gridColumnCount() : 1;
+      const arrows: Record<string, number> = {
+        ArrowDown: step,
+        ArrowUp: -step,
+        ArrowRight: viewMode === 'grid' ? 1 : 0,
+        ArrowLeft: viewMode === 'grid' ? -1 : 0
+      };
+      if (e.key in arrows) {
+        const delta = arrows[e.key];
+        if (delta !== 0) {
+          e.preventDefault();
+          moveCursor(delta, e.shiftKey);
+        }
+        return;
+      }
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        clearSelection();
+        return;
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size > 0) {
+        e.preventDefault();
+        handleBatchDelete();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredDocs, selectedIds, filesView, viewMode, cursorId, rangeAnchorId]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -272,12 +581,36 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     }
   };
 
-  const getFolderFileCount = (fldId: string) => documents.filter((d) => d.folderId === fldId && !d.trashed).length;
+  /** Every folder in the subtree rooted here, including itself. */
+  const folderSubtree = (rootId: string): Set<string> => {
+    const out = new Set<string>([rootId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const f of folders) {
+        const parent = f.parentId ?? null;
+        if (parent && out.has(parent) && !out.has(f.id)) {
+          out.add(f.id);
+          grew = true;
+        }
+      }
+    }
+    return out;
+  };
+
+  // Counted across the subtree — a folder showing "0 files" while its subfolders
+  // are full would read as empty.
+  const getFolderFileCount = (fldId: string) => {
+    const subtree = folderSubtree(fldId);
+    return documents.filter((d) => d.folderId && subtree.has(d.folderId) && !d.trashed).length;
+  };
 
   const handleCreateFolderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
-    if (onCreateFolder) onCreateFolder(newFolderName.trim(), selectedFolderColor);
+    // Created inside whatever folder is currently open, so nesting is reachable
+    // from the UI rather than only from the data model.
+    if (onCreateFolder) onCreateFolder(newFolderName.trim(), selectedFolderColor, activeFolderId);
     setNewFolderName('');
     setIsNewFolderModalOpen(false);
   };
@@ -316,6 +649,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   };
 
   const formatBytes = (bytes: number) => {
+    if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
     return `${(bytes / 1000).toFixed(0)} KB`;
   };
@@ -338,19 +672,105 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     setDraggingDocId(null);
     setDragOverFolderId(null);
   };
+  const handleFolderDragStart = (e: React.DragEvent, folderId: string) => {
+    e.dataTransfer.setData('application/x-signal87-folder', folderId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingFolderId(folderId);
+  };
+
+  const handleFolderDragEnd = () => {
+    setDraggingFolderId(null);
+    setDragOverFolderId(null);
+    setDragOverCrumbId(undefined);
+  };
+
+  /** A folder cannot be dropped into itself or anything beneath it. */
+  const canDropFolderInto = (folderId: string, targetId: string | null) =>
+    folderId !== targetId && !(targetId && folderSubtree(folderId).has(targetId));
+
   const handleFolderDragOver = (e: React.DragEvent, folderId: string) => {
-    if (e.dataTransfer.types.includes('application/x-signal87-doc')) {
+    const types = e.dataTransfer.types;
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      setDragOverFolderId(folderId);
+      return;
+    }
+    if (types.includes('application/x-signal87-folder')) {
+      if (draggingFolderId && !canDropFolderInto(draggingFolderId, folderId)) return;
       e.preventDefault();
       setDragOverFolderId(folderId);
     }
   };
+
   const handleFolderDrop = (e: React.DragEvent, folderId: string) => {
-    if (!e.dataTransfer.types.includes('application/x-signal87-doc')) return;
-    e.preventDefault();
-    const docId = e.dataTransfer.getData('application/x-signal87-doc');
-    if (docId && onMoveDocument) onMoveDocument(docId, folderId);
+    const types = e.dataTransfer.types;
+
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      const docId = e.dataTransfer.getData('application/x-signal87-doc');
+      // Dragging one of several selected rows moves the whole selection.
+      if (docId && onMoveDocument) {
+        if (selectedIds.has(docId) && selectedDocs.length > 1) {
+          runOnSelection((d) => onMoveDocument(d.id, folderId));
+        } else {
+          onMoveDocument(docId, folderId);
+        }
+      }
+    } else if (types.includes('application/x-signal87-folder')) {
+      e.preventDefault();
+      const movingId = e.dataTransfer.getData('application/x-signal87-folder');
+      if (movingId && onMoveFolder && canDropFolderInto(movingId, folderId)) {
+        onMoveFolder(movingId, folderId);
+      }
+    } else {
+      return;
+    }
+
     setDraggingDocId(null);
+    setDraggingFolderId(null);
     setDragOverFolderId(null);
+  };
+
+  const handleCrumbDragOver = (e: React.DragEvent, crumbId: string | null) => {
+    const types = e.dataTransfer.types;
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      setDragOverCrumbId(crumbId);
+      return;
+    }
+    if (types.includes('application/x-signal87-folder')) {
+      if (draggingFolderId && !canDropFolderInto(draggingFolderId, crumbId)) return;
+      e.preventDefault();
+      setDragOverCrumbId(crumbId);
+    }
+  };
+
+  const handleCrumbDrop = (e: React.DragEvent, crumbId: string | null) => {
+    const types = e.dataTransfer.types;
+
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      const docId = e.dataTransfer.getData('application/x-signal87-doc');
+      if (docId && onMoveDocument) {
+        if (selectedIds.has(docId) && selectedDocs.length > 1) {
+          runOnSelection((d) => onMoveDocument(d.id, crumbId ?? undefined));
+        } else {
+          onMoveDocument(docId, crumbId ?? undefined);
+        }
+      }
+    } else if (types.includes('application/x-signal87-folder')) {
+      e.preventDefault();
+      const movingId = e.dataTransfer.getData('application/x-signal87-folder');
+      if (movingId && onMoveFolder && canDropFolderInto(movingId, crumbId)) {
+        onMoveFolder(movingId, crumbId);
+      }
+    } else {
+      return;
+    }
+
+    setDraggingDocId(null);
+    setDraggingFolderId(null);
+    setDragOverCrumbId(undefined);
   };
 
   // --- Drag and drop: external OS files dropped anywhere on the panel upload them ---
@@ -414,6 +834,30 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           </button>
         )}
 
+        <button
+          onClick={() => {
+            setSelectedIds(new Set([doc.id]));
+            setRangeAnchorId(doc.id);
+            setCursorId(doc.id);
+            setDetailsVisible(true);
+            closeAllMenus();
+          }}
+          className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
+        >
+          <Info size={13} /> Details
+        </button>
+
+        {doc.fileUrl && (
+          <a
+            href={doc.fileUrl}
+            download={doc.title}
+            onClick={() => closeAllMenus()}
+            className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
+          >
+            <Download size={13} /> Download
+          </a>
+        )}
+
         {!isTrash && onToggleStar && (
           <button
             onClick={() => { onToggleStar(doc.id); closeAllMenus(); }}
@@ -468,14 +912,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   <span>No folder</span>
                   {!doc.folderId && <Check size={12} className="text-[var(--teal)]" />}
                 </button>
-                {folders.map((f) => (
+                {folderPaths.map(({ folder, depth }) => (
                   <button
-                    key={f.id}
-                    onClick={() => { onMoveDocument(doc.id, f.id); closeAllMenus(); }}
+                    key={folder.id}
+                    onClick={() => { onMoveDocument(doc.id, folder.id); closeAllMenus(); }}
                     className="w-full px-2 py-1 text-left hover:bg-[var(--surface)] text-[12px] text-[var(--ink)] rounded flex items-center justify-between"
+                    style={{ paddingLeft: `${8 + depth * 12}px` }}
                   >
-                    <span className="truncate max-w-[120px]">{f.name}</span>
-                    {doc.folderId === f.id && <Check size={12} className="text-[var(--teal)]" />}
+                    <span className="truncate max-w-[120px]">{folder.name}</span>
+                    {doc.folderId === folder.id && <Check size={12} className="text-[var(--teal)]" />}
                   </button>
                 ))}
               </div>
@@ -534,7 +979,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     </>
   );
 
-  const showFolders = filesView === 'workspace' && folders.length > 0 && !activeFolderId;
+  // Rendered at every level now, not just the root, so nested folders are
+  // reachable instead of vanishing the moment you open their parent.
+  const showFolders = filesView === 'workspace' && childFolders.length > 0;
 
   const emptyStateCopy: Record<FilesView, { title: string; body: string }> = {
     workspace: {
@@ -569,24 +1016,55 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
-                <button onClick={() => handleSetActiveFolderId(null)} className="hover:text-[var(--ink)] cursor-pointer transition-colors">
+              {/* Full ancestor trail. Each crumb is also a drop target, which is
+                  the only way to move something back out of a nested folder. */}
+              <div className="flex items-center gap-1.5 text-[12px] text-[var(--muted)] flex-wrap">
+                <button
+                  onClick={() => handleSetActiveFolderId(null)}
+                  onDragOver={(e) => handleCrumbDragOver(e, null)}
+                  onDragLeave={() => setDragOverCrumbId(undefined)}
+                  onDrop={(e) => handleCrumbDrop(e, null)}
+                  className={`hover:text-[var(--ink)] cursor-pointer transition-colors rounded px-1 -mx-1 ${
+                    dragOverCrumbId === null ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : ''
+                  }`}
+                >
                   {VIEW_TITLES[filesView]}
                 </button>
-                {currentFolder && (
-                  <>
-                    <ChevronRight size={12} />
-                    <span className="text-[var(--ink)] font-medium">{currentFolder.name}</span>
-                  </>
-                )}
+                {ancestors.map((crumb, i) => {
+                  const isLast = i === ancestors.length - 1;
+                  return (
+                    <React.Fragment key={crumb.id}>
+                      <ChevronRight size={12} className="flex-shrink-0" />
+                      {isLast ? (
+                        <span className="text-[var(--ink)] font-medium">{crumb.name}</span>
+                      ) : (
+                        <button
+                          onClick={() => handleSetActiveFolderId(crumb.id)}
+                          onDragOver={(e) => handleCrumbDragOver(e, crumb.id)}
+                          onDragLeave={() => setDragOverCrumbId(undefined)}
+                          onDrop={(e) => handleCrumbDrop(e, crumb.id)}
+                          className={`hover:text-[var(--ink)] cursor-pointer transition-colors rounded px-1 -mx-1 ${
+                            dragOverCrumbId === crumb.id ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : ''
+                          }`}
+                        >
+                          {crumb.name}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
 
               <div className="flex items-center gap-2 mt-1">
                 {activeFolderId && (
                   <button
-                    onClick={() => handleSetActiveFolderId(null)}
+                    onClick={() => handleSetActiveFolderId(currentFolder?.parentId ?? null)}
                     className="p-1 -ml-1 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
-                    title="Back to all files"
+                    title={
+                      currentFolder?.parentId
+                        ? `Back to ${foldersById.get(currentFolder.parentId)?.name ?? 'parent folder'}`
+                        : 'Back to all files'
+                    }
                   >
                     <ArrowLeft size={18} />
                   </button>
@@ -649,13 +1127,36 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder={currentFolder ? `Search files in ${currentFolder.name}` : `Search ${basePool.length} files`}
+                placeholder={
+                  currentFolder && searchScope === 'folder'
+                    ? `Search files in ${currentFolder.name}`
+                    : `Search ${basePool.length} files`
+                }
                 className="w-full pl-10 pr-9 py-3 bg-[var(--surface)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
               />
               {searchFilter && (
                 <button onClick={() => setSearchFilter('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--ink)] p-1 cursor-pointer">
                   <X size={14} />
                 </button>
+              )}
+
+              {searchFilter.trim() && currentFolder && (
+                <div className="absolute left-0 top-full mt-2 flex items-center gap-1.5 text-[11.5px]">
+                  <span className="text-[var(--muted)]">Searching</span>
+                  {(['everywhere', 'folder'] as const).map((scope) => (
+                    <button
+                      key={scope}
+                      onClick={() => setSearchScope(scope)}
+                      className={`px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                        searchScope === scope
+                          ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                          : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
+                      }`}
+                    >
+                      {scope === 'everywhere' ? 'Everywhere' : `In ${currentFolder.name}`}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -727,6 +1228,20 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 )}
               </div>
 
+              <button
+                onClick={() => setDetailsVisible((v) => !v)}
+                title={detailsVisible ? 'Hide details' : 'Show details'}
+                aria-label={detailsVisible ? 'Hide details' : 'Show details'}
+                aria-pressed={detailsVisible}
+                className={`p-2 rounded-full border cursor-pointer transition-colors min-h-[40px] flex items-center ${
+                  detailsVisible
+                    ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                    : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
+                }`}
+              >
+                <Info size={15} />
+              </button>
+
               {/* View toggle */}
               <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--rule)] rounded-full p-0.5">
                 <button
@@ -765,6 +1280,126 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             })}
           </div>
 
+          {/* Selection bar. Floated rather than placed in flow: as an in-flow band it
+              pushed the whole list down the moment anything was selected, moving a row
+              86px out from under the pointer between the two clicks of a double-click,
+              so documents could not be opened. Fixed positioning keeps the list still. */}
+          {selectedDocs.length > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="fixed left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
+            >
+              <button
+                onClick={clearSelection}
+                title="Clear selection"
+                aria-label="Clear selection"
+                className="p-1 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+              <span className="text-[13px] text-[var(--ink)] font-medium">
+                {selectedDocs.length} selected
+              </span>
+
+              {/* The header select-all sits in a row hidden below sm, so the bar
+                  carries its own — otherwise phones have no way to select all. */}
+              {!allVisibleSelected && filteredDocs.length > selectedDocs.length && (
+                <button
+                  onClick={toggleSelectAllVisible}
+                  className="px-2 py-1 text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full cursor-pointer"
+                >
+                  Select all {filteredDocs.length}
+                </button>
+              )}
+
+              {selectionDownloadable > 0 && (
+                <button
+                  onClick={handleBatchDownload}
+                  title={
+                    selectionDownloadable < selectedDocs.length
+                      ? `${selectionDownloadable} of ${selectedDocs.length} have a stored file`
+                      : 'Download selected'
+                  }
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download size={14} />
+                  Download{selectionDownloadable < selectedDocs.length ? ` (${selectionDownloadable})` : ''}
+                </button>
+              )}
+
+              {filesView !== 'trash' && onToggleStar && (
+                <button
+                  onClick={() => runOnSelection((d) => onToggleStar(d.id))}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <Star size={14} /> Star
+                </button>
+              )}
+
+              {filesView !== 'trash' && onMoveDocument && (
+                <div className="relative">
+                  <button
+                    onClick={() => setSelectionMoveOpen((v) => !v)}
+                    className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Folder size={14} /> Move <ChevronDown size={12} />
+                  </button>
+                  {selectionMoveOpen && (
+                    <div className="absolute right-0 top-9 w-48 bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-1 z-30 text-[13px] max-h-48 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          runOnSelection((d) => onMoveDocument(d.id, undefined));
+                          setSelectionMoveOpen(false);
+                        }}
+                        className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer"
+                      >
+                        No folder
+                      </button>
+                      {folderPaths.map(({ folder, depth }) => (
+                        <button
+                          key={folder.id}
+                          onClick={() => {
+                            runOnSelection((d) => onMoveDocument(d.id, folder.id));
+                            setSelectionMoveOpen(false);
+                          }}
+                          className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer truncate"
+                          style={{ paddingLeft: `${8 + depth * 12}px` }}
+                        >
+                          {folder.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedDocs.length >= 2 && onCompareSelected && filesView !== 'trash' && (
+                <button
+                  onClick={() => onCompareSelected(selectedDocs)}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <GitFork size={14} /> Compare
+                </button>
+              )}
+
+              {filesView === 'trash' && onRestoreDocument && (
+                <button
+                  onClick={() => runOnSelection((d) => onRestoreDocument(d.id))}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw size={14} /> Restore
+                </button>
+              )}
+
+              <button
+                onClick={handleBatchDelete}
+                className="px-2.5 py-1.5 text-[12.5px] text-[var(--warn)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 size={14} /> {filesView === 'trash' ? 'Delete forever' : 'Delete'}
+              </button>
+            </div>
+          )}
+
           {/* Folders — My Workspace only */}
           {showFolders && (
             <div>
@@ -772,19 +1407,30 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 Folders
               </h2>
               <div>
-                {folders.map((fld) => {
+                {childFolders.map((fld) => {
                   const fileCount = getFolderFileCount(fld.id);
                   const isEditing = editingFolderId === fld.id;
                   const isDropTarget = dragOverFolderId === fld.id;
                   return (
                     <div
                       key={fld.id}
-                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--teal-soft)]' : ''}`}
+                      draggable={!isEditing && !!onMoveFolder}
+                      onDragStart={(e) => handleFolderDragStart(e, fld.id)}
+                      onDragEnd={handleFolderDragEnd}
+                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--teal-soft)]' : ''} ${draggingFolderId === fld.id ? 'opacity-40' : ''}`}
                       onClick={() => { if (!isEditing) handleSetActiveFolderId(fld.id); }}
                       onContextMenu={(e) => openContextMenu(e, 'folder', fld.id)}
                       onDragOver={(e) => handleFolderDragOver(e, fld.id)}
                       onDragLeave={() => setDragOverFolderId(null)}
                       onDrop={(e) => handleFolderDrop(e, fld.id)}
+                      tabIndex={0}
+                      role="button"
+                      onKeyDown={(e) => {
+                        if (!isEditing && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          handleSetActiveFolderId(fld.id);
+                        }
+                      }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <Folder size={18} className="flex-shrink-0 text-[var(--muted)]" />
@@ -847,9 +1493,25 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <div>
                 {/* Sortable column header — extra columns reveal as space allows */}
                 <div className="hidden sm:grid grid-cols-[1fr_110px_40px] md:grid-cols-[1fr_140px_120px_90px_40px] gap-3 px-1 pb-2 border-b border-[var(--rule)] text-[11px] uppercase text-[var(--muted)]" style={{ letterSpacing: '0.06em' }}>
-                  <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
-                    Name {sortField === 'name' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-                  </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={toggleSelectAllVisible}
+                      title={allVisibleSelected ? 'Deselect all' : 'Select all'}
+                      aria-label={allVisibleSelected ? 'Deselect all' : 'Select all'}
+                      className="flex-shrink-0 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    >
+                      {allVisibleSelected ? (
+                        <CheckSquare size={15} className="text-[var(--teal)]" />
+                      ) : selectedDocs.length > 0 ? (
+                        <MinusSquare size={15} className="text-[var(--teal)]" />
+                      ) : (
+                        <Square size={15} />
+                      )}
+                    </button>
+                    <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
+                      Name {sortField === 'name' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
+                    </button>
+                  </div>
                   <button onClick={() => toggleSort('owner')} className="hidden md:flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
                     Owner {sortField === 'owner' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
                   </button>
@@ -865,22 +1527,52 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 {filteredDocs.map((doc) => {
                   const status = getStatusText(doc);
                   const isRenaming = renamingDocId === doc.id;
-                  const isSelected = selectedId === doc.id;
+                  const isSelected = selectedIds.has(doc.id);
                   return (
                     <div
                       key={doc.id}
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={() => setSelectedId(doc.id)}
+                      onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      data-doc-id={doc.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={isSelected}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onSelectDocument(doc);
+                        } else if (e.key === ' ') {
+                          e.preventDefault();
+                          handleItemClick(e, doc.id);
+                        }
+                      }}
                       className={`grid grid-cols-[1fr_40px] sm:grid-cols-[1fr_110px_40px] md:grid-cols-[1fr_140px_120px_90px_40px] gap-3 items-center py-3 px-1 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${
                         isSelected ? 'bg-[var(--raised)]' : 'hover:bg-[var(--raised)]/60'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={18} className="flex-shrink-0 text-[var(--muted)]" />
+                        {/* Always visible on touch, where there is no cmd or shift key
+                            to multi-select with; on pointer devices it appears on
+                            hover or once something is selected. */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleOne(doc.id); }}
+                          aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
+                          className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
+                            isSelected
+                              ? 'opacity-100 text-[var(--teal)]'
+                              : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
+                          }`}
+                        >
+                          {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+                        </button>
+                        {(() => {
+                          const { Icon, color } = getTypeMeta(doc.type);
+                          return <Icon size={18} className="flex-shrink-0" style={{ color }} />;
+                        })()}
                         <div className="min-w-0 flex-1">
                           {isRenaming ? (
                             <input
@@ -933,36 +1625,63 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+              <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {filteredDocs.map((doc) => {
-                  const isSelected = selectedId === doc.id;
+                  const isSelected = selectedIds.has(doc.id);
                   return (
                     <div
                       key={doc.id}
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={() => setSelectedId(doc.id)}
+                      onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      data-doc-id={doc.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={isSelected}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onSelectDocument(doc);
+                        } else if (e.key === ' ') {
+                          e.preventDefault();
+                          handleItemClick(e, doc.id);
+                        }
+                      }}
                       className={`relative bg-[var(--surface)] border rounded-xl p-2.5 cursor-pointer transition-colors group ${
                         isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
-                      <div className="aspect-[4/3] rounded-lg bg-[var(--raised)] flex items-center justify-center mb-2.5 overflow-hidden">
-                        {doc.type === 'img' && doc.fileUrl ? (
-                          <img src={doc.fileUrl} alt={doc.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <FileText size={34} className="text-[var(--muted)]" />
+                      {/* Title row sits above the preview, Drive-style */}
+                      <div className="flex items-center gap-2 mb-2 min-w-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleOne(doc.id); }}
+                          aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
+                          className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
+                            isSelected
+                              ? 'opacity-100 text-[var(--teal)]'
+                              : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
+                          }`}
+                        >
+                          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                        </button>
+                        {(() => {
+                          const { Icon, color } = getTypeMeta(doc.type);
+                          return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
+                        })()}
+                        {doc.starred && (
+                          <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />
                         )}
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        {doc.starred && <Star size={12} className="flex-shrink-0 mt-0.5 fill-[var(--teal)] text-[var(--teal)]" />}
-                        <span className="text-[13px] text-[var(--ink)] truncate flex-1" title={doc.title}>{doc.title}</span>
-                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-[13px] text-[var(--ink)] truncate flex-1 min-w-0" title={doc.title}>
+                          {doc.title}
+                        </span>
+                        <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id)}
-                            className="p-0.5 text-[var(--muted)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                            aria-label={`Actions for ${doc.title}`}
+                            className="p-0.5 text-[var(--muted)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-100"
                           >
                             <MoreVertical size={14} />
                           </button>
@@ -973,13 +1692,30 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           )}
                         </div>
                       </div>
-                      <div className="text-[11px] text-[var(--muted)] mt-0.5">{formatBytes(doc.sizeBytes)}</div>
+
+                      {/* Page preview */}
+                      <div className="relative aspect-[4/3] rounded-lg bg-[var(--raised)] border border-[var(--rule-2)] flex items-center justify-center overflow-hidden">
+                        <DocumentThumbnail doc={doc} />
+                      </div>
+
+                      <div className="text-[11px] text-[var(--muted)] mt-2 truncate">
+                        {formatBytes(doc.sizeBytes)} · {formatDate(getLastModified(doc))}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {/* Storage total. No quota bar: there is no plan limit in the data model
+              yet, and inventing one would show the user a made-up number. */}
+          {libraryTotals.count > 0 && (
+            <div className="pt-3 text-[11.5px] text-[var(--muted)]">
+              {libraryTotals.count} {libraryTotals.count === 1 ? 'file' : 'files'} ·{' '}
+              {formatBytes(libraryTotals.bytes)} used
+            </div>
+          )}
 
           {/* Empty state */}
           {filteredDocs.length === 0 && (
@@ -1007,12 +1743,12 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       {/* Right-hand detail panel */}
       {selectedDoc && (
         <>
-          <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => setSelectedId(null)} />
+          <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => clearSelection()} />
           <aside className="fixed md:relative inset-y-0 right-0 z-50 md:z-auto w-full sm:w-96 md:w-80 flex-shrink-0 bg-[var(--surface)] border-l border-[var(--rule)] overflow-y-auto">
             <div className="p-4 space-y-5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-medium text-[var(--muted)] uppercase" style={{ letterSpacing: '0.09em' }}>Details</span>
-                <button onClick={() => setSelectedId(null)} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
+                <button onClick={() => clearSelection()} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
                   <X size={16} />
                 </button>
               </div>
@@ -1083,19 +1819,19 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         <GitFork size={15} /> Compare
                       </button>
                     )}
-                    <button onClick={() => { onDeleteDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
+                    <button onClick={() => { onDeleteDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
                       <Trash2 size={15} /> Delete
                     </button>
                   </>
                 ) : (
                   <>
                     {onRestoreDocument && (
-                      <button onClick={() => { onRestoreDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--ink)] cursor-pointer">
+                      <button onClick={() => { onRestoreDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--ink)] cursor-pointer">
                         <RotateCcw size={15} /> Restore
                       </button>
                     )}
                     {onPermanentlyDeleteDocument && (
-                      <button onClick={() => { onPermanentlyDeleteDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
+                      <button onClick={() => { onPermanentlyDeleteDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
                         <Trash2 size={15} /> Delete forever
                       </button>
                     )}
@@ -1131,7 +1867,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-md w-full p-6 text-[var(--ink)] space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule-2)] pb-3">
-              <h2 className="text-[16px] font-semibold text-[var(--ink)]">New folder</h2>
+              <h2 className="text-[16px] font-semibold text-[var(--ink)]">
+                {currentFolder ? `New folder in ${currentFolder.name}` : 'New folder'}
+              </h2>
               <button onClick={() => setIsNewFolderModalOpen(false)} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
                 <X size={18} />
               </button>

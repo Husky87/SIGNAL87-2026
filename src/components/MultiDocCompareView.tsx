@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GitFork,
   Sparkles,
@@ -16,12 +16,24 @@ import { DocumentItem, ComparisonResult } from '../types';
 
 interface MultiDocCompareViewProps {
   documents: DocumentItem[];
+  /** Documents pre-selected by whoever navigated here, e.g. Compare in the file library. */
+  initialSelectedIds?: string[];
 }
 
-export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ documents }) => {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
+  documents,
+  initialSelectedIds
+}) => {
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds ?? []);
   const [loading, setLoading] = useState(false);
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
+
+  // Re-seed when the caller arrives with a different selection — the view stays
+  // mounted across tab switches, so initial state alone would only ever apply once.
+  const seedKey = (initialSelectedIds ?? []).join(',');
+  useEffect(() => {
+    if (seedKey) setSelectedIds(seedKey.split(','));
+  }, [seedKey]);
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {

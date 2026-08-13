@@ -19,7 +19,8 @@ export interface GenerateWithFallbackOptions {
 
 export interface NormalizedAiResponse {
   text: string;
-  provider: 'gemini' | 'openai';
+  /** 'none' means no model answered — the payload is an explicit failure notice. */
+  provider: 'gemini' | 'openai' | 'none';
   modelUsed: string;
   fallbackTriggered: boolean;
   fallbackReason?: string;
@@ -178,33 +179,55 @@ export async function generateWithFallback(
     }
   }
 
-  // 4. Graceful Fallback if all API models fail / 503 high demand
-  console.warn('All AI provider calls failed or hit capacity limits. Returning local document synthesis payload.');
-  
-  const userQuery = options.prompt || normalizedMessages.find(m => m.role === 'user')?.content || 'Document analysis';
-  
+  // 4. Nothing answered. Return an explicit failure rather than a plausible-looking
+  //    payload — this is a legal research tool, so a fabricated answer is worse
+  //    than no answer.
+  console.error('No AI provider answered. Returning an explicit analysis-unavailable payload.');
+
   if (options.responseMimeType === 'application/json') {
+    // Reports that nothing ran, and returns nothing. This previously claimed
+    // "Analysis completed... parsed and verified" and invented two entities with
+    // 95%/90% relevance plus a risk highlight — all of which were written into
+    // the document record on upload, indistinguishable from real extraction.
     return {
       text: JSON.stringify({
-        summary: `Analysis completed for query: "${userQuery.slice(0, 100)}...". The requested document records were parsed and verified.`,
-        entities: [
-          { name: 'Signal87 Active File', type: 'Contract', relevance: 95 },
-          { name: 'Executive Ethics Provision', type: 'Policy', relevance: 90 }
-        ],
-        riskHighlights: ['Review notice periods and compliance timestamps'],
-        suggestedTags: ['Verified', 'Parsed', 'Repository']
+        summary: `Automated analysis did not run for this document. Reason: ${initialReason}. No summary, entities, or risks have been extracted.`,
+        entities: [],
+        riskHighlights: [],
+        suggestedTags: [],
+        analysisSkipped: true,
+        analysisSkippedReason: initialReason
       }),
-      provider: 'gemini',
-      modelUsed: 'offline-synthesis',
+      provider: 'none',
+      modelUsed: 'analysis-unavailable',
       fallbackTriggered: true,
       fallbackReason: initialReason
     };
   }
 
+  // Report the actual cause. This used to assert "HTTP 503 / high demand spikes"
+  // and advise retrying shortly no matter what went wrong — so a missing or
+  // rejected API key, an exhausted quota, or an unknown model name all presented
+  // as transient congestion, sending the user off to wait for nothing.
+  const missingKeys = [
+    !process.env.GEMINI_API_KEY && 'GEMINI_API_KEY',
+    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY'
+  ].filter(Boolean);
+
+  const diagnosis = missingKeys.length
+    ? `No AI provider is configured on the server. Missing environment ${
+        missingKeys.length > 1 ? 'variables' : 'variable'
+      }: ${missingKeys.join(' and ')}.`
+    : `Every configured AI provider rejected the request. Last error: ${initialReason}`;
+
+  const guidance = missingKeys.length
+    ? 'Set the missing key in the deployment environment and redeploy — retrying will not help until then.'
+    : 'If this persists, check the provider status and the account quota for the configured key.';
+
   return {
-    text: `## Document Intelligence & Analysis Report\n\n**Note**: The AI model endpoints are currently experiencing temporary high demand spikes (HTTP 503). Signal87's local document memory engine parsed the active context below:\n\n### Summary & Document Findings\n- **Target Query**: ${userQuery.slice(0, 150)}\n- **Repository State**: Verified attached documents and active workspace files.\n- **Status**: Document records remain indexed and accessible in your workspace.\n\n*Please try asking your question again in a few moments once upstream model capacity normalizes.*`,
-    provider: 'gemini',
-    modelUsed: 'offline-synthesis',
+    text: `## Analysis unavailable\n\nYour question was **not** answered — no AI model produced a response, and nothing below has been analysed.\n\n**Why:** ${diagnosis}\n\n**What to do:** ${guidance}\n\n> Your documents are untouched and still indexed in your workspace.`,
+    provider: 'none',
+    modelUsed: 'analysis-unavailable',
     fallbackTriggered: true,
     fallbackReason: initialReason
   };

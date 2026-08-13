@@ -484,7 +484,10 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
 
     if (chatHistory.length > prevHistoryLengthRef.current || loading) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // block:'end' pins the marker to the bottom of the scroll container. The
+      // default, 'start', aligns it to the top instead, which scrolls the last
+      // message off-screen above the fold.
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
     prevHistoryLengthRef.current = chatHistory.length;
   }, [chatHistory.length, loading]);
@@ -672,15 +675,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         excelExportData: excelExportData || undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         deliverableType: routedDeliverableType,
-        citations: data.citations || [
-          {
-            docId: activeDocs[0]?.id || 'doc-101',
-            docTitle: activeDocs[0]?.title || 'Document',
-            paragraphRef: 'Sec 4, Para 2',
-            snippet: activeDocs[0]?.summary || 'Relevant citation match',
-            confidence: 96
-          }
-        ],
+        // Only real citations. This previously synthesised one pointing at
+        // "Sec 4, Para 2" with 96% confidence whenever the API returned none —
+        // which is always, since /api/research has no citations field — so every
+        // answer carried an invented source reference under a heading reading
+        // VERIFICATION TRACE. The trace block is guarded on a non-empty array,
+        // so it now simply does not render when there is nothing to cite.
+        citations: data.citations,
         verificationTrace: data.verificationTrace || {
           steps: [
             'Scanned vector indices across selected documents',
@@ -953,7 +954,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
  }`}>
           {/* Scrollable Chat Area */}
           <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
-            <div className={`max-w-[768px] w-full mx-auto space-y-4 ${chatHistory.length === 0 ? 'flex-1 flex flex-col justify-center my-auto py-2 sm:py-4' : ''}`}>
+            {/* mt-auto anchors a short conversation to the bottom of the scroll
+                area, next to the composer, the way ChatGPT and Claude do —
+                without it, one exchange floated at the top of the page with a
+                gap beneath it. Once the thread outgrows the container there is
+                no free space left, so it simply scrolls as normal. */}
+            <div className={`max-w-[768px] w-full mx-auto space-y-4 ${chatHistory.length === 0 ? 'flex-1 flex flex-col justify-center my-auto py-2 sm:py-4' : 'mt-auto'}`}>
               {chatHistory.length === 0 ? (
                 <div className="flex flex-col justify-center space-y-5 sm:space-y-6 max-w-2xl mx-auto w-full">
                   {/* Welcome Headline */}
