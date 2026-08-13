@@ -38,6 +38,9 @@
 @layer base {
   html {
     font-size: 16px;
+    overflow-x: hidden;
+    max-width: 100%;
+    overscroll-behavior-x: none;
   }
 
   body {
@@ -46,6 +49,14 @@
     font-family: var(--f);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    max-width: 100%;
+    overscroll-behavior-x: none;
+  }
+
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {

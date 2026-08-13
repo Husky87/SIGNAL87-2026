@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { NavTab } from './Sidebar';
 import {
-  Home,
-  Clock,
-  Users,
   FolderOpen,
   FolderPlus,
   Upload,
@@ -12,7 +9,8 @@ import {
   Bookmark,
   Menu,
   Plus,
-  Search
+  Search,
+  StickyNote
 } from 'lucide-react';
 
 interface MobileDockProps {
@@ -23,16 +21,8 @@ interface MobileDockProps {
   documentCount?: number;
   onOpenUpload?: () => void;
   onOpenNewFolderModal?: () => void;
+  onOpenNewNote?: () => void;
 }
-
-const GooglePlusColorIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 36 36" className="flex-shrink-0">
-    <path fill="#34A853" d="M16 16v14h4V20z" />
-    <path fill="#4285F4" d="M30 16H20v4h10z" />
-    <path fill="#FBBC05" d="M6 16h10v4H6z" />
-    <path fill="#EA4335" d="M20 16V6h-4v10z" />
-  </svg>
-);
 
 export const MobileDock: React.FC<MobileDockProps> = ({
   currentTab,
@@ -40,6 +30,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   onNewSession,
   onOpenUpload,
   onOpenNewFolderModal,
+  onOpenNewNote,
   onOpenMenu,
 }) => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -53,7 +44,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     { id: 'more', label: 'More', icon: Menu },
   ];
 
-  const handleAction = (type: 'folder' | 'upload' | 'chat') => {
+  const handleAction = (type: 'folder' | 'upload' | 'note' | 'chat') => {
     setIsBottomSheetOpen(false);
     setTimeout(() => {
       if (type === 'folder') {
@@ -68,6 +59,13 @@ export const MobileDock: React.FC<MobileDockProps> = ({
         }
       } else if (type === 'upload') {
         if (onOpenUpload) onOpenUpload();
+      } else if (type === 'note') {
+        onSelectTab('saved');
+        if (onOpenNewNote) {
+          onOpenNewNote();
+        } else {
+          window.dispatchEvent(new CustomEvent('open-new-note'));
+        }
       } else if (type === 'chat') {
         onNewSession();
         onSelectTab('research');
@@ -77,18 +75,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
 
   return (
     <>
-      {/* Floating Action Button (FAB) - Signal87 style */}
-      <div className="md:hidden fixed right-4 bottom-22 z-40">
-        <button
-          onClick={() => setIsBottomSheetOpen(true)}
-          className="w-14 h-14 rounded-2xl bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink)] flex items-center justify-center transition-transform active:scale-95 cursor-pointer"
-          title="Create new action"
-          id="signal87-fab"
-        >
-          <GooglePlusColorIcon size={26} />
-        </button>
-      </div>
-
       {/* Actions Bottom Sheet Modal */}
       {isBottomSheetOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
@@ -114,8 +100,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
             </div>
 
             {/* Action Options Grid */}
-            <div className="grid grid-cols-3 gap-6 text-center">
-              {/* Option 1: Create Folder */}
+            <div className="grid grid-cols-2 gap-6 text-center">
               <button
                 onClick={() => handleAction('folder')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
@@ -126,7 +111,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Folder</span>
               </button>
 
-              {/* Option 2: Upload Document */}
               <button
                 onClick={() => handleAction('upload')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
@@ -137,7 +121,16 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>
               </button>
 
-              {/* Option 3: AI Chat Assistant */}
+              <button
+                onClick={() => handleAction('note')}
+                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+              >
+                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
+                  <StickyNote size={22} />
+                </div>
+                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
+              </button>
+
               <button
                 onClick={() => handleAction('chat')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
@@ -147,7 +140,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">AI Chat</span>
               </button>
-
             </div>
           </div>
         </div>
@@ -156,7 +148,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       {/* Primary Bottom Navigation Bar - Material 3 Style */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden flex items-center justify-between flex-shrink-0 px-1 sm:px-2 pt-3 pb-2.5 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full gap-1 sm:gap-2"
+        className="md:hidden flex items-center justify-between flex-shrink-0 px-1 pt-2 pb-2.5 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full max-w-full overflow-x-hidden"
         style={{
           paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
         }}
@@ -183,7 +175,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               key={tab.id}
               onClick={handleClick}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors focus:outline-none py-1.5 px-2 flex-shrink-0`}
+              className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 cursor-pointer transition-colors focus:outline-none py-1 px-0.5"
             >
               {/* Modern Google MD3 Active Accent Pill Indicator */}
               <div

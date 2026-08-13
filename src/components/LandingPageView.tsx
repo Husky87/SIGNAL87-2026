@@ -39,7 +39,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#0F1010] text-[#F3F3EE] antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden overscroll-x-none bg-[#0F1010] text-[#F3F3EE] antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
       <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 sm:px-8 pt-5">
         <button
           type="button"
@@ -62,59 +62,61 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </button>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-5 sm:px-8 min-h-screen">
-        <div className="w-full max-w-[640px] text-center">
-          <h1 className="text-[1.85rem] leading-[1.15] sm:text-[2.75rem] sm:leading-[1.12] font-semibold tracking-tight text-[#F3F3EE]">
+      <main className="flex-1 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-5 sm:px-8 min-h-[100dvh] w-full max-w-full">
+        <div className="flex items-end justify-center pb-5 sm:pb-7">
+          <h1 className="text-[1.65rem] leading-[1.15] sm:text-[2.75rem] sm:leading-[1.12] font-semibold tracking-tight text-[#F3F3EE] text-center max-w-[18ch] sm:max-w-[640px]">
             Ask anything about your documents
           </h1>
+        </div>
 
-          <form onSubmit={handleAsk} className="mt-10 sm:mt-12">
-            <label htmlFor="landing-ask" className="sr-only">
-              Search your documents
-            </label>
+        <form onSubmit={handleAsk} className="w-full max-w-[640px] mx-auto">
+          <label htmlFor="landing-ask" className="sr-only">
+            Search your documents
+          </label>
 
-            <div className="relative">
-              <div
-                className="pointer-events-none absolute -inset-6 sm:-inset-8 rounded-[40px]"
-                style={{
-                  background:
-                    'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
-                  filter: 'blur(10px)'
-                }}
-              />
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-3 sm:-inset-4 rounded-[32px]"
+              style={{
+                background:
+                  'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
+                filter: 'blur(10px)'
+              }}
+            />
 
-              <div
-                className="relative flex items-center gap-3 bg-[#161818] rounded-[14px] pl-4 sm:pl-5 pr-3 py-3 sm:py-3.5 text-left transition-[box-shadow] duration-300"
-                style={{ boxShadow: focused ? BAR_GLOW_FOCUS : BAR_GLOW }}
+            <div
+              className="relative flex items-center gap-3 bg-[#161818] rounded-[22px] pl-4 sm:pl-5 pr-3 min-h-[52px] sm:min-h-[56px] text-left transition-[box-shadow] duration-300"
+              style={{ boxShadow: focused ? BAR_GLOW_FOCUS : BAR_GLOW }}
+            >
+              <span
+                className="flex-shrink-0 text-[15px] sm:text-base font-medium text-[#20B8CD] select-none"
+                style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+                aria-hidden="true"
               >
-                <span
-                  className="flex-shrink-0 text-[15px] sm:text-base font-medium text-[#20B8CD] select-none"
-                  style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
-                  aria-hidden="true"
-                >
-                  &gt;_
-                </span>
-                <input
-                  id="landing-ask"
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                  placeholder="Search your documents..."
-                  className="flex-1 min-w-0 bg-transparent border-0 text-[15px] sm:text-base text-[#F3F3EE] placeholder:text-white/30 focus:outline-none py-1 caret-[#20B8CD]"
-                />
-              </div>
+                &gt;_
+              </span>
+              <input
+                id="landing-ask"
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder="Search your documents..."
+                className="flex-1 min-w-0 bg-transparent border-0 text-base text-[#F3F3EE] placeholder:text-white/30 focus:outline-none py-3 caret-[#20B8CD]"
+              />
             </div>
-          </form>
+          </div>
+        </form>
 
-          <ul className="mt-8 sm:mt-10 space-y-2.5">
+        <div className="flex items-start justify-center pt-5 sm:pt-7">
+          <ul className="space-y-2.5 text-center">
             {SUGGESTIONS.map((suggestion) => (
               <li key={suggestion}>
                 <button
                   type="button"
                   onClick={() => setQuery(suggestion)}
-                  className="min-h-0 px-2 py-1 text-[13px] sm:text-sm text-white/35 hover:text-white/70 transition-colors cursor-pointer"
+                  className="min-h-[44px] px-3 py-2 text-[13px] sm:text-sm text-white/35 hover:text-white/70 transition-colors cursor-pointer"
                 >
                   {suggestion}
                 </button>

@@ -158,6 +158,7 @@ export default function App() {
     return [];
   });
   const [prelinkedDocId, setPrelinkedDocId] = useState<string | null>(null);
+  const [newNoteRequestId, setNewNoteRequestId] = useState(0);
 
   // Persist documents to localStorage
   useEffect(() => {
@@ -778,7 +779,7 @@ export default function App() {
 
   return (
     <div
-      className="s87-app flex h-[100dvh] w-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)] antialiased"
+      className="s87-app flex h-[100dvh] w-full max-w-full overflow-hidden overscroll-none bg-[var(--paper)] text-[var(--ink)] antialiased"
       style={
         visualHeight
           ? { height: `${visualHeight}px` }
@@ -839,7 +840,7 @@ export default function App() {
                     setCurrentTab('documents');
                   }
                 }}
-                className="w-full bg-transparent border-0 text-sm text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none py-1"
+                className="w-full min-w-0 bg-transparent border-0 text-base text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none py-1"
               />
               {searchQuery && (
                 <button
@@ -1023,6 +1024,7 @@ export default function App() {
               onSelectDocument={setSelectedDocForDetail}
               prelinkedDocId={prelinkedDocId}
               onClearPrelinkedDoc={() => setPrelinkedDocId(null)}
+              newNoteRequestId={newNoteRequestId}
             />
           )}
 
@@ -1066,6 +1068,10 @@ export default function App() {
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
             }, 100);
+          }}
+          onOpenNewNote={() => {
+            setNewNoteRequestId((id) => id + 1);
+            setCurrentTab('saved');
           }}
         />
       </div>

@@ -842,6 +842,135 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   ];
 
+  const isEmptyChat = chatHistory.length === 0;
+
+  const composer = (
+    <div className="w-full">
+      {attachedFiles.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
+          {attachedFiles.map((f) => (
+            <div
+              key={f.id}
+              className="pl-3 pr-2 min-h-[36px] bg-[#161818] text-[#F3F3EE] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
+            >
+              {f.dataUrl ? (
+                <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
+              ) : (
+                <FileText size={13} className="text-white/35 flex-shrink-0" />
+              )}
+              <span className="truncate min-w-0 flex-1">{f.name}</span>
+              <button
+                onClick={() => {
+                  setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
+                  setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
+                }}
+                aria-label={`Remove ${f.name}`}
+                className="w-8 h-8 -mr-1 flex items-center justify-center text-white/35 hover:text-[#F3F3EE] transition-colors cursor-pointer flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute -inset-3 sm:-inset-4 rounded-[32px]"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
+            filter: 'blur(10px)'
+          }}
+        />
+        <div
+          className="relative bg-[#161818] rounded-[22px] pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 transition-[box-shadow] duration-300 min-h-[52px] sm:min-h-[48px]"
+          style={{ boxShadow: composerFocused ? COMPOSER_GLOW_FOCUS : COMPOSER_GLOW }}
+        >
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
+              aria-expanded={showAttachMenu}
+              className="flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-transparent hover:bg-white/5 text-white/45 hover:text-[#F3F3EE] transition-colors cursor-pointer"
+            >
+              {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
+            </button>
+
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    setShowFilePicker(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer"
+                >
+                  <FolderOpen size={15} className="text-white/35" />
+                  <span>Choose from Files</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isParsingFile}
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isParsingFile ? <Loader2 size={15} className="animate-spin text-white/40" /> : <Paperclip size={15} className="text-white/35" />}
+                  <span>Upload Document</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <span
+            className="flex-shrink-0 text-[15px] font-medium text-[#20B8CD] select-none"
+            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+            aria-hidden="true"
+          >
+            &gt;_
+          </span>
+
+          <textarea
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
+            onFocus={() => setComposerFocused(true)}
+            onBlur={() => setComposerFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendQuery();
+              }
+            }}
+            placeholder="Ask anything..."
+            className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[#F3F3EE] placeholder:text-white/30 focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[#20B8CD]"
+            rows={1}
+          />
+
+          <button
+            type="button"
+            onClick={() => handleSendQuery()}
+            disabled={!inputQuery.trim() || loading}
+            aria-label="Send"
+            className={`flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+              inputQuery.trim() && !loading
+                ? 'bg-[#20B8CD] text-[#0F1010] hover:opacity-90'
+                : 'bg-white/5 text-white/25 cursor-not-allowed'
+            }`}
+            title="Send message"
+          >
+            <ArrowUp size={16} strokeWidth={2.6} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       onDragOver={handleDragOver}
@@ -954,258 +1083,125 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
       {/* Main Centered Workspace Canvas */}
       <div className="flex-1 flex min-h-0 overflow-hidden relative bg-[#0F1010]">
-        <div className={`flex-1 flex flex-col justify-between min-w-0 h-full min-h-0 overflow-x-hidden transition-all duration-300 ${
+        <div className={`flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-x-hidden transition-all duration-300 ${
  splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-white/5' : 'w-full'
  }`}>
-          {/* Scrollable Chat Area */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
-            <div className={`max-w-[768px] w-full mx-auto space-y-4 ${chatHistory.length === 0 ? 'flex-1 flex flex-col justify-center my-auto py-2 sm:py-4' : ''}`}>
-              {chatHistory.length === 0 ? (
-                <div className="flex flex-col justify-center items-center text-center space-y-6 sm:space-y-8 max-w-2xl mx-auto w-full">
-                  {/* Welcome Headline */}
-                  <div className="flex flex-col items-center gap-3">
-                    <span className="text-[12px] font-medium text-white/35">
-                      {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
-                    </span>
-                    <h1 className="text-[1.85rem] sm:text-[2.75rem] leading-[1.15] sm:leading-[1.12] text-[#F3F3EE] m-0 font-semibold tracking-tight">
-                      What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
-                    </h1>
-                    <p className="text-sm text-white/40 m-0 max-w-[42ch]" style={{ lineHeight: 1.6 }}>
-                      Ask about anything you've added. Each answer points to where it came from.
-                    </p>
-                  </div>
+          {isEmptyChat ? (
+            <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
+              <div className="flex flex-col items-center justify-end text-center pb-5 sm:pb-7 min-h-0">
+                <span className="text-[12px] font-medium text-white/35">
+                  {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
+                </span>
+                <h1 className="mt-2 text-[1.65rem] sm:text-[2.5rem] leading-[1.15] text-[#F3F3EE] m-0 font-semibold tracking-tight max-w-[18ch] sm:max-w-none">
+                  What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
+                </h1>
+              </div>
 
-                  {/* Quick Action Buttons */}
-                  <div className="relative w-full max-w-md pt-1">
-                    <button
-                      onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-white/5 rounded-full transition-colors cursor-pointer text-[13px] text-white/40 hover:text-white/70"
-                    >
-                      <span>More questions to try</span>
-                      <ChevronDown size={14} />
-                    </button>
-                    {showActionsDropdown && (
-                      <div className="absolute top-full left-0 w-full mt-2 bg-[#161818] border border-white/10 rounded-[12px] z-20 overflow-hidden text-left">
-                        {quickActionChips.map((chip) => (
-                          <button
-                            key={chip.id}
-                            onClick={() => {
-                              setInputQuery(chip.prompt);
-                              setMode(chip.mode);
-                              setShowActionsDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-white/5 text-[13px] text-white/60 hover:text-[#F3F3EE] border-b border-white/5 last:border-b-0 cursor-pointer"
-                          >
-                            {chip.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 pb-4">
-                  {chatHistory.map((msg, index) => {
-                    const previousUserMsg = index > 0 && chatHistory[index - 1].role === 'user' ? chatHistory[index - 1].text : '';
+              <div className="w-full max-w-[640px] mx-auto">
+                {composer}
+              </div>
 
-                    return (
-                      <div key={msg.id} className="py-1">
-                        {msg.role === 'user' ? (
-                          <div className="flex justify-end my-3">
-                            <div className="bg-[#161818] text-[#F3F3EE] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
-                              {msg.text}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-3 sm:gap-4 items-start my-4">
-                            <div className="w-8 h-8 rounded-full bg-[#161818] text-white/50 flex items-center justify-center flex-shrink-0 mt-1">
-                              <Signal87Logo size={16} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <ActionRouterCard
-                                msg={msg}
-                                userPrompt={previousUserMsg}
-                                copiedMsgId={copiedMsgId}
-                                savedReportIds={savedReportIds}
-                                onCopy={handleCopy}
-                                onExportPDF={handleExportPDF}
-                                onSaveReport={(id, title, content) => handleSaveToReports(id, title, content)}
-                                onInspectInCanvas={(item) => {
-                                  setActiveArtifact({
-                                    id: item.id,
-                                    title: item.text.slice(0, 40) + '...',
-                                    content: item.text,
-                                    citations: item.citations,
-                                    timestamp: item.timestamp
-                                  });
-                                  setSplitViewOpen(true);
-                                }}
-                                onSelectDocument={onSelectDocument}
-                                documents={documents}
-                                onSaveAnswer={onSaveAnswer}
-                                isAnswerSaved={savedAnswerIds?.has(msg.id)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {loading && (
-                    <div className="flex items-center gap-3 py-3 text-[13.5px] text-white/40">
-                      <div className="w-6 h-6 bg-[#161818] rounded-full flex items-center justify-center text-white/40">
-                        <Signal87Logo size={14} className="animate-spin" />
-                      </div>
-                      <span>Reading your documents...</span>
+              <div className="flex flex-col items-center justify-start pt-5 sm:pt-7 min-h-0 overflow-y-auto">
+                <div className="relative w-full max-w-md">
+                  <button
+                    onClick={() => setShowActionsDropdown(!showActionsDropdown)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-white/5 rounded-full transition-colors cursor-pointer text-[13px] text-white/40 hover:text-white/70"
+                  >
+                    <span>More questions to try</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {showActionsDropdown && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-[#161818] border border-white/10 rounded-[12px] z-20 overflow-hidden text-left">
+                      {quickActionChips.map((chip) => (
+                        <button
+                          key={chip.id}
+                          onClick={() => {
+                            setInputQuery(chip.prompt);
+                            setMode(chip.mode);
+                            setShowActionsDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-white/5 text-[13px] text-white/60 hover:text-[#F3F3EE] border-b border-white/5 last:border-b-0 cursor-pointer"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Gemini Floating Rounded Input Box Container */}
-          <div
-            className="flex-shrink-0 bg-[#0F1010] z-20 px-4 sm:px-6 pt-5"
-            style={{
-              paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))'
-            }}
-          >
-            <div className="max-w-[768px] w-full mx-auto">
-
-              {attachedFiles.length > 0 && (
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
-                  {attachedFiles.map((f) => (
-                    <div
-                      key={f.id}
-                      className="pl-3 pr-2 min-h-[36px] bg-[#161818] text-[#F3F3EE] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
-                    >
-                      {f.dataUrl ? (
-                        <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
-                      ) : (
-                        <FileText size={13} className="text-white/35 flex-shrink-0" />
-                      )}
-                      <span className="truncate min-w-0 flex-1">{f.name}</span>
-                      <button
-                        onClick={() => {
-                          setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
-                           setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
-                         }}
-                        aria-label={`Remove ${f.name}`}
-                        className="w-8 h-8 -mr-1 flex items-center justify-center text-white/35 hover:text-[#F3F3EE] transition-colors cursor-pointer flex-shrink-0"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Single-row composer: "+" attach menu, input, send */}
-              <div className="relative mt-auto">
-                <div
-                  className="pointer-events-none absolute -inset-5 sm:-inset-6 rounded-[40px]"
-                  style={{
-                    background:
-                      'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
-                    filter: 'blur(10px)'
-                  }}
-                />
-                <div
-                  className="relative bg-[#161818] rounded-[16px] p-2 sm:p-2.5 flex items-end gap-2 sm:gap-2.5 transition-[box-shadow] duration-300"
-                  style={{ boxShadow: composerFocused ? COMPOSER_GLOW_FOCUS : COMPOSER_GLOW }}
-                >
-                  <div className="relative flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setShowAttachMenu(!showAttachMenu)}
-                      aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
-                      aria-expanded={showAttachMenu}
-                      className="flex items-center justify-center w-10 h-10 md:w-9 md:h-9 rounded-full bg-transparent hover:bg-white/5 text-white/45 hover:text-[#F3F3EE] transition-colors cursor-pointer"
-                    >
-                      {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
-                    </button>
-
-                    {showAttachMenu && (
-                      <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAttachMenu(false);
-                            setShowFilePicker(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer"
-                        >
-                          <FolderOpen size={15} className="text-white/35" />
-                          <span>Choose from Files</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAttachMenu(false);
-                            fileInputRef.current?.click();
-                          }}
-                          disabled={isParsingFile}
-                          className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          {isParsingFile ? <Loader2 size={15} className="animate-spin text-white/40" /> : <Paperclip size={15} className="text-white/35" />}
-                          <span>Upload Document</span>
-                        </button>
-
-                      </div>
-                    )}
-                  </div>
-
-                  <span
-                    className="flex-shrink-0 text-[15px] font-medium text-[#20B8CD] select-none mb-2 md:mb-1.5"
-                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
-                    aria-hidden="true"
-                  >
-                    &gt;_
-                  </span>
-
-                  <textarea
-                    value={inputQuery}
-                    onChange={(e) => setInputQuery(e.target.value)}
-                    onFocus={() => setComposerFocused(true)}
-                    onBlur={() => setComposerFocused(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendQuery();
-                      }
-                    }}
-                    placeholder="Ask anything..."
-                    className="flex-1 min-w-0 bg-transparent border-0 text-[15px] sm:text-[16px] leading-[1.5] text-[#F3F3EE] placeholder:text-white/30 focus:outline-none resize-none min-h-[40px] md:min-h-[36px] max-h-24 px-1 py-2 md:py-1.5 font-sans caret-[#20B8CD]"
-                    rows={1}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => handleSendQuery()}
-                    disabled={!inputQuery.trim() || loading}
-                    aria-label="Send"
-                    className={`flex-shrink-0 w-10 h-10 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
-                      inputQuery.trim() && !loading
-                        ? 'bg-[#20B8CD] text-[#0F1010] hover:opacity-90'
-                        : 'bg-white/5 text-white/25 cursor-not-allowed'
-                    }`}
-                    title="Send message"
-                  >
-                    <ArrowUp size={16} strokeWidth={2.6} />
-                  </button>
                 </div>
               </div>
-              {chatHistory.length === 0 && (
-                <p className="text-[11px] text-center text-white/25 mt-4 relative">
-                  Signal87 AI may produce inaccurate information. Verify key citations.
-                </p>
-              )}
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
+                <div className="max-w-[768px] w-full mx-auto space-y-4">
+                  <div className="space-y-4 pb-4">
+                    {chatHistory.map((msg, index) => {
+                      const previousUserMsg = index > 0 && chatHistory[index - 1].role === 'user' ? chatHistory[index - 1].text : '';
+
+                      return (
+                        <div key={msg.id} className="py-1">
+                          {msg.role === 'user' ? (
+                            <div className="flex justify-end my-3">
+                              <div className="bg-[#161818] text-[#F3F3EE] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
+                                {msg.text}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-3 sm:gap-4 items-start my-4">
+                              <div className="w-8 h-8 rounded-full bg-[#161818] text-white/50 flex items-center justify-center flex-shrink-0 mt-1">
+                                <Signal87Logo size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <ActionRouterCard
+                                  msg={msg}
+                                  userPrompt={previousUserMsg}
+                                  copiedMsgId={copiedMsgId}
+                                  savedReportIds={savedReportIds}
+                                  onCopy={handleCopy}
+                                  onExportPDF={handleExportPDF}
+                                  onSaveReport={(id, title, content) => handleSaveToReports(id, title, content)}
+                                  onInspectInCanvas={(item) => {
+                                    setActiveArtifact({
+                                      id: item.id,
+                                      title: item.text.slice(0, 40) + '...',
+                                      content: item.text,
+                                      citations: item.citations,
+                                      timestamp: item.timestamp
+                                    });
+                                    setSplitViewOpen(true);
+                                  }}
+                                  onSelectDocument={onSelectDocument}
+                                  documents={documents}
+                                  onSaveAnswer={onSaveAnswer}
+                                  isAnswerSaved={savedAnswerIds?.has(msg.id)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {loading && (
+                      <div className="flex items-center gap-3 py-3 text-[13.5px] text-white/40">
+                        <div className="w-6 h-6 bg-[#161818] rounded-full flex items-center justify-center text-white/40">
+                          <Signal87Logo size={14} className="animate-spin" />
+                        </div>
+                        <span>Reading your documents...</span>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[#0F1010]">
+                <div className="max-w-[768px] w-full mx-auto">
+                  {composer}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {splitViewOpen && (

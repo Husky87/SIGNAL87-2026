@@ -20,6 +20,7 @@ export interface SavedViewProps {
   onSelectDocument: (doc: DocumentItem) => void;
   prelinkedDocId?: string | null;
   onClearPrelinkedDoc?: () => void;
+  newNoteRequestId?: number;
 }
 
 export const SavedView: React.FC<SavedViewProps> = ({
@@ -29,12 +30,13 @@ export const SavedView: React.FC<SavedViewProps> = ({
   documents,
   onSelectDocument,
   prelinkedDocId,
-  onClearPrelinkedDoc
+  onClearPrelinkedDoc,
+  newNoteRequestId = 0
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'notes' | 'answers'>('all');
   const [selectedItem, setSelectedItem] = useState<SavedItem | null>(null);
-  const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const [isCreatingNote, setIsCreatingNote] = useState(() => newNoteRequestId > 0);
 
   // Note editor states
   const [noteTitle, setNoteTitle] = useState('');
@@ -51,6 +53,18 @@ export const SavedView: React.FC<SavedViewProps> = ({
       setSelectedItem(null);
     }
   }, [prelinkedDocId]);
+
+  // Open an empty note editor when New → Note is requested from the dock.
+  // SavedView is unmounted on other tabs, so this must be a prop (not a
+  // window event) or the request is lost before the listener exists.
+  useEffect(() => {
+    if (!newNoteRequestId) return;
+    setNoteTitle('');
+    setNoteBody('');
+    setNoteLinkedDocId('');
+    setIsCreatingNote(true);
+    setSelectedItem(null);
+  }, [newNoteRequestId]);
 
   // Filter and sort items (most recent first)
   const filteredItems = useMemo(() => {
