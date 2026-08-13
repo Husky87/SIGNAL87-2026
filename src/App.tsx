@@ -33,9 +33,7 @@ import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signI
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'lucide-react';
 
 import {
-  INITIAL_DOCUMENTS,
   INITIAL_REPORT_TEMPLATES,
-  INITIAL_REPORTS,
   INITIAL_AUDIT_LOGS,
   INITIAL_ORG_STATS
 } from './data/mockData';
@@ -51,6 +49,34 @@ import {
   saveSavedItemToFirestore,
   deleteSavedItemFromFirestore
 } from './lib/firestoreService';
+
+function readUserJson<T>(uid: string, key: string, fallback: T): T {
+  try {
+    const stored = localStorage.getItem(`signal87_${key}_${uid}`);
+    if (!stored) return fallback;
+    const parsed = JSON.parse(stored);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeUserJson(uid: string, key: string, value: unknown) {
+  try {
+    localStorage.setItem(`signal87_${key}_${uid}`, JSON.stringify(value));
+  } catch (e) {
+    console.warn('Failed saving', key, e);
+  }
+}
+
+function belongsToUser<T extends { userId?: string; owner?: string }>(
+  item: T,
+  user: { uid: string; email?: string | null }
+): boolean {
+  if (item.userId) return item.userId === user.uid;
+  if (item.owner && user.email) return item.owner === user.email;
+  return false;
+}
 
 /* iOS shrinks the visual viewport when the keyboard opens but leaves the
    layout viewport alone, which is why bottom-docked controls disappear.
@@ -87,111 +113,57 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const hadUserRef = React.useRef(false);
+  const skipChatSaveRef = React.useRef(false);
   const [showAuthBanner, setShowAuthBanner] = useState(true);
 
   // Core Data States
-  const [folders, setFolders] = useState<FolderItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_folders');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading folders from localStorage', e);
-    }
-    return [
-      { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
-    ];
-  });
+  const defaultFolders: FolderItem[] = [
+    { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
+  ];
+  const [folders, setFolders] = useState<FolderItem[]>(defaultFolders);
 
-  const [documents, setDocuments] = useState<DocumentItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_documents');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading documents from localStorage', e);
-    }
-    return [];
-  });
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
 
-  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_attached_files');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-    return [];
-  });
+  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>([]);
 
-  const [reports, setReports] = useState<GeneratedReport[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_reports');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading reports from localStorage', e);
-    }
-    return INITIAL_REPORTS;
-  });
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
 
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
   const [stats, setStats] = useState(INITIAL_ORG_STATS);
 
   // Saved Items State
-  const [savedItems, setSavedItems] = useState<SavedItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_saved_items');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading saved items from localStorage', e);
-    }
-    return [];
-  });
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [prelinkedDocId, setPrelinkedDocId] = useState<string | null>(null);
+  const [newNoteRequestId, setNewNoteRequestId] = useState(0);
 
   // Persist documents to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_documents', JSON.stringify(documents));
-    } catch (e) {
-      console.warn('Failed saving documents to localStorage', e);
-    }
-  }, [documents]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'documents', documents);
+  }, [documents, currentUser, workspaceReady]);
 
   // Persist savedItems to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_saved_items', JSON.stringify(savedItems));
-    } catch (e) {
-      console.warn('Failed saving saved items to localStorage', e);
-    }
-  }, [savedItems]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'saved_items', savedItems);
+  }, [savedItems, currentUser, workspaceReady]);
 
   // Persist attachedFiles to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_attached_files', JSON.stringify(attachedFiles));
-    } catch (e) {}
-  }, [attachedFiles]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'attached_files', attachedFiles);
+  }, [attachedFiles, currentUser, workspaceReady]);
 
   // Persist folders to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_folders', JSON.stringify(folders));
-    } catch (e) {
-      console.warn('Failed saving folders to localStorage', e);
-    }
-  }, [folders]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'folders', folders);
+  }, [folders, currentUser, workspaceReady]);
 
   // Folder Action Handlers
   /** Every folder in the subtree rooted at folderId, including itself. */
@@ -260,22 +232,22 @@ export default function App() {
 
   // Persist reports to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_reports', JSON.stringify(reports));
-    } catch (e) {}
-  }, [reports]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'reports', reports);
+  }, [reports, currentUser, workspaceReady]);
 
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedDocForDetail, setSelectedDocForDetail] = useState<DocumentItem | null>(null);
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
+  const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const handleFilesDropped = (files: File[]) => {
+    setUploadFolderId(selectedFolderId);
     setPendingDroppedFiles(files);
     setIsUploadOpen(true);
   };
 
-  const [compareSeedIds, setCompareSeedIds] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
   const [showMobileModelMenu, setShowMobileModelMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -292,58 +264,35 @@ export default function App() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
-  const [sessions, setSessions] = useState(() => {
-    try {
-      const stored = localStorage.getItem('signal87_sessions');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading sessions from localStorage', e);
-    }
-    return [
-      { id: 's1', title: 'Boston Ordinance Analysis', timestamp: 'Today, 10:24 AM' },
-      { id: 's2', title: 'Lease Indemnification Review', timestamp: 'Yesterday' },
-      { id: 's3', title: 'Q3 Financial Metrics Extraction', timestamp: '2 days ago' },
-      { id: 's4', title: 'Healthcare Reform Comparison', timestamp: '3 days ago' }
-    ];
-  });
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
-    try {
-      const storedActive = localStorage.getItem('signal87_active_session_id');
-      if (storedActive) return storedActive;
-    } catch (e) {}
-    return 's1';
-  });
+  const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string }[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [pendingCompareIds, setPendingCompareIds] = useState<string[]>([]);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   // Persist sessions array to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('signal87_sessions', JSON.stringify(sessions));
-    } catch (e) {
-      console.warn('Failed saving sessions to localStorage', e);
-    }
-  }, [sessions]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'sessions', sessions);
+  }, [sessions, currentUser, workspaceReady]);
 
   // Persist activeSessionId to localStorage
   useEffect(() => {
-    if (activeSessionId) {
-      try {
-        localStorage.setItem('signal87_active_session_id', activeSessionId);
-      } catch (e) {}
-    }
-  }, [activeSessionId]);
+    if (!currentUser || !workspaceReady || !activeSessionId) return;
+    try {
+      localStorage.setItem(`signal87_active_session_id_${currentUser.uid}`, activeSessionId);
+    } catch (e) {}
+  }, [activeSessionId, currentUser, workspaceReady]);
 
   // Load chat history for active session ID from localStorage or default
   useEffect(() => {
-    if (!activeSessionId) {
+    skipChatSaveRef.current = true;
+    if (!activeSessionId || !currentUser) {
       setChatHistory([]);
       return;
     }
     try {
-      const storedChat = localStorage.getItem(`signal87_chat_${activeSessionId}`);
+      const storedChat = localStorage.getItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`);
       if (storedChat) {
         setChatHistory(JSON.parse(storedChat));
       } else {
@@ -353,13 +302,17 @@ export default function App() {
       console.warn('Error loading chat history for session:', activeSessionId, e);
       setChatHistory([]);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, currentUser]);
 
   // Save chatHistory to localStorage for the active session
   useEffect(() => {
-    if (!activeSessionId) return;
+    if (!activeSessionId || !currentUser || !workspaceReady) return;
+    if (skipChatSaveRef.current) {
+      skipChatSaveRef.current = false;
+      return;
+    }
     try {
-      localStorage.setItem(`signal87_chat_${activeSessionId}`, JSON.stringify(chatHistory));
+      localStorage.setItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`, JSON.stringify(chatHistory));
 
       // Auto-update thread title if it's currently 'New Research Session' and user has sent a message
       if (chatHistory.length > 0) {
@@ -379,7 +332,7 @@ export default function App() {
     } catch (e) {
       console.warn('Failed saving chat history to localStorage', e);
     }
-  }, [chatHistory, activeSessionId]);
+  }, [chatHistory, activeSessionId, currentUser]);
 
   const mainScrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -422,9 +375,17 @@ export default function App() {
   // Firebase Auth Observer
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthReady(true);
       if (user) {
+        hadUserRef.current = true;
         setCurrentUser(user);
         setAuthError(null);
+      } else {
+        setCurrentUser(null);
+        if (hadUserRef.current) {
+          hadUserRef.current = false;
+          resetClientState();
+        }
       }
     });
     return () => unsubscribe();
@@ -450,46 +411,74 @@ export default function App() {
       });
   }, []);
 
-  // Initial Sync from Firestore
+  // Load only this account's workspace. Never merge another user's leftover
+  // localStorage into the current session.
   useEffect(() => {
+    if (!currentUser) {
+      setWorkspaceReady(false);
+      setDocuments([]);
+      setSavedItems([]);
+      setReports([]);
+      setAttachedFiles([]);
+      setSessions([]);
+      setActiveSessionId(null);
+      setChatHistory([]);
+      return;
+    }
+
+    const uid = currentUser.uid;
+    const mine = <T extends { userId?: string; owner?: string }>(items: T[]) =>
+      items.filter((item) => belongsToUser(item, currentUser));
+
+    setDocuments(mine(readUserJson<DocumentItem[]>(uid, 'documents', [])));
+    setSavedItems(mine(readUserJson<SavedItem[]>(uid, 'saved_items', [])));
+    setReports(readUserJson<GeneratedReport[]>(uid, 'reports', []));
+    setAttachedFiles(readUserJson(uid, 'attached_files', []));
+    const userFolders = readUserJson<FolderItem[]>(uid, 'folders', []);
+    setFolders(userFolders.length > 0 ? userFolders : defaultFolders);
+    setSessions(readUserJson(uid, 'sessions', []));
+    try {
+      setActiveSessionId(localStorage.getItem(`signal87_active_session_id_${uid}`));
+    } catch {
+      setActiveSessionId(null);
+    }
+    setWorkspaceReady(true);
+
+    let cancelled = false;
     async function syncFirestoreData() {
-      // Documents sync
       const remoteDocs = await fetchDocumentsFromFirestore();
-      if (remoteDocs && remoteDocs.length > 0) {
-        // Merge without duplicates
-        setDocuments((prev) => {
-          const existingIds = new Set(prev.map((d) => d.id));
-          const newUnique = remoteDocs.filter((rd) => !existingIds.has(rd.id));
-          return [...newUnique, ...prev];
-        });
+      if (!cancelled) {
+        setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
       }
 
-      // Projects sync
-      // Projects removed
-      
-      // Reports sync
       const remoteReports = await fetchReportsFromFirestore();
-      if (remoteReports && remoteReports.length > 0) {
-        setReports((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const newUnique = remoteReports.filter((rr) => !existingIds.has(rr.id));
-          return [...newUnique, ...prev];
-        });
+      if (!cancelled) {
+        setReports(remoteReports);
       }
 
-      // Saved Items sync
       const remoteSaved = await fetchSavedItemsFromFirestore();
-      if (remoteSaved && remoteSaved.length > 0) {
-        setSavedItems((prev) => {
-          const existingIds = new Set(prev.map((s) => s.id));
-          const newUnique = remoteSaved.filter((rs) => !existingIds.has(rs.id));
-          return [...newUnique, ...prev];
-        });
+      if (!cancelled) {
+        setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
       }
     }
 
     syncFirestoreData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    if (sessions.length > 0) return;
+    const fresh = {
+      id: `s_${Date.now()}`,
+      title: 'New Research Session',
+      timestamp: 'Just now'
+    };
+    setSessions([fresh]);
+    setActiveSessionId(fresh.id);
+  }, [currentUser, sessions.length]);
 
   // Handlers for Saved notebook
   const handleSaveSavedItem = (item: SavedItem) => {
@@ -534,14 +523,30 @@ export default function App() {
     );
   }, [savedItems]);
 
+  const myDocuments = useMemo(
+    () => (currentUser ? documents.filter((d) => belongsToUser(d, currentUser)) : []),
+    [documents, currentUser]
+  );
+
+  const mySavedItems = useMemo(
+    () => (currentUser ? savedItems.filter((item) => belongsToUser(item, currentUser)) : []),
+    [savedItems, currentUser]
+  );
+
   // Handlers
-  const handleUploadSuccess = (newDoc: DocumentItem, _parsedFile?: any) => {
-    setDocuments((prev) => [newDoc, ...prev]);
-    saveDocumentToFirestore(newDoc); // Persist to Firestore
+  const handleUploadSuccess = (newDoc: DocumentItem, parsedFile?: any) => {
+    const withText: DocumentItem = {
+      ...newDoc,
+      fullText: parsedFile?.extractedText || newDoc.fullText || newDoc.contentPreview,
+      owner: currentUser?.email || newDoc.owner,
+      userId: currentUser?.uid
+    };
+    setDocuments((prev) => [withText, ...prev.filter((d) => d.id !== withText.id)]);
+    saveDocumentToFirestore(withText);
     setStats((prev) => ({
       ...prev,
       totalDocs: prev.totalDocs + 1,
-      storageUsedBytes: prev.storageUsedBytes + newDoc.sizeBytes
+      storageUsedBytes: prev.storageUsedBytes + withText.sizeBytes
     }));
   };
 
@@ -607,8 +612,37 @@ export default function App() {
   // selection state, so without this the chosen documents were dropped and the
   // user landed on an empty comparison screen.
   const handleCompareFromDocs = (docsToCompare: DocumentItem[]) => {
-    setCompareSeedIds(docsToCompare.map((d) => d.id));
+    setPendingCompareIds(docsToCompare.map((d) => d.id));
     setCurrentTab('compare');
+  };
+
+  const resetClientState = () => {
+    setAuthError(null);
+    setCurrentTab('research');
+    setSelectedDocForDetail(null);
+    setSearchQuery('');
+    setIsUploadOpen(false);
+    setIsWelcomeModalOpen(false);
+    setDocuments([]);
+    setAttachedFiles([]);
+    setSavedItems([]);
+    setSessions([]);
+    setActiveSessionId(null);
+    setChatHistory([]);
+    setPendingCompareIds([]);
+    setNewNoteRequestId(0);
+    setReports([]);
+    setFolders([
+      { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
+      { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
+      { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
+    ]);
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('Storage wipe notice:', e);
+    }
   };
 
   const handleSignOut = async () => {
@@ -617,30 +651,9 @@ export default function App() {
     } catch (err) {
       console.warn('Firebase Sign-Out Warning:', err);
     }
-    // Explicit client-side wipe on logout
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      console.warn('Storage wipe notice:', e);
-    }
-
-    // Reset inputs, active views, and state variables to initial defaults
+    hadUserRef.current = false;
     setCurrentUser(null);
-    setAuthError(null);
-    setCurrentTab('research');
-    setSelectedDocForDetail(null);
-    setSearchQuery('');
-    setIsUploadOpen(false);
-    setIsWelcomeModalOpen(false);
-    setDocuments(INITIAL_DOCUMENTS);
-    setAttachedFiles([]);
-    setFolders([
-      { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
-    ]);
-    setReports(INITIAL_REPORTS);
+    resetClientState();
   };
 
   const handleCreateNewSession = () => {
@@ -657,7 +670,7 @@ export default function App() {
 
   const handleDeleteSession = (id: string) => {
     try {
-      localStorage.removeItem(`signal87_chat_${id}`);
+      if (currentUser) localStorage.removeItem(`signal87_chat_${currentUser.uid}_${id}`);
     } catch (e) {}
 
     const remaining = sessions.filter((s) => s.id !== id);
@@ -737,6 +750,10 @@ export default function App() {
     setIsEmailAuthOpen(false);
   };
 
+  if (!authReady) {
+    return <div className="min-h-[100dvh] w-full bg-[#0F1010]" />;
+  }
+
   const getPageTitle = (tab: NavTab): string => {
     switch (tab) {
       case 'research':
@@ -776,6 +793,10 @@ export default function App() {
             if (tab === 'team') {
               const el = document.getElementById('team');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
+            } else if (tab === 'privacy') {
+              setIsPrivacyOpen(true);
+            } else if (tab === 'terms') {
+              setIsTermsOpen(true);
             } else {
               setIsEmailAuthOpen(true);
             }
@@ -802,6 +823,18 @@ export default function App() {
           isOpen={isPrivacyOpen}
           onClose={() => setIsPrivacyOpen(false)}
         />
+        {isTermsOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70">
+            <button
+              type="button"
+              onClick={() => setIsTermsOpen(false)}
+              className="fixed top-4 right-4 z-50 px-3 py-2 rounded-full bg-[#161818] text-[#F3F3EE] text-sm cursor-pointer"
+            >
+              Close
+            </button>
+            <TermsOfService />
+          </div>
+        )}
         <BlogModal
           isOpen={isBlogOpen}
           onClose={() => setIsBlogOpen(false)}
@@ -821,7 +854,7 @@ export default function App() {
 
   return (
     <div
-      className="s87-app flex h-[100dvh] w-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)] antialiased"
+      className="s87-app flex h-[100dvh] w-full max-w-full overflow-hidden overscroll-none bg-[var(--paper)] text-[var(--ink)] antialiased"
       style={
         visualHeight
           ? { height: `${visualHeight}px` }
@@ -837,7 +870,7 @@ export default function App() {
         }}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        documentCount={documents.length}
+        documentCount={myDocuments.length}
         projectCount={0}
         mobileMenuOpen={mobileMenuOpen}
         onCloseMobileMenu={() => setMobileMenuOpen(false)}
@@ -848,6 +881,7 @@ export default function App() {
         onSelectSession={setActiveSessionId}
         onDeleteSession={handleDeleteSession}
         onOpenUpload={() => setIsUploadOpen(true)}
+        onSignOut={handleSignOut}
         filesView={filesView}
         onSelectFilesView={(view) => {
           setFilesView(view);
@@ -882,7 +916,7 @@ export default function App() {
                     setCurrentTab('documents');
                   }
                 }}
-                className="w-full bg-transparent border-0 text-sm text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none py-1"
+                className="w-full min-w-0 bg-transparent border-0 text-base text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none py-1"
               />
               {searchQuery && (
                 <button
@@ -984,11 +1018,15 @@ export default function App() {
           {currentTab === 'documents' && (
             <div className="flex-1 flex flex-col min-h-0">
               <DocumentLibraryView
-                documents={documents}
+                documents={myDocuments}
                 folders={folders}
                 filesView={filesView}
+                initialSearch={searchQuery}
                 onSelectDocument={setSelectedDocForDetail}
-                onOpenUpload={() => setIsUploadOpen(true)}
+                onOpenUpload={(folderId) => {
+                  setUploadFolderId(folderId ?? selectedFolderId);
+                  setIsUploadOpen(true);
+                }}
                 onCompareSelected={handleCompareFromDocs}
                 onDeleteDocument={handleDeleteDocument}
                 onRestoreDocument={handleRestoreDocument}
@@ -1011,7 +1049,7 @@ export default function App() {
 
           {currentTab === 'research' && (
             <ResearchAssistantView
-              documents={documents}
+              documents={myDocuments}
               attachedFiles={attachedFiles}
               setAttachedFiles={setAttachedFiles}
               selectedModel={selectedModel}
@@ -1038,21 +1076,25 @@ export default function App() {
           )}
 
           {currentTab === 'compare' && (
-            <MultiDocCompareView documents={documents} initialSelectedIds={compareSeedIds} />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} />
+            </div>
           )}
 
           {currentTab === 'reports' && (
-            <ReportsView
-              templates={INITIAL_REPORT_TEMPLATES}
-              reports={reports}
-              documents={documents}
-              onSaveReport={handleSaveReport}
-            />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <ReportsView
+                templates={INITIAL_REPORT_TEMPLATES}
+                reports={reports}
+                documents={myDocuments}
+                onSaveReport={handleSaveReport}
+              />
+            </div>
           )}
 
           {currentTab === 'searches' && (
             <SavedSearchesView
-              documents={documents}
+              documents={myDocuments}
               initialQuery={searchQuery}
               onSelectDocument={setSelectedDocForDetail}
             />
@@ -1060,38 +1102,50 @@ export default function App() {
 
           {currentTab === 'saved' && (
             <SavedView
-              savedItems={savedItems}
+              savedItems={mySavedItems}
               onSaveItem={handleSaveSavedItem}
               onDeleteItem={handleDeleteSavedItem}
-              documents={documents}
+              documents={myDocuments}
               onSelectDocument={setSelectedDocForDetail}
               prelinkedDocId={prelinkedDocId}
               onClearPrelinkedDoc={() => setPrelinkedDocId(null)}
+              newNoteRequestId={newNoteRequestId}
             />
           )}
 
           {currentTab === 'team' && (
-            <TeamView />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <TeamView />
+            </div>
           )}
 
           {currentTab === 'organization' && (
-            <OrganizationView stats={stats} />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <OrganizationView stats={stats} />
+            </div>
           )}
 
           {currentTab === 'admin' && (
-            <AdminView
-              stats={stats}
-              selectedModel={selectedModel}
-              onChangeModel={setSelectedModel}
-            />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <AdminView
+                stats={stats}
+                selectedModel={selectedModel}
+                onChangeModel={setSelectedModel}
+                onSignOut={handleSignOut}
+              />
+            </div>
           )}
 
           {currentTab === 'privacy' && (
-            <PrivacyPolicy />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PrivacyPolicy />
+            </div>
           )}
 
           {currentTab === 'terms' && (
-            <TermsOfService />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <TermsOfService />
+            </div>
           )}
         </main>
 
@@ -1102,7 +1156,7 @@ export default function App() {
           onSelectTab={setCurrentTab}
           onNewSession={handleCreateNewSession}
           onOpenMenu={() => setMobileMenuOpen(true)}
-          documentCount={documents.length}
+          documentCount={myDocuments.length}
           onOpenUpload={() => setIsUploadOpen(true)}
           onOpenNewFolderModal={() => {
             setCurrentTab('documents');
@@ -1111,15 +1165,23 @@ export default function App() {
               window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
             }, 100);
           }}
+          onOpenNewNote={() => {
+            setNewNoteRequestId((id) => id + 1);
+            setCurrentTab('saved');
+          }}
         />
       </div>
 
       {/* Global Modals */}
       <DocumentUploadModal
         isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
+        onClose={() => {
+          setIsUploadOpen(false);
+          setUploadFolderId(null);
+        }}
         onUploadSuccess={handleUploadSuccess}
-        documents={documents}
+        documents={myDocuments}
+        targetFolderId={uploadFolderId}
         initialFiles={pendingDroppedFiles}
         onInitialFilesConsumed={() => setPendingDroppedFiles([])}
         onAllUploadsComplete={() => {
@@ -1139,6 +1201,7 @@ export default function App() {
         onClose={() => setSelectedDocForDetail(null)}
         onOpenCompare={(doc) => {
           setSelectedDocForDetail(null);
+          setPendingCompareIds([doc.id]);
           setCurrentTab('compare');
         }}
         onAddNote={(docId) => {

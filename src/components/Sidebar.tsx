@@ -14,6 +14,9 @@ import {
   Star,
   Share2,
   Trash2,
+  LogOut,
+  FileText,
+  Users,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { getTrialStatus } from '../lib/trial';
@@ -61,6 +64,7 @@ interface SidebarProps {
   onSelectSession?: (id: string) => void;
   onDeleteSession?: (id: string) => void;
   onOpenUpload?: () => void;
+  onSignOut?: () => void;
   filesView?: FilesView;
   onSelectFilesView?: (view: FilesView) => void;
 }
@@ -83,6 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   onNewSession,
   onOpenUpload,
+  onSignOut,
   filesView = 'workspace',
   onSelectFilesView,
 }) => {
@@ -97,6 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'team', label: 'Team', icon: Users },
     { id: 'admin', label: 'Settings', icon: Settings },
   ];
 
@@ -129,6 +136,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       !isUpload &&
       ((item.id === 'research' && currentTab === 'research') ||
         (item.id === 'saved' && currentTab === 'saved') ||
+        (item.id === 'reports' && currentTab === 'reports') ||
+        (item.id === 'team' && currentTab === 'team') ||
         (item.id === 'admin' &&
           (currentTab === 'admin' || currentTab === 'organization')));
 
@@ -291,18 +300,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
         style={{ fontFamily: 'var(--mono)' }}
       >
         {!collapsed || mobileMenuOpen ? (
-          <div className="flex items-center justify-between px-1">
-            <span>Signal87 Platform</span>
-            {trialStatus ? (
-              <span className={trialStatus.daysRemaining <= 1 ? 'text-[var(--warn)] font-bold' : 'text-[var(--verify)] font-bold'}>
-                {trialStatus.daysRemaining}D LEFT IN TRIAL
-              </span>
-            ) : (
-              <span className="text-[var(--verify)] font-bold">ACTIVE</span>
+          <div className="space-y-2 px-1">
+            <div className="flex items-center justify-between">
+              <span>Signal87 Platform</span>
+              {trialStatus ? (
+                <span className={trialStatus.daysRemaining <= 1 ? 'text-[var(--warn)] font-bold' : 'text-[var(--verify)] font-bold'}>
+                  {trialStatus.daysRemaining}D LEFT IN TRIAL
+                </span>
+              ) : (
+                <span className="text-[var(--verify)] font-bold">ACTIVE</span>
+              )}
+            </div>
+            {onSignOut && (
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-full text-[12px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] cursor-pointer"
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
             )}
           </div>
         ) : (
-          <div className="text-center font-bold text-[8px] text-[var(--accent)]">DOCS</div>
+          <div className="text-center">
+            {onSignOut ? (
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="mx-auto flex items-center justify-center w-11 h-11 rounded-full text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] cursor-pointer"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            ) : (
+              <div className="font-bold text-[8px] text-[var(--accent)]">DOCS</div>
+            )}
+          </div>
         )}
       </div>
     </div>

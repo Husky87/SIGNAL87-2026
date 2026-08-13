@@ -70,7 +70,12 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                   return (
                     <button
                       key={doc.id}
-                      onClick={() => setSelectedDocId(doc.id)}
+                      onClick={() => {
+                        setSelectedDocId(doc.id);
+                        if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+                          onToggleAttach(doc);
+                        }
+                      }}
                       className={`w-full flex items-center gap-3 py-3 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 text-left cursor-pointer group transition-colors ${
                         isSelected ? 'bg-[var(--raised)]' : 'hover:bg-[var(--bg)]'
                       }`}

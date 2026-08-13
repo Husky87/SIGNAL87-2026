@@ -90,6 +90,10 @@ export async function parseFileContent(file: File): Promise<ParsedFileResult> {
         // Fallback to text decoding
         extractedText = await readFileAsText(file);
       }
+    } else if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'pptx', 'ppt', 'doc'].includes(extension) || file.type.startsWith('image/')) {
+      throw new Error(
+        `Cannot extract text from .${extension || 'this file type'}. Upload a PDF, DOCX, XLSX, CSV, or TXT file.`
+      );
     } else {
       // txt, json, md, log, etc.
       fileType = extension === 'txt' ? 'txt' : 'other';

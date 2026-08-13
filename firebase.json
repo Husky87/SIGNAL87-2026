@@ -1,0 +1,11 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-signal87ai-d3ac9818-22c6-408f-9f91-6cc2fa426bf0",
+      "rules": "firestore.rules"
+    }
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

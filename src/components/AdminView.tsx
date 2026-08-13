@@ -18,12 +18,14 @@ interface AdminViewProps {
   stats: OrgStats;
   selectedModel: string;
   onChangeModel: (model: string) => void;
+  onSignOut?: () => void;
 }
 
 export const AdminView: React.FC<AdminViewProps> = ({
   stats,
   selectedModel,
-  onChangeModel
+  onChangeModel,
+  onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'account' | 'team' | 'apikeys'>('account');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -105,6 +107,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 >
                   Manage Billing & Invoices
                 </button>
+                {onSignOut && (
+                  <button
+                    type="button"
+                    onClick={onSignOut}
+                    className="px-4 py-2 bg-transparent border border-[#37393b] hover:bg-[#28292a] text-[#e3e3e3] font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Sign out
+                  </button>
+                )}
               </div>
             </div>
 

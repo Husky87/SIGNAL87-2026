@@ -165,7 +165,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
                 <CheckCircle2 size={18} className="text-[#7dd3fc]" /> Shared Similarities & Overlapping Clauses
               </h3>
               <ul className="space-y-2.5">
-                {comparison.similarities.map((item, idx) => (
+                {(comparison.similarities || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-[#7dd3fc] font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -180,7 +180,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
                 <AlertTriangle size={18} className="text-amber-400" /> Key Differences & Divergences
               </h3>
               <ul className="space-y-2.5">
-                {comparison.differences.map((item, idx) => (
+                {(comparison.differences || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-amber-400 font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -195,7 +195,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
                 <ShieldAlert size={18} className="text-rose-400" /> Missing Clauses & Omissions
               </h3>
               <ul className="space-y-2.5">
-                {comparison.missingClauses.map((item, idx) => (
+                {(comparison.missingClauses || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-rose-400 font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -210,7 +210,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
                 <GitFork size={18} className="text-[#7dd3fc]" /> Direct Conflicts & Risk Exposure
               </h3>
               <ul className="space-y-2.5">
-                {comparison.conflicts.map((item, idx) => (
+                {(comparison.conflicts || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-[#7dd3fc] font-bold mt-0.5">•</span>
                     <span>{item}</span>

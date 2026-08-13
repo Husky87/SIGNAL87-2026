@@ -550,12 +550,12 @@ export const ActionRouterCard: React.FC<{
   };
 
   const handleDownloadExcel = () => {
-    if (isEditingExcel && spreadsheetData) {
+    if (spreadsheetData) {
       const headers = spreadsheetData[0].map((cell: any) => cell.value);
       const data = spreadsheetData.slice(1).map((row: any) => {
         const obj: any = {};
         headers.forEach((h: string, i: number) => {
-          obj[h] = row[i].value;
+          obj[h] = row[i]?.value;
         });
         return obj;
       });
@@ -601,7 +601,7 @@ export const ActionRouterCard: React.FC<{
           <>
             <button
               onClick={() => {
-                if (!isEditingExcel) {
+                if (!isEditingExcel && !spreadsheetData) {
                   setSpreadsheetData(tableDataAsGrid);
                 }
                 setIsEditingExcel(!isEditingExcel);

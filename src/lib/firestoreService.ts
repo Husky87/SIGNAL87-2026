@@ -5,7 +5,6 @@ import {
 import {
   collection,
   getDocs,
-  addDoc,
   deleteDoc,
   doc,
   setDoc,
@@ -16,7 +15,6 @@ import {
 } from 'firebase/firestore';
 import { DocumentItem, Project, GeneratedReport, ChatMessage, SavedItem } from '../types';
 
-// Skill Error Handler Standards
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -63,10 +61,33 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   console.warn('Firestore Notice (operating in resilient offline/local mode):', JSON.stringify(errInfo));
 }
 
-// Connection check per Firebase Skill
+function currentUid(): string | null {
+  return auth?.currentUser?.uid ?? null;
+}
+
+function userCollection(name: string) {
+  const uid = currentUid();
+  if (!uid) throw new Error('Not signed in');
+  return collection(db, 'users', uid, name);
+}
+
+function userDocRef(name: string, id: string) {
+  const uid = currentUid();
+  if (!uid) throw new Error('Not signed in');
+  return doc(db, 'users', uid, name, id);
+}
+
+function userPath(name: string, id?: string) {
+  const uid = currentUid();
+  if (!uid) return `users/?/${name}${id ? `/${id}` : ''}`;
+  return id ? `users/${uid}/${name}/${id}` : `users/${uid}/${name}`;
+}
+
 export async function testFirestoreConnection() {
+  const uid = currentUid();
+  if (!uid) return;
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    await getDocFromServer(doc(db, 'users', uid, '_meta', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.warn('Firebase configuration notice: Client operating in offline mode.');
@@ -74,40 +95,39 @@ export async function testFirestoreConnection() {
   }
 }
 
-// Collection Names
 const DOCS_COLLECTION = 'documents';
 const PROJECTS_COLLECTION = 'projects';
 const REPORTS_COLLECTION = 'reports';
 const CHAT_COLLECTION = 'chat_messages';
 const SAVED_ITEMS_COLLECTION = 'saved_items';
 
-// Fetch Documents from Firestore
 export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
+  if (!currentUid()) return [];
   try {
-    const querySnapshot = await getDocs(collection(db, DOCS_COLLECTION));
+    const querySnapshot = await getDocs(userCollection(DOCS_COLLECTION));
     const docsList: DocumentItem[] = [];
     querySnapshot.forEach((docSnap) => {
       docsList.push({ id: docSnap.id, ...docSnap.data() } as DocumentItem);
     });
     return docsList;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, DOCS_COLLECTION);
+    handleFirestoreError(error, OperationType.LIST, userPath(DOCS_COLLECTION));
     return [];
   }
 }
 
-// Save or Update Document in Firestore
 export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<string> {
-  const docPath = `${DOCS_COLLECTION}/${docItem.id}`;
+  const docPath = userPath(DOCS_COLLECTION, docItem.id);
   try {
-    const docRef = doc(db, DOCS_COLLECTION, docItem.id);
-    await setDoc(docRef, {
+    const uid = currentUid();
+    if (!uid) return docItem.id;
+    await setDoc(userDocRef(DOCS_COLLECTION, docItem.id), {
       title: docItem.title,
       type: docItem.type,
       sizeBytes: docItem.sizeBytes,
       uploadDate: docItem.uploadDate,
       tags: docItem.tags || [],
-      owner: docItem.owner || 'Signal87 Executive',
+      owner: docItem.owner || auth?.currentUser?.email || '',
       organization: docItem.organization || 'Signal87 AI',
       status: docItem.status || 'Indexed',
       aiIndexed: docItem.aiIndexed ?? true,
@@ -117,8 +137,13 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
       fileUrl: docItem.fileUrl && !docItem.fileUrl.startsWith('blob:') ? docItem.fileUrl : '',
       starred: docItem.starred || false,
       trashed: docItem.trashed || false,
-      trashedAt: docItem.trashedAt || null
-    });
+      trashedAt: docItem.trashedAt || null,
+      folderId: docItem.folderId || null,
+      permissions: docItem.permissions || 'Private',
+      projectIds: docItem.projectIds || [],
+      fullText: docItem.fullText || '',
+      userId: uid
+    }, { merge: true });
     return docItem.id;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
@@ -126,85 +151,84 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
   }
 }
 
-// Delete Document from Firestore
 export async function deleteDocumentFromFirestore(docId: string): Promise<void> {
-  const docPath = `${DOCS_COLLECTION}/${docId}`;
+  const docPath = userPath(DOCS_COLLECTION, docId);
   try {
-    await deleteDoc(doc(db, DOCS_COLLECTION, docId));
+    if (!currentUid()) return;
+    await deleteDoc(userDocRef(DOCS_COLLECTION, docId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, docPath);
   }
 }
 
-// Fetch Projects from Firestore
 export async function fetchProjectsFromFirestore(): Promise<Project[]> {
+  if (!currentUid()) return [];
   try {
-    const querySnapshot = await getDocs(collection(db, PROJECTS_COLLECTION));
+    const querySnapshot = await getDocs(userCollection(PROJECTS_COLLECTION));
     const projectsList: Project[] = [];
     querySnapshot.forEach((docSnap) => {
       projectsList.push({ id: docSnap.id, ...docSnap.data() } as Project);
     });
     return projectsList;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, PROJECTS_COLLECTION);
+    handleFirestoreError(error, OperationType.LIST, userPath(PROJECTS_COLLECTION));
     return [];
   }
 }
 
-// Save Project to Firestore
 export async function saveProjectToFirestore(project: Project): Promise<void> {
-  const docPath = `${PROJECTS_COLLECTION}/${project.id}`;
+  const docPath = userPath(PROJECTS_COLLECTION, project.id);
   try {
-    const docRef = doc(db, PROJECTS_COLLECTION, project.id);
-    await setDoc(docRef, {
+    if (!currentUid()) return;
+    await setDoc(userDocRef(PROJECTS_COLLECTION, project.id), {
       name: project.name,
       description: project.description,
       category: project.category,
       documentIds: project.documentIds || [],
       status: project.status,
       createdAt: project.createdAt
-    });
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }
 
-// Fetch Reports from Firestore
 export async function fetchReportsFromFirestore(): Promise<GeneratedReport[]> {
+  if (!currentUid()) return [];
   try {
-    const querySnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
+    const querySnapshot = await getDocs(userCollection(REPORTS_COLLECTION));
     const reportsList: GeneratedReport[] = [];
     querySnapshot.forEach((docSnap) => {
       reportsList.push({ id: docSnap.id, ...docSnap.data() } as GeneratedReport);
     });
     return reportsList;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, REPORTS_COLLECTION);
+    handleFirestoreError(error, OperationType.LIST, userPath(REPORTS_COLLECTION));
     return [];
   }
 }
 
-// Save Report to Firestore
 export async function saveReportToFirestore(report: GeneratedReport): Promise<void> {
-  const docPath = `${REPORTS_COLLECTION}/${report.id}`;
+  const docPath = userPath(REPORTS_COLLECTION, report.id);
   try {
-    const docRef = doc(db, REPORTS_COLLECTION, report.id);
-    await setDoc(docRef, {
+    if (!currentUid()) return;
+    await setDoc(userDocRef(REPORTS_COLLECTION, report.id), {
       title: report.title,
       templateId: report.templateId,
       content: report.content,
       author: report.author,
-      generatedAt: report.generatedAt
-    });
+      generatedAt: report.generatedAt,
+      userId: currentUid()
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }
 
-// Fetch Chat History from Firestore
 export async function fetchChatMessagesFromFirestore(): Promise<ChatMessage[]> {
+  if (!currentUid()) return [];
   try {
-    const q = query(collection(db, CHAT_COLLECTION), orderBy('timestampAsc', 'asc'), limit(50));
+    const q = query(userCollection(CHAT_COLLECTION), orderBy('timestampAsc', 'asc'), limit(50));
     const querySnapshot = await getDocs(q);
     const msgs: ChatMessage[] = [];
     querySnapshot.forEach((docSnap) => {
@@ -222,17 +246,17 @@ export async function fetchChatMessagesFromFirestore(): Promise<ChatMessage[]> {
     });
     return msgs;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, CHAT_COLLECTION);
+    handleFirestoreError(error, OperationType.LIST, userPath(CHAT_COLLECTION));
     return [];
   }
 }
 
-// Save Chat Message to Firestore
 export async function saveChatMessageToFirestore(msg: ChatMessage): Promise<void> {
-  const docPath = `${CHAT_COLLECTION}/${msg.id}`;
+  const docPath = userPath(CHAT_COLLECTION, msg.id);
   try {
-    const docRef = doc(db, CHAT_COLLECTION, msg.id);
-    await setDoc(docRef, {
+    const uid = currentUid();
+    if (!uid) return;
+    await setDoc(userDocRef(CHAT_COLLECTION, msg.id), {
       role: msg.role,
       text: msg.text,
       timestamp: msg.timestamp,
@@ -240,63 +264,65 @@ export async function saveChatMessageToFirestore(msg: ChatMessage): Promise<void
       citations: msg.citations || [],
       verificationTrace: msg.verificationTrace || null,
       reasoningSteps: msg.reasoningSteps || [],
-      isDeepResearch: Boolean(msg.isDeepResearch)
-    });
+      isDeepResearch: Boolean(msg.isDeepResearch),
+      userId: uid
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }
 
-// Fetch Saved Items (Notes & Answers) from Firestore
 export async function fetchSavedItemsFromFirestore(): Promise<SavedItem[]> {
+  if (!currentUid()) return [];
   try {
-    const querySnapshot = await getDocs(collection(db, SAVED_ITEMS_COLLECTION));
+    const querySnapshot = await getDocs(userCollection(SAVED_ITEMS_COLLECTION));
     const list: SavedItem[] = [];
     querySnapshot.forEach((docSnap) => {
       list.push({ id: docSnap.id, ...docSnap.data() } as SavedItem);
     });
     return list;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, SAVED_ITEMS_COLLECTION);
+    handleFirestoreError(error, OperationType.LIST, userPath(SAVED_ITEMS_COLLECTION));
     return [];
   }
 }
 
-// Save or Update Saved Item in Firestore
 export async function saveSavedItemToFirestore(item: SavedItem): Promise<void> {
-  const docPath = `${SAVED_ITEMS_COLLECTION}/${item.id}`;
+  const docPath = userPath(SAVED_ITEMS_COLLECTION, item.id);
   try {
-    const docRef = doc(db, SAVED_ITEMS_COLLECTION, item.id);
+    const uid = currentUid();
+    if (!uid) return;
     if (item.type === 'note') {
-      await setDoc(docRef, {
+      await setDoc(userDocRef(SAVED_ITEMS_COLLECTION, item.id), {
         type: 'note',
         title: item.title,
         body: item.body,
         linkedDocId: item.linkedDocId || null,
         createdAt: item.createdAt,
-        updatedAt: item.updatedAt
-      });
+        updatedAt: item.updatedAt,
+        userId: uid
+      }, { merge: true });
     } else {
-      await setDoc(docRef, {
+      await setDoc(userDocRef(SAVED_ITEMS_COLLECTION, item.id), {
         type: 'answer',
         text: item.text,
         citations: item.citations || [],
         question: item.question,
-        timestamp: item.timestamp
-      });
+        timestamp: item.timestamp,
+        userId: uid
+      }, { merge: true });
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }
 
-// Delete Saved Item from Firestore
 export async function deleteSavedItemFromFirestore(id: string): Promise<void> {
-  const docPath = `${SAVED_ITEMS_COLLECTION}/${id}`;
+  const docPath = userPath(SAVED_ITEMS_COLLECTION, id);
   try {
-    await deleteDoc(doc(db, SAVED_ITEMS_COLLECTION, id));
+    if (!currentUid()) return;
+    await deleteDoc(userDocRef(SAVED_ITEMS_COLLECTION, id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, docPath);
   }
 }
-

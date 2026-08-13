@@ -131,7 +131,8 @@ app.post('/api/chat', async (req, res) => {
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
         .map((doc: any, index: number) => {
-          return `--- REPOSITORY DOC ${index + 1}: ${doc.title} (ID: ${doc.id}, Category: ${doc.category || 'General'}) ---\nSummary: ${doc.summary || 'None'}\nExcerpt: ${doc.contentPreview || ''}\n`;
+          const body = doc.fullText || doc.contentPreview || doc.summary || '';
+          return `--- REPOSITORY DOC ${index + 1}: ${doc.title} (ID: ${doc.id}, Category: ${doc.category || 'General'}) ---\nSummary: ${doc.summary || 'None'}\nExcerpt: ${body}\n`;
         })
         .join('\n\n');
     }
@@ -158,20 +159,59 @@ app.post('/api/chat', async (req, res) => {
 
     // Handle multimodal input
     if (imageParts.length > 0) {
-      const ai = getGeminiClient();
-      const parts: any[] = [{ text: fullPrompt }, ...imageParts];
-      
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ role: 'user', parts }],
-        config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
-      });
+      if (process.env.GEMINI_API_KEY) {
+        const ai = getGeminiClient();
+        const parts: any[] = [{ text: fullPrompt }, ...imageParts];
 
-      return res.json({
-        text: response.text,
-        provider: 'gemini',
-        modelUsed: model,
-        fallbackTriggered: false
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: [{ role: 'user', parts }],
+          config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
+        });
+
+        return res.json({
+          text: response.text,
+          provider: 'gemini',
+          modelUsed: model,
+          fallbackTriggered: false
+        });
+      }
+
+      if (process.env.OPENAI_API_KEY) {
+        const imageContent = imageParts.map((part: any) => ({
+          type: 'image_url' as const,
+          image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+        }));
+        const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION },
+              { role: 'user', content: [{ type: 'text', text: fullPrompt }, ...imageContent] }
+            ]
+          })
+        });
+        if (!openaiRes.ok) {
+          const detail = await openaiRes.text();
+          return res.status(502).json({ error: 'Image analysis failed', details: detail.slice(0, 300) });
+        }
+        const openaiJson = await openaiRes.json();
+        return res.json({
+          text: openaiJson.choices?.[0]?.message?.content || '',
+          provider: 'openai',
+          modelUsed: 'gpt-4o',
+          fallbackTriggered: true
+        });
+      }
+
+      return res.status(500).json({
+        error: 'AI service is not configured',
+        details: 'Image questions need GEMINI_API_KEY or OPENAI_API_KEY'
       });
     }
 
@@ -244,7 +284,7 @@ app.post('/api/research', async (req, res) => {
     let docContext = '';
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
-        .map((doc: any, idx: number) => `Doc ${idx + 1}: ${doc.title}\nSummary: ${doc.summary}\nContent: ${doc.contentPreview}`)
+        .map((doc: any, idx: number) => `Doc ${idx + 1}: ${doc.title}\nSummary: ${doc.summary}\nContent: ${doc.fullText || doc.contentPreview || ''}`)
         .join('\n\n');
     }
 
@@ -348,7 +388,7 @@ app.post('/api/compare', async (req, res) => {
     }
 
     const formattedDocs = documents
-      .map((doc: any, idx: number) => `DOCUMENT ${idx + 1}: ${doc.title}\nContent Excerpt/Summary: ${doc.summary || doc.contentPreview}`)
+      .map((doc: any, idx: number) => `DOCUMENT ${idx + 1}: ${doc.title}\nContent Excerpt/Summary: ${doc.fullText || doc.contentPreview || doc.summary || ''}`)
       .join('\n\n');
 
     const prompt = `Compare the following ${documents.length} documents in detail:\n\n${formattedDocs}`;
@@ -404,7 +444,7 @@ app.post('/api/reports/generate', async (req, res) => {
     const { title, templateName, documents, customInstructions } = req.body;
 
     const docContext = (documents || [])
-      .map((d: any) => `- ${d.title}: ${d.summary || d.contentPreview}`)
+      .map((d: any) => `- ${d.title}: ${d.fullText || d.contentPreview || d.summary || ''}`)
       .join('\n');
 
     const prompt = `Report Title: ${title || 'Intelligence Brief'}

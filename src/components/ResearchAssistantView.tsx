@@ -43,11 +43,16 @@ import {
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation, GeneratedReport } from '../types';
-import { fetchChatMessagesFromFirestore, saveChatMessageToFirestore } from '../lib/firestoreService';
+import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, determineDeliverableType } from './ActionRouterComponents';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { AttachExistingDocumentModal } from './AttachExistingDocumentModal';
+
+const COMPOSER_GLOW =
+  '0 0 0 1px rgba(32, 184, 205, 0.45), 0 0 28px 4px rgba(32, 184, 205, 0.22), 0 0 72px 16px rgba(32, 184, 205, 0.12)';
+const COMPOSER_GLOW_FOCUS =
+  '0 0 0 1px rgba(32, 184, 205, 0.7), 0 0 36px 6px rgba(32, 184, 205, 0.3), 0 0 88px 20px rgba(32, 184, 205, 0.16)';
 
 export interface ResearchAssistantViewProps {
   documents: DocumentItem[];
@@ -78,21 +83,21 @@ const parseInlineStyles = (text: string) => {
   return parts.map((part, idx) => {
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={idx} className="bg-slate-100 text-slate-900 border border-slate-200 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold">
+        <code key={idx} className="bg-[#161818] text-[#F3F3EE] border border-white/10 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold">
           {part.slice(1, -1)}
         </code>
       );
     }
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={idx} className="font-semibold text-slate-900">
+        <strong key={idx} className="font-semibold text-[#F3F3EE]">
           {part.slice(2, -2)}
         </strong>
       );
     }
     if (part.startsWith('*') && part.endsWith('*')) {
       return (
-        <em key={idx} className="italic text-slate-800">
+        <em key={idx} className="italic text-white/70">
           {part.slice(1, -1)}
         </em>
       );
@@ -122,10 +127,10 @@ const renderFormattedText = (rawText: string) => {
         .map((c) => c.trim());
 
       elements.push(
-        <div key={key} className="overflow-x-auto my-3 border border-slate-200 rounded-xl">
+        <div key={key} className="overflow-x-auto my-3 border border-white/10 rounded-xl">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-900 font-bold">
+              <tr className="bg-[#161818] border-b border-white/10 text-[#F3F3EE] font-bold">
                 {headerCols.map((col, cIdx) => (
                   <th key={cIdx} className="p-2.5">
                     {parseInlineStyles(col)}
@@ -133,16 +138,16 @@ const renderFormattedText = (rawText: string) => {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-white/5 bg-[#111212]">
               {bodyRows.map((rowStr, rIdx) => {
                 const cols = rowStr
                   .split('|')
                   .slice(1, -1)
                   .map((c) => c.trim());
                 return (
-                  <tr key={rIdx} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={rIdx} className="hover:bg-white/5 transition-colors">
                     {cols.map((col, cIdx) => (
-                      <td key={cIdx} className="p-2.5 text-slate-700">
+                      <td key={cIdx} className="p-2.5 text-white/70">
                         {parseInlineStyles(col)}
                       </td>
                     ))}
@@ -174,7 +179,7 @@ const renderFormattedText = (rawText: string) => {
     if (isHashHeader) {
       const headerText = trimmed.replace(/^#+\s*/, '').replace(/[\*\_]/g, '');
       elements.push(
-        <h3 key={lineIdx} className="font-bold text-slate-900 text-sm sm:text-base tracking-tight pt-3 pb-1 border-b border-slate-100">
+        <h3 key={lineIdx} className="font-bold text-[#F3F3EE] text-sm sm:text-base tracking-tight pt-3 pb-1 border-b border-white/10">
           {headerText}
         </h3>
       );
@@ -188,8 +193,8 @@ const renderFormattedText = (rawText: string) => {
       const content = bulletMatch[1];
       elements.push(
         <div key={lineIdx} className="flex items-start gap-2.5 pl-1 my-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mt-2 flex-shrink-0" />
-          <div className="flex-1 text-slate-800">{parseInlineStyles(content)}</div>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#20B8CD] mt-2 flex-shrink-0" />
+          <div className="flex-1 text-white/80">{parseInlineStyles(content)}</div>
         </div>
       );
       return;
@@ -200,15 +205,15 @@ const renderFormattedText = (rawText: string) => {
       const content = numberedMatch[2];
       elements.push(
         <div key={lineIdx} className="flex items-start gap-2.5 pl-1 my-1">
-          <span className="font-bold text-slate-900 text-xs font-mono mt-0.5 flex-shrink-0">{num}.</span>
-          <div className="flex-1 text-slate-800">{parseInlineStyles(content)}</div>
+          <span className="font-bold text-[#F3F3EE] text-xs font-mono mt-0.5 flex-shrink-0">{num}.</span>
+          <div className="flex-1 text-white/80">{parseInlineStyles(content)}</div>
         </div>
       );
       return;
     }
 
     elements.push(
-      <p key={lineIdx} className="my-1.5 text-slate-800 leading-relaxed">
+      <p key={lineIdx} className="my-1.5 text-white/80 leading-relaxed">
         {parseInlineStyles(trimmed)}
       </p>
     );
@@ -217,7 +222,7 @@ const renderFormattedText = (rawText: string) => {
   flushTable('table-final');
 
   return (
-    <div className="space-y-2 font-sans text-[13.5px] sm:text-sm leading-relaxed text-slate-800 antialiased tracking-normal">
+    <div className="space-y-2 font-sans text-[13.5px] sm:text-sm leading-relaxed text-white/80 antialiased tracking-normal">
       {elements}
     </div>
   );
@@ -282,6 +287,10 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               { id: `img-${Date.now()}`, name: file.name, size: `${(file.size / 1024).toFixed(1)} KB`, dataUrl }
             ]);
           }
+          setIsParsingFile(false);
+        };
+        reader.onerror = () => {
+          console.error('Failed to read image', file.name);
           setIsParsingFile(false);
         };
         reader.readAsDataURL(file);
@@ -377,6 +386,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     timestamp: string;
   } | null>(null);
   const [showActionsDropdown, setShowActionsDropdown] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -426,29 +436,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   };
 
-  // Sync with Firestore
-  useEffect(() => {
-    async function loadFirestoreChat() {
-      const stored = await fetchChatMessagesFromFirestore();
-      if (stored && stored.length > 0) {
-        setChatHistory(stored);
-        const assistantMsgs = stored.filter((m) => m.role === 'assistant');
-        if (assistantMsgs.length > 0) {
-          const latest = assistantMsgs[assistantMsgs.length - 1];
-          if (latest.text.length > 250) {
-            setActiveArtifact({
-              id: latest.id,
-              title: latest.isDeepResearch ? 'Deep Research Synthesis' : 'Workspace Report Deliverable',
-              content: latest.text,
-              citations: latest.citations,
-              timestamp: latest.timestamp
-            });
-          }
-        }
-      }
-    }
-    loadFirestoreChat();
-  }, []);
+  // Session chat is owned by App (per activeSessionId). Do not replace it
+  // with an unscoped Firestore dump.
 
   // Sync document selection when documents prop changes
   useEffect(() => {
@@ -576,8 +565,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           includeReasoningSteps: true
         };
       } else {
+        const priorTurns = [...chatHistory, userMsg]
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-12)
+          .map((m) => ({ role: m.role, content: m.text }));
         bodyPayload = {
           prompt: userMsgText,
+          messages: priorTurns,
           documents: fullTextDocumentPayload,
           model: selectedModel,
           ingestedFilesData,
@@ -723,11 +717,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   };
 
   // A question asked from the home screen arrives here and sends itself.
+  const consumedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialQuery) {
-      handleSendQuery(initialQuery);
-      if (onInitialQueryConsumed) onInitialQueryConsumed();
-    }
+    if (!initialQuery || consumedQueryRef.current === initialQuery) return;
+    consumedQueryRef.current = initialQuery;
+    handleSendQuery(initialQuery);
+    if (onInitialQueryConsumed) onInitialQueryConsumed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 
@@ -837,12 +832,141 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   ];
 
+  const isEmptyChat = chatHistory.length === 0;
+
+  const composer = (
+    <div className="w-full">
+      {attachedFiles.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
+          {attachedFiles.map((f) => (
+            <div
+              key={f.id}
+              className="pl-3 pr-2 min-h-[36px] bg-[#161818] text-[#F3F3EE] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
+            >
+              {f.dataUrl ? (
+                <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
+              ) : (
+                <FileText size={13} className="text-white/35 flex-shrink-0" />
+              )}
+              <span className="truncate min-w-0 flex-1">{f.name}</span>
+              <button
+                onClick={() => {
+                  setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
+                  setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
+                }}
+                aria-label={`Remove ${f.name}`}
+                className="w-8 h-8 -mr-1 flex items-center justify-center text-white/35 hover:text-[#F3F3EE] transition-colors cursor-pointer flex-shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute -inset-3 sm:-inset-4 rounded-[32px]"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
+            filter: 'blur(10px)'
+          }}
+        />
+        <div
+          className="relative bg-[#161818] rounded-[22px] pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 transition-[box-shadow] duration-300 min-h-[52px] sm:min-h-[48px]"
+          style={{ boxShadow: composerFocused ? COMPOSER_GLOW_FOCUS : COMPOSER_GLOW }}
+        >
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
+              aria-expanded={showAttachMenu}
+              className="flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-transparent hover:bg-white/5 text-white/45 hover:text-[#F3F3EE] transition-colors cursor-pointer"
+            >
+              {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
+            </button>
+
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    setShowFilePicker(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer"
+                >
+                  <FolderOpen size={15} className="text-white/35" />
+                  <span>Choose from Files</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isParsingFile}
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isParsingFile ? <Loader2 size={15} className="animate-spin text-white/40" /> : <Paperclip size={15} className="text-white/35" />}
+                  <span>Upload Document</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <span
+            className="flex-shrink-0 text-[15px] font-medium text-[#20B8CD] select-none"
+            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+            aria-hidden="true"
+          >
+            &gt;_
+          </span>
+
+          <textarea
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
+            onFocus={() => setComposerFocused(true)}
+            onBlur={() => setComposerFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendQuery();
+              }
+            }}
+            placeholder="Ask anything..."
+            className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[#F3F3EE] placeholder:text-white/30 focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[#20B8CD]"
+            rows={1}
+          />
+
+          <button
+            type="button"
+            onClick={() => handleSendQuery()}
+            disabled={!inputQuery.trim() || loading}
+            aria-label="Send"
+            className={`flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+              inputQuery.trim() && !loading
+                ? 'bg-[#20B8CD] text-[#0F1010] hover:opacity-90'
+                : 'bg-white/5 text-white/25 cursor-not-allowed'
+            }`}
+            title="Send message"
+          >
+            <ArrowUp size={16} strokeWidth={2.6} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className="relative flex flex-col bg-[var(--paper)] text-[var(--ink)] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
+      className="relative flex flex-col bg-[#0F1010] text-[#F3F3EE] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
     >
       <input
         type="file"
@@ -863,29 +987,29 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       />
 
       {isDragging && (
-        <div className="absolute inset-0 bg-[var(--bg)]/90 backdrop-blur-md z-50 flex flex-col items-center justify-center text-[var(--ink)] border-2 border-dashed border-[var(--ink-2)] p-6 text-center animate-fadeIn">
-          <UploadCloud size={56} className="text-[var(--ink-2)] mb-4" />
+        <div className="absolute inset-0 bg-[#0F1010]/92 backdrop-blur-md z-50 flex flex-col items-center justify-center text-[#F3F3EE] border-2 border-dashed border-[#20B8CD]/40 p-6 text-center animate-fadeIn">
+          <UploadCloud size={56} className="text-[#20B8CD] mb-4" />
           <h2 className="text-2xl" style={{ fontWeight: 600, letterSpacing: '-0.036em' }}>Drop files to add them</h2>
-          <p className="text-sm text-[var(--ink-2)] max-w-md mt-2">
+          <p className="text-sm text-white/45 max-w-md mt-2">
             PDF, DOCX, XLSX, and TXT files are ready to search in a moment.
           </p>
         </div>
       )}
 
       {/* Clean Header & Model Selector (Desktop) */}
-      <header className="hidden md:flex h-12 px-4 items-center justify-between gap-3 flex-shrink-0 z-10 bg-[var(--bg)] border-b border-[var(--rule)]">
+      <header className="hidden md:flex h-12 px-4 items-center justify-between gap-3 flex-shrink-0 z-10 bg-[#0F1010] border-b border-white/5">
         <div className="flex items-center gap-3">
           {/* Model Selector Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowModelMenu(!showModelMenu)}
-              className="px-3.5 py-1.5 text-[13px] rounded-full text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-[13px] rounded-full text-white/45 hover:text-[#F3F3EE] hover:bg-white/5 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>{getModelLabel(selectedModel)}</span>
-              <ChevronDown size={14} className="text-[var(--muted)] ml-0.5" />
+              <ChevronDown size={14} className="text-white/30 ml-0.5" />
             </button>
             {showModelMenu && (
-              <div className="absolute left-0 mt-2 w-64 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] py-1.5 z-50 animate-in fade-in duration-150">
+              <div className="absolute left-0 mt-2 w-64 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
                 {[
                   { id: 'gemini-2.5-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
                   { id: 'gemini-2.5-pro', name: 'Signal87 Deep', desc: 'Deep synthesis & reasoning' },
@@ -897,15 +1021,15 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                       onChangeModel(m.id);
                       setShowModelMenu(false);
                     }}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-[var(--raised)] transition-colors cursor-pointer flex flex-col gap-0.5 ${
- selectedModel === m.id ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--ink-2)]'
+                    className={`w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors cursor-pointer flex flex-col gap-0.5 ${
+ selectedModel === m.id ? 'bg-white/5 text-[#F3F3EE] font-medium' : 'text-white/55'
  }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
                       <span>{m.name}</span>
-                      {selectedModel === m.id && <Check size={14} className="text-[var(--accent)]" />}
+                      {selectedModel === m.id && <Check size={14} className="text-[#20B8CD]" />}
                     </div>
-                    <span className="text-[11px] text-[var(--slate)] font-normal">{m.desc}</span>
+                    <span className="text-[11px] text-white/35 font-normal">{m.desc}</span>
                   </button>
                 ))}
               </div>
@@ -916,20 +1040,20 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         {/* Quiet User Profile / Account Badge */}
         <div className="flex items-center gap-2">
           {currentUser ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] border border-[var(--rule)] rounded-[3px] text-xs text-[var(--ink)] font-medium transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-white/5 rounded-full text-xs text-[#F3F3EE] font-medium transition-colors cursor-pointer">
               {currentUser.photoURL ? (
                 <img src={currentUser.photoURL} alt={currentUser.displayName || 'User'} className="w-5 h-5 rounded-full object-cover" />
               ) : (
-                <div className="w-5 h-5 rounded-full bg-[var(--ink)] text-white font-bold flex items-center justify-center text-[10px]">
+                <div className="w-5 h-5 rounded-full bg-[#161818] text-[#F3F3EE] font-bold flex items-center justify-center text-[10px]">
                   {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'U'}
                 </div>
               )}
-              <span className="hidden sm:inline font-semibold">{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
+              <span className="hidden sm:inline font-medium text-white/70">{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
             </div>
           ) : (
             <button
               onClick={onGoogleSignIn}
-              className="px-3.5 py-1.5 bg-[var(--teal)] hover:opacity-90 text-white text-[13px] font-medium rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-white/40 hover:text-white/80 text-[13px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <LogIn size={13} /> Sign In
             </button>
@@ -938,7 +1062,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           {chatHistory.length > 0 && (
             <button
               onClick={() => { setChatHistory([]); setActiveArtifact(null); }}
-              className="p-1.5 text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--raised)] rounded-full transition-colors cursor-pointer"
+              className="p-1.5 text-white/30 hover:text-[#F3F3EE] hover:bg-white/5 rounded-full transition-colors cursor-pointer"
               title="Clear conversation"
             >
               <Trash2 size={16} />
@@ -948,249 +1072,139 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       </header>
 
       {/* Main Centered Workspace Canvas */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative bg-[var(--paper)]">
-        <div className={`flex-1 flex flex-col justify-between min-w-0 h-full overflow-hidden transition-all duration-300 ${
- splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-[#28292a]' : 'w-full'
+      <div className="flex-1 flex min-h-0 overflow-hidden relative bg-[#0F1010]">
+        <div className={`flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-x-hidden transition-all duration-300 ${
+ splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-white/5' : 'w-full'
  }`}>
-          {/* Scrollable Chat Area */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
-            {/* mt-auto anchors a short conversation to the bottom of the scroll
-                area, next to the composer, the way ChatGPT and Claude do —
-                without it, one exchange floated at the top of the page with a
-                gap beneath it. Once the thread outgrows the container there is
-                no free space left, so it simply scrolls as normal. */}
-            <div className={`max-w-[768px] w-full mx-auto space-y-4 ${chatHistory.length === 0 ? 'flex-1 flex flex-col justify-center my-auto py-2 sm:py-4' : 'mt-auto'}`}>
-              {chatHistory.length === 0 ? (
-                <div className="flex flex-col justify-center space-y-5 sm:space-y-6 max-w-2xl mx-auto w-full">
-                  {/* Welcome Headline */}
-                  <div className="flex flex-col gap-2.5">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-[var(--muted)]">
-                      {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
-                    </span>
-                    <h1 className="text-3xl sm:text-4xl text-[var(--ink)] m-0" style={{ fontWeight: 600, letterSpacing: '-0.036em' }}>
-                      What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
-                    </h1>
-                    <p className="text-sm text-[var(--ink-2)] m-0 max-w-[50ch]" style={{ lineHeight: 1.6 }}>
-                      Ask about anything you've added. Each answer points to where it came from.
-                    </p>
-                  </div>
+          {isEmptyChat ? (
+            <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
+              <div className="flex flex-col items-center justify-end text-center pb-5 sm:pb-7 min-h-0">
+                <span className="text-[12px] font-medium text-white/35">
+                  {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
+                </span>
+                <h1 className="mt-2 text-[1.65rem] sm:text-[2.5rem] leading-[1.15] text-[#F3F3EE] m-0 font-semibold tracking-tight max-w-[18ch] sm:max-w-none">
+                  What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
+                </h1>
+              </div>
 
-                  {/* Quick Action Buttons */}
-                  <div className="relative w-full pt-1 sm:pt-2">
-                    <button
-                      onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--surface)] hover:bg-[var(--raised)] border border-[var(--rule)] rounded-xl transition-colors cursor-pointer text-[14.5px] text-[var(--ink)]"
-                    >
-                      <span>More questions to try</span>
-                      <ChevronDown size={16} />
-                    </button>
-                    {showActionsDropdown && (
-                      <div className="absolute top-full left-0 w-full mt-1 bg-[var(--surface)] border border-[var(--rule)] rounded-xl z-20 overflow-hidden">
-                        {quickActionChips.map((chip) => (
-                          <button
-                            key={chip.id}
-                            onClick={() => {
-                              setInputQuery(chip.prompt);
-                              setMode(chip.mode);
-                              setShowActionsDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-[var(--raised)] text-[14.5px] text-[var(--ink)] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer"
-                          >
-                            {chip.label}
-                          </button>
-                        ))}
+              <div className="w-full max-w-[640px] mx-auto">
+                {composer}
+              </div>
+
+              <div className="flex flex-col items-center justify-start pt-5 sm:pt-7 min-h-0 overflow-y-auto">
+                <div className="relative w-full max-w-md">
+                  <button
+                    onClick={() => setShowActionsDropdown(!showActionsDropdown)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-white/5 rounded-full transition-colors cursor-pointer text-[13px] text-white/40 hover:text-white/70"
+                  >
+                    <span>More questions to try</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {showActionsDropdown && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-[#161818] border border-white/10 rounded-[12px] z-20 overflow-hidden text-left">
+                      {quickActionChips.map((chip) => (
+                        <button
+                          key={chip.id}
+                          onClick={() => {
+                            setInputQuery(chip.prompt);
+                            setMode(chip.mode);
+                            setShowActionsDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-white/5 text-[13px] text-white/60 hover:text-[#F3F3EE] border-b border-white/5 last:border-b-0 cursor-pointer"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
+                {/* mt-auto seats a short conversation at the bottom of the scroll
+                    area next to the composer, the way ChatGPT and Claude do —
+                    without it one exchange floats at the top with a gap beneath.
+                    Once the thread outgrows the container there is no free space
+                    left and it scrolls as normal. */}
+                <div className="max-w-[768px] w-full mx-auto space-y-4 mt-auto">
+                  <div className="space-y-4 pb-4">
+                    {chatHistory.map((msg, index) => {
+                      const previousUserMsg = index > 0 && chatHistory[index - 1].role === 'user' ? chatHistory[index - 1].text : '';
+
+                      return (
+                        <div key={msg.id} className="py-1">
+                          {msg.role === 'user' ? (
+                            <div className="flex justify-end my-3">
+                              <div className="bg-[#161818] text-[#F3F3EE] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
+                                {msg.text}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-3 sm:gap-4 items-start my-4">
+                              <div className="w-8 h-8 rounded-full bg-[#161818] text-white/50 flex items-center justify-center flex-shrink-0 mt-1">
+                                <Signal87Logo size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <ActionRouterCard
+                                  msg={msg}
+                                  userPrompt={previousUserMsg}
+                                  copiedMsgId={copiedMsgId}
+                                  savedReportIds={savedReportIds}
+                                  onCopy={handleCopy}
+                                  onExportPDF={handleExportPDF}
+                                  onSaveReport={(id, title, content) => handleSaveToReports(id, title, content)}
+                                  onInspectInCanvas={(item) => {
+                                    setActiveArtifact({
+                                      id: item.id,
+                                      title: item.text.slice(0, 40) + '...',
+                                      content: item.text,
+                                      citations: item.citations,
+                                      timestamp: item.timestamp
+                                    });
+                                    setSplitViewOpen(true);
+                                  }}
+                                  onSelectDocument={onSelectDocument}
+                                  documents={documents}
+                                  onSaveAnswer={onSaveAnswer}
+                                  isAnswerSaved={savedAnswerIds?.has(msg.id)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {loading && (
+                      <div className="flex items-center gap-3 py-3 text-[13.5px] text-white/40">
+                        <div className="w-6 h-6 bg-[#161818] rounded-full flex items-center justify-center text-white/40">
+                          <Signal87Logo size={14} className="animate-spin" />
+                        </div>
+                        <span>Reading your documents...</span>
                       </div>
                     )}
+                    <div ref={messagesEndRef} />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4 pb-4">
-                  {chatHistory.map((msg, index) => {
-                    const previousUserMsg = index > 0 && chatHistory[index - 1].role === 'user' ? chatHistory[index - 1].text : '';
-
-                    return (
-                      <div key={msg.id} className="py-1">
-                        {msg.role === 'user' ? (
-                          <div className="flex justify-end my-3">
-                            <div className="bg-[var(--raised)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
-                              {msg.text}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-3 sm:gap-4 items-start my-4">
-                            <div className="w-8 h-8 rounded-full bg-[var(--raised)] text-[var(--ink-2)] flex items-center justify-center flex-shrink-0 mt-1">
-                              <Signal87Logo size={16} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <ActionRouterCard
-                                msg={msg}
-                                userPrompt={previousUserMsg}
-                                copiedMsgId={copiedMsgId}
-                                savedReportIds={savedReportIds}
-                                onCopy={handleCopy}
-                                onExportPDF={handleExportPDF}
-                                onSaveReport={(id, title, content) => handleSaveToReports(id, title, content)}
-                                onInspectInCanvas={(item) => {
-                                  setActiveArtifact({
-                                    id: item.id,
-                                    title: item.text.slice(0, 40) + '...',
-                                    content: item.text,
-                                    citations: item.citations,
-                                    timestamp: item.timestamp
-                                  });
-                                  setSplitViewOpen(true);
-                                }}
-                                onSelectDocument={onSelectDocument}
-                                documents={documents}
-                                onSaveAnswer={onSaveAnswer}
-                                isAnswerSaved={savedAnswerIds?.has(msg.id)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {loading && (
-                    <div className="flex items-center gap-3 py-3 text-[13.5px] text-[var(--ink-2)]">
-                      <div className="w-6 h-6 bg-[var(--raised)] rounded-full flex items-center justify-center text-[var(--ink-2)]">
-                        <Signal87Logo size={14} className="animate-spin" />
-                      </div>
-                      <span>Reading your documents...</span>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Gemini Floating Rounded Input Box Container */}
-          <div
-            className="flex-shrink-0 bg-[var(--paper)] z-20 px-3 sm:px-4 pt-1.5 pb-2 border-t border-[var(--rule)]"
-            style={{
-              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))'
-            }}
-          >
-            <div className="max-w-[768px] w-full mx-auto">
-
-              {attachedFiles.length > 0 && (
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-2 -mx-3 px-3 sm:-mx-4 sm:px-4">
-                  {attachedFiles.map((f) => (
-                    <div
-                      key={f.id}
-                      className="pl-3 pr-2 min-h-[36px] bg-[var(--raised)] text-[var(--ink)] border border-[var(--rule)] rounded-full text-[12px] font-semibold flex items-center gap-2 flex-shrink-0 max-w-[210px]"
-                    >
-                      {f.dataUrl ? (
-                        <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
-                      ) : (
-                        <FileText size={13} className="text-[var(--slate)] flex-shrink-0" />
-                      )}
-                      <span className="truncate min-w-0 flex-1">{f.name}</span>
-                      <button
-                        onClick={() => {
-                          setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
-                           setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
-                         }}
-                        aria-label={`Remove ${f.name}`}
-                        className="w-8 h-8 -mr-1 flex items-center justify-center text-[var(--slate)] hover:text-[var(--ink)] transition-colors cursor-pointer flex-shrink-0"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Single-row composer: "+" attach menu, input, send */}
-              <div className="relative bg-[var(--surface)] border border-[var(--rule)] rounded-[26px] p-2 sm:p-2.5 flex items-end gap-2 sm:gap-2.5 mt-auto transition-all focus-within:border-[var(--ink-2)]">
-                <div className="relative flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowAttachMenu(!showAttachMenu)}
-                    aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
-                    aria-expanded={showAttachMenu}
-                    className="flex items-center justify-center w-10 h-10 md:w-9 md:h-9 rounded-full bg-[var(--raised)] hover:opacity-80 text-[var(--ink-2)] transition-colors cursor-pointer"
-                  >
-                    {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
-                  </button>
-
-                  {showAttachMenu && (
-                    <div className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] py-1.5 z-50 animate-in fade-in duration-150">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAttachMenu(false);
-                          setShowFilePicker(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer"
-                      >
-                        <FolderOpen size={15} className="text-[var(--slate)]" />
-                        <span>Choose from Files</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAttachMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        disabled={isParsingFile}
-                        className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--raised)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        {isParsingFile ? <Loader2 size={15} className="animate-spin text-[var(--ink-2)]" /> : <Paperclip size={15} className="text-[var(--slate)]" />}
-                        <span>Upload Document</span>
-                      </button>
-
-                    </div>
-                  )}
-                </div>
-
-                <textarea
-                  value={inputQuery}
-                  onChange={(e) => setInputQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendQuery();
-                    }
-                  }}
-                  placeholder="Ask anything..."
-                  className="flex-1 min-w-0 bg-transparent border-0 text-[15px] sm:text-[16px] leading-[1.5] text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none resize-none min-h-[40px] md:min-h-[36px] max-h-24 px-2 py-2 md:py-1.5 font-sans"
-                  rows={1}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => handleSendQuery()}
-                  disabled={!inputQuery.trim() || loading}
-                  aria-label="Send"
-                  className={`flex-shrink-0 w-10 h-10 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
-                    inputQuery.trim() && !loading
-                      ? 'bg-[var(--teal)] text-white hover:opacity-90'
-                      : 'bg-[var(--raised)] text-[var(--muted)] cursor-not-allowed'
-                  }`}
-                  title="Send message"
-                >
-                  <ArrowUp size={16} strokeWidth={2.6} />
-                </button>
               </div>
-              {chatHistory.length === 0 && (
-                <p className="text-[11px] text-center text-[var(--slate)] mt-2">
-                  Signal87 AI may produce inaccurate information. Verify key citations.
-                </p>
-              )}
-            </div>
-          </div>
+
+              <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[#0F1010]">
+                <div className="max-w-[768px] w-full mx-auto">
+                  {composer}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {splitViewOpen && (
-          <div className="w-full md:w-1/2 lg:w-2/5 bg-[#1e1f20] border-l border-[#28292a] flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
-            <div className="h-12 px-4 border-b border-[#28292a] flex items-center justify-between bg-[#131314] flex-shrink-0">
+          <div className="w-full md:w-1/2 lg:w-2/5 bg-[#111212] border-l border-white/5 flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
+            <div className="h-12 px-4 border-b border-white/5 flex items-center justify-between bg-[#0F1010] flex-shrink-0">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-[#c4c7c5]" />
-                <span className="font-bold text-xs text-[#e3e3e3] truncate max-w-[200px]">
+                <FileText size={16} className="text-white/40" />
+                <span className="font-medium text-xs text-[#F3F3EE] truncate max-w-[200px]">
                   {activeArtifact?.title || 'Deliverable Canvas'}
                 </span>
               </div>
@@ -1199,14 +1213,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   <>
                     <button
                       onClick={() => handleCopy('canvas', activeArtifact.content)}
-                      className="p-1.5 text-[#c4c7c5] hover:text-[#e3e3e3] rounded-lg hover:bg-[#28292a] transition-colors cursor-pointer"
+                      className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                       title="Copy Canvas Content"
                     >
                       <Copy size={14} />
                     </button>
                     <button
                       onClick={() => handleExportPDF(activeArtifact.title, activeArtifact.content)}
-                      className="p-1.5 text-[#c4c7c5] hover:text-[#e3e3e3] rounded-lg hover:bg-[#28292a] transition-colors cursor-pointer"
+                      className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                       title="Export to PDF"
                     >
                       <Download size={14} />
@@ -1215,26 +1229,26 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 )}
                 <button
                   onClick={() => setSplitViewOpen(false)}
-                  className="p-1.5 text-[#c4c7c5] hover:text-[#e3e3e3] rounded-lg hover:bg-[#28292a] transition-colors cursor-pointer"
+                  className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   <X size={15} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-[#e3e3e3]">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-[#F3F3EE]">
               {activeArtifact ? (
                 <div className="space-y-4">
-                  <div className="text-xs text-[#8e918f] border-b border-[#28292a] pb-2">
+                  <div className="text-xs text-white/35 border-b border-white/5 pb-2">
                     Artifact Created at {activeArtifact.timestamp}
                   </div>
                   {renderFormattedText(activeArtifact.content)}
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-[#8e918f] text-xs text-center p-6 space-y-2">
-                  <FileText size={32} className="text-[#37393b]" />
+                <div className="h-full flex flex-col items-center justify-center text-white/35 text-xs text-center p-6 space-y-2">
+                  <FileText size={32} className="text-white/15" />
                   <p>No deliverable active in side canvas.</p>
-                  <p className="text-[11px] text-[#8e918f]">
+                  <p className="text-[11px] text-white/30">
                     Click "Inspect in Canvas" on any generated AI response to view full side-by-side synthesis.
                   </p>
                 </div>
