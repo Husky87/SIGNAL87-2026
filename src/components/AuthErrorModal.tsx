@@ -33,6 +33,14 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
     error.code === 'auth/popup-closed-by-user' ||
     (error.message && error.message.includes('popup-closed-by-user'));
 
+  // Firebase Auth keeps its session in IndexedDB. Private windows and hardened
+  // storage settings block it, and the SDK then throws a plain Error with no
+  // code and a message like "Database is closing" — nothing to do with the
+  // Firebase project, so it must not be reported as a configuration problem.
+  const isStorageBlocked =
+    !!error.message &&
+    /database is closing|indexeddb|storage|quota|access to storage/i.test(error.message);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl max-w-lg w-full p-6 relative space-y-5">
@@ -52,7 +60,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
           <div>
             <h3 className="text-lg font-bold text-white">Google Sign-In Status</h3>
             <p className="text-xs text-slate-400 font-mono">
-              Error Code: {error.code || 'auth/configuration-issue'}
+              Error Code: {error.code || 'auth/unknown-error'}
             </p>
           </div>
         </div>
@@ -103,9 +111,23 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
                 <AlertTriangle size={16} className="mt-0.5 text-amber-400 flex-shrink-0" />
                 <span>Authentication Notice</span>
               </div>
-              <p className="text-slate-300">
-                {error.message || 'Google Auth is currently completing setup on this domain.'}
-              </p>
+              {isStorageBlocked ? (
+                <div className="space-y-2 text-slate-300">
+                  <p>
+                    Your browser is blocking the storage this app uses to keep you signed
+                    in. This is usually a private/incognito window, or a setting that
+                    blocks cookies and site data.
+                  </p>
+                  <p className="text-slate-400">
+                    Try again in a normal window, or allow site data for this domain.
+                  </p>
+                  <p className="text-[11px] font-mono text-slate-500 break-words">{error.message}</p>
+                </div>
+              ) : (
+                <p className="text-slate-300">
+                  {error.message || 'Google Sign-In did not complete, and no reason was reported.'}
+                </p>
+              )}
             </>
           )}
         </div>

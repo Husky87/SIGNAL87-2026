@@ -701,7 +701,11 @@ export default function App() {
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       setAuthError({
-        code: err.code || 'auth/configuration-issue',
+        // Don't invent a Firebase error code. An error with no code is not a
+        // configuration problem — a blocked storage backend surfaces here as a
+        // plain Error, and labelling it auth/configuration-issue sent everyone
+        // looking at the Firebase console instead of the browser.
+        code: err.code || 'auth/unknown-error',
         message: err.message || 'Google Sign-In was not completed.'
       });
     }
