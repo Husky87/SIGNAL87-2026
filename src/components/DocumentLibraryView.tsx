@@ -27,6 +27,7 @@ import {
   GitFork
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
+import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
@@ -949,20 +950,23 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
-                      <div className="aspect-[4/3] rounded-lg bg-[var(--raised)] flex items-center justify-center mb-2.5 overflow-hidden">
-                        {doc.type === 'img' && doc.fileUrl ? (
-                          <img src={doc.fileUrl} alt={doc.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <FileText size={34} className="text-[var(--muted)]" />
+                      {/* Title row sits above the preview, Drive-style */}
+                      <div className="flex items-center gap-2 mb-2 min-w-0">
+                        {(() => {
+                          const { Icon, color } = getTypeMeta(doc.type);
+                          return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
+                        })()}
+                        {doc.starred && (
+                          <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />
                         )}
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        {doc.starred && <Star size={12} className="flex-shrink-0 mt-0.5 fill-[var(--teal)] text-[var(--teal)]" />}
-                        <span className="text-[13px] text-[var(--ink)] truncate flex-1" title={doc.title}>{doc.title}</span>
-                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-[13px] text-[var(--ink)] truncate flex-1 min-w-0" title={doc.title}>
+                          {doc.title}
+                        </span>
+                        <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id)}
-                            className="p-0.5 text-[var(--muted)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                            aria-label={`Actions for ${doc.title}`}
+                            className="p-0.5 text-[var(--muted)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-100"
                           >
                             <MoreVertical size={14} />
                           </button>
@@ -973,7 +977,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           )}
                         </div>
                       </div>
-                      <div className="text-[11px] text-[var(--muted)] mt-0.5">{formatBytes(doc.sizeBytes)}</div>
+
+                      {/* Page preview */}
+                      <div className="relative aspect-[4/3] rounded-lg bg-[var(--raised)] border border-[var(--rule-2)] flex items-center justify-center overflow-hidden">
+                        <DocumentThumbnail doc={doc} />
+                      </div>
+
+                      <div className="text-[11px] text-[var(--muted)] mt-2 truncate">
+                        {formatBytes(doc.sizeBytes)} · {formatDate(getLastModified(doc))}
+                      </div>
                     </div>
                   );
                 })}
