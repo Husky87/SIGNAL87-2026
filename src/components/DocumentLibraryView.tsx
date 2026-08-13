@@ -119,7 +119,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Drive-style multi-select: a plain click replaces the selection, cmd/ctrl-click
+  // toggles one item, shift-click extends a range from the last item clicked.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [rangeAnchorId, setRangeAnchorId] = useState<string | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingDocTitle, setRenamingDocTitle] = useState('');
 
@@ -146,6 +149,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
   const [moveMenuDocId, setMoveMenuDocId] = useState<string | null>(null);
+  const [selectionMoveOpen, setSelectionMoveOpen] = useState(false);
 
   useEffect(() => {
     setActiveFolderId(initialFolderId);
@@ -158,7 +162,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       setActiveFolderId(null);
       if (onFolderChange) onFolderChange(null);
     }
-    setSelectedId(null);
+    clearSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filesView]);
 
@@ -262,7 +266,122 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     return list;
   }, [basePool, searchFilter, activeCategory, activeFolderId, filterType, filterOwner, filterModified, sortField, sortDir, filesView]);
 
-  const selectedDoc = documents.find((d) => d.id === selectedId) || null;
+  // The details panel describes one document, so it only stands in for a single
+  // selection; batch actions live in the selection bar instead.
+  const selectedDoc =
+    selectedIds.size === 1 ? documents.find((d) => selectedIds.has(d.id)) || null : null;
+
+  const selectedDocs = useMemo(
+    () => filteredDocs.filter((d) => selectedIds.has(d.id)),
+    [filteredDocs, selectedIds]
+  );
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setRangeAnchorId(null);
+  };
+
+  const handleItemClick = (e: React.MouseEvent | React.KeyboardEvent, docId: string) => {
+    const ids = filteredDocs.map((d) => d.id);
+
+    if (e.shiftKey && rangeAnchorId) {
+      const from = ids.indexOf(rangeAnchorId);
+      const to = ids.indexOf(docId);
+      if (from !== -1 && to !== -1) {
+        const [lo, hi] = from < to ? [from, to] : [to, from];
+        setSelectedIds(new Set(ids.slice(lo, hi + 1)));
+        return;
+      }
+    }
+
+    if (e.metaKey || e.ctrlKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(docId)) next.delete(docId);
+        else next.add(docId);
+        return next;
+      });
+      setRangeAnchorId(docId);
+      return;
+    }
+
+    setSelectedIds(new Set([docId]));
+    setRangeAnchorId(docId);
+  };
+
+  // Batch actions operate on the visible selection, then clear it — leaving rows
+  // selected after they have been trashed or moved away is disorienting.
+  const runOnSelection = (fn: (doc: DocumentItem) => void) => {
+    selectedDocs.forEach(fn);
+    clearSelection();
+  };
+
+  const handleBatchDelete = () => {
+    const permanent = filesView === 'trash' && onPermanentlyDeleteDocument;
+    runOnSelection((doc) =>
+      permanent ? onPermanentlyDeleteDocument!(doc.id) : onDeleteDocument(doc.id)
+    );
+  };
+
+  /**
+   * Downloads fire as separate staggered anchor clicks; browsers drop several
+   * simultaneous navigations. Files stored cross-origin ignore the download
+   * attribute and open in a tab instead, matching the single-file behaviour in
+   * the details panel.
+   */
+  const handleBatchDownload = () => {
+    const downloadable = selectedDocs.filter((d) => d.fileUrl);
+    downloadable.forEach((doc, i) => {
+      window.setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = doc.fileUrl!;
+        a.download = doc.title;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, i * 350);
+    });
+  };
+
+  const selectionDownloadable = selectedDocs.filter((d) => d.fileUrl).length;
+
+  // Storage total is summed from the documents themselves rather than read from
+  // the org stats counter, which only ever increments on upload and so drifts
+  // upward as documents are deleted.
+  const libraryTotals = useMemo(() => {
+    const active = documents.filter((d) => !d.trashed);
+    return {
+      count: active.length,
+      bytes: active.reduce((sum, d) => sum + (d.sizeBytes || 0), 0)
+    };
+  }, [documents]);
+
+  // Drive-style keyboard handling for the file list. Skipped while focus is in a
+  // text field so search and inline rename keep working normally.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(new Set(filteredDocs.map((d) => d.id)));
+        return;
+      }
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        clearSelection();
+        return;
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size > 0) {
+        e.preventDefault();
+        handleBatchDelete();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredDocs, selectedIds, filesView]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -317,6 +436,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   };
 
   const formatBytes = (bytes: number) => {
+    if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
     return `${(bytes / 1000).toFixed(0)} KB`;
   };
@@ -413,6 +533,17 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           >
             <Eye size={13} /> Open
           </button>
+        )}
+
+        {doc.fileUrl && (
+          <a
+            href={doc.fileUrl}
+            download={doc.title}
+            onClick={() => closeAllMenus()}
+            className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
+          >
+            <Download size={13} /> Download
+          </a>
         )}
 
         {!isTrash && onToggleStar && (
@@ -766,6 +897,113 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             })}
           </div>
 
+          {/* Selection bar — batch actions over everything currently selected */}
+          {selectedDocs.length > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 flex-wrap px-3 py-2 bg-[var(--accent-soft)] border border-[var(--teal)] rounded-xl"
+            >
+              <button
+                onClick={clearSelection}
+                title="Clear selection"
+                aria-label="Clear selection"
+                className="p-1 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+              <span className="text-[13px] text-[var(--ink)] font-medium">
+                {selectedDocs.length} selected
+              </span>
+
+              <div className="flex-1 min-w-2" />
+
+              {selectionDownloadable > 0 && (
+                <button
+                  onClick={handleBatchDownload}
+                  title={
+                    selectionDownloadable < selectedDocs.length
+                      ? `${selectionDownloadable} of ${selectedDocs.length} have a stored file`
+                      : 'Download selected'
+                  }
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download size={14} />
+                  Download{selectionDownloadable < selectedDocs.length ? ` (${selectionDownloadable})` : ''}
+                </button>
+              )}
+
+              {filesView !== 'trash' && onToggleStar && (
+                <button
+                  onClick={() => runOnSelection((d) => onToggleStar(d.id))}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <Star size={14} /> Star
+                </button>
+              )}
+
+              {filesView !== 'trash' && onMoveDocument && (
+                <div className="relative">
+                  <button
+                    onClick={() => setSelectionMoveOpen((v) => !v)}
+                    className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Folder size={14} /> Move <ChevronDown size={12} />
+                  </button>
+                  {selectionMoveOpen && (
+                    <div className="absolute right-0 top-9 w-48 bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-1 z-30 text-[13px] max-h-48 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          runOnSelection((d) => onMoveDocument(d.id, undefined));
+                          setSelectionMoveOpen(false);
+                        }}
+                        className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer"
+                      >
+                        No folder
+                      </button>
+                      {folders.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => {
+                            runOnSelection((d) => onMoveDocument(d.id, f.id));
+                            setSelectionMoveOpen(false);
+                          }}
+                          className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer truncate"
+                        >
+                          {f.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedDocs.length >= 2 && onCompareSelected && filesView !== 'trash' && (
+                <button
+                  onClick={() => onCompareSelected(selectedDocs)}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <GitFork size={14} /> Compare
+                </button>
+              )}
+
+              {filesView === 'trash' && onRestoreDocument && (
+                <button
+                  onClick={() => runOnSelection((d) => onRestoreDocument(d.id))}
+                  className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw size={14} /> Restore
+                </button>
+              )}
+
+              <button
+                onClick={handleBatchDelete}
+                className="px-2.5 py-1.5 text-[12.5px] text-[var(--warn)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 size={14} /> {filesView === 'trash' ? 'Delete forever' : 'Delete'}
+              </button>
+            </div>
+          )}
+
           {/* Folders — My Workspace only */}
           {showFolders && (
             <div>
@@ -866,22 +1104,37 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 {filteredDocs.map((doc) => {
                   const status = getStatusText(doc);
                   const isRenaming = renamingDocId === doc.id;
-                  const isSelected = selectedId === doc.id;
+                  const isSelected = selectedIds.has(doc.id);
                   return (
                     <div
                       key={doc.id}
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={() => setSelectedId(doc.id)}
+                      onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={isSelected}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onSelectDocument(doc);
+                        } else if (e.key === ' ') {
+                          e.preventDefault();
+                          handleItemClick(e, doc.id);
+                        }
+                      }}
                       className={`grid grid-cols-[1fr_40px] sm:grid-cols-[1fr_110px_40px] md:grid-cols-[1fr_140px_120px_90px_40px] gap-3 items-center py-3 px-1 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${
                         isSelected ? 'bg-[var(--raised)]' : 'hover:bg-[var(--raised)]/60'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={18} className="flex-shrink-0 text-[var(--muted)]" />
+                        {(() => {
+                          const { Icon, color } = getTypeMeta(doc.type);
+                          return <Icon size={18} className="flex-shrink-0" style={{ color }} />;
+                        })()}
                         <div className="min-w-0 flex-1">
                           {isRenaming ? (
                             <input
@@ -936,16 +1189,28 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {filteredDocs.map((doc) => {
-                  const isSelected = selectedId === doc.id;
+                  const isSelected = selectedIds.has(doc.id);
                   return (
                     <div
                       key={doc.id}
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={() => setSelectedId(doc.id)}
+                      onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={isSelected}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onSelectDocument(doc);
+                        } else if (e.key === ' ') {
+                          e.preventDefault();
+                          handleItemClick(e, doc.id);
+                        }
+                      }}
                       className={`relative bg-[var(--surface)] border rounded-xl p-2.5 cursor-pointer transition-colors group ${
                         isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
@@ -993,6 +1258,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             )}
           </div>
 
+          {/* Storage total. No quota bar: there is no plan limit in the data model
+              yet, and inventing one would show the user a made-up number. */}
+          {libraryTotals.count > 0 && (
+            <div className="pt-3 text-[11.5px] text-[var(--muted)]">
+              {libraryTotals.count} {libraryTotals.count === 1 ? 'file' : 'files'} ·{' '}
+              {formatBytes(libraryTotals.bytes)} used
+            </div>
+          )}
+
           {/* Empty state */}
           {filteredDocs.length === 0 && (
             <div className="py-16 text-center space-y-3">
@@ -1019,12 +1293,12 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       {/* Right-hand detail panel */}
       {selectedDoc && (
         <>
-          <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => setSelectedId(null)} />
+          <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => clearSelection()} />
           <aside className="fixed md:relative inset-y-0 right-0 z-50 md:z-auto w-full sm:w-96 md:w-80 flex-shrink-0 bg-[var(--surface)] border-l border-[var(--rule)] overflow-y-auto">
             <div className="p-4 space-y-5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-medium text-[var(--muted)] uppercase" style={{ letterSpacing: '0.09em' }}>Details</span>
-                <button onClick={() => setSelectedId(null)} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
+                <button onClick={() => clearSelection()} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
                   <X size={16} />
                 </button>
               </div>
@@ -1095,19 +1369,19 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         <GitFork size={15} /> Compare
                       </button>
                     )}
-                    <button onClick={() => { onDeleteDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
+                    <button onClick={() => { onDeleteDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
                       <Trash2 size={15} /> Delete
                     </button>
                   </>
                 ) : (
                   <>
                     {onRestoreDocument && (
-                      <button onClick={() => { onRestoreDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--ink)] cursor-pointer">
+                      <button onClick={() => { onRestoreDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--ink)] cursor-pointer">
                         <RotateCcw size={15} /> Restore
                       </button>
                     )}
                     {onPermanentlyDeleteDocument && (
-                      <button onClick={() => { onPermanentlyDeleteDocument(selectedDoc.id); setSelectedId(null); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
+                      <button onClick={() => { onPermanentlyDeleteDocument(selectedDoc.id); clearSelection(); }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--warn)] cursor-pointer">
                         <Trash2 size={15} /> Delete forever
                       </button>
                     )}

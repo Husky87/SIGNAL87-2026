@@ -241,6 +241,7 @@ export default function App() {
     setIsUploadOpen(true);
   };
 
+  const [compareSeedIds, setCompareSeedIds] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
   const [showMobileModelMenu, setShowMobileModelMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -568,7 +569,11 @@ export default function App() {
     saveReportToFirestore(newRep); // Persist to Firestore
   };
 
+  // Carry the library's selection into the compare view — it holds its own
+  // selection state, so without this the chosen documents were dropped and the
+  // user landed on an empty comparison screen.
   const handleCompareFromDocs = (docsToCompare: DocumentItem[]) => {
+    setCompareSeedIds(docsToCompare.map((d) => d.id));
     setCurrentTab('compare');
   };
 
@@ -994,7 +999,7 @@ export default function App() {
           )}
 
           {currentTab === 'compare' && (
-            <MultiDocCompareView documents={documents} />
+            <MultiDocCompareView documents={documents} initialSelectedIds={compareSeedIds} />
           )}
 
           {currentTab === 'reports' && (
