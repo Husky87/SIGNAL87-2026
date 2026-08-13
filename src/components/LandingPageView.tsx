@@ -1,20 +1,8 @@
 import React, { useState } from 'react';
 import { Signal87Logo } from './Signal87Logo';
-import {
-  Sparkles,
-  Shield,
-  Search,
-  FileText,
-  GitFork,
-  ArrowRight,
-  ArrowUpRight
-} from 'lucide-react';
+import { FileText, GitFork, Shield, ArrowRight, Search } from 'lucide-react';
 import { Footer } from './Footer';
 import { NavTab } from './Sidebar';
-
-const SERIF = '"Newsreader", Georgia, "Times New Roman", serif';
-const SANS = '"Public Sans", -apple-system, BlinkMacSystemFont, sans-serif';
-const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 interface LandingPageViewProps {
   onOpenEmailAuth: () => void;
@@ -25,13 +13,36 @@ interface LandingPageViewProps {
 }
 
 const EXAMPLE_QUESTIONS = [
-  "Summarize the indemnity caps and liability limits across active agreements",
-  "Which clauses reference governing law in Delaware or New York?",
-  "Compare force majeure provisions across all 2025 vendor contracts",
-  "Extract key renewal dates and termination notice requirements"
+  'Summarize the indemnity caps and liability limits across active agreements',
+  'Which clauses reference governing law in Delaware or New York?',
+  'Compare force majeure provisions across all 2025 vendor contracts',
+  'Extract key renewal dates and termination notice requirements'
 ];
 
-const ROMAN_NUMERALS = ['I.', 'II.', 'III.', 'IV.'];
+const SOURCES = [
+  { title: 'Research report', status: 'Reading' },
+  { title: 'Service agreement', status: 'Ready' },
+  { title: 'Budget workbook', status: 'Ready' },
+  { title: 'Meeting notes', status: 'Ready' }
+];
+
+const FEATURES = [
+  {
+    icon: FileText,
+    title: 'Citations you can open',
+    body: 'Click any citation to jump to the exact page and paragraph. No guessed clauses.'
+  },
+  {
+    icon: GitFork,
+    title: 'Compare across files',
+    body: 'Line up indemnity caps, renewal dates, and clauses across your contracts.'
+  },
+  {
+    icon: Shield,
+    title: 'Your files stay yours',
+    body: 'Documents and queries stay isolated. Nothing is used to train models.'
+  }
+];
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenEmailAuth,
@@ -40,382 +51,288 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenMedia,
   onSelectTab
 }) => {
-  const [activeSource, setActiveSource] = useState<string>('Research report');
-  const [followUpInput, setFollowUpInput] = useState<string>('');
+  const [query, setQuery] = useState('');
+  const [activeSource, setActiveSource] = useState(SOURCES[0].title);
+  const [followUp, setFollowUp] = useState('');
+
+  const handleAsk = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    onOpenEmailAuth();
+  };
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] font-sans antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-50 bg-[var(--paper)]/95 backdrop-blur-md border-b border-[var(--rule)] px-4 sm:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo Left */}
+    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
+      <header className="sticky top-0 z-50 bg-[var(--paper)]/90 backdrop-blur-md border-b border-[var(--rule)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <button
+            type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left border-0 p-0 bg-transparent"
+            className="flex items-center gap-2.5 min-h-0 p-0 bg-transparent border-0 text-left cursor-pointer hover:opacity-80 transition-opacity"
             title="Scroll to top"
           >
-            <Signal87Logo size={30} />
-            <span
-              className="text-xl tracking-tight text-[var(--ink)]"
-              style={{ fontFamily: SERIF, fontWeight: 600 }}
-            >
-              Signal87 AI
+            <Signal87Logo size={28} />
+            <span className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+              Signal87
             </span>
           </button>
 
-          {/* Center Navigation Pill Bar */}
-          <nav className="hidden lg:flex items-center gap-1 bg-[var(--card)] border border-[var(--rule)] rounded-full px-4 py-1.5 text-xs font-medium text-[var(--ink-2)]">
-            <a href="#mockup" className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              Computer
-            </a>
-            <a href="#capabilities" className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              Legislative
-            </a>
-            <a href="#capabilities" className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              How it works
-            </a>
-            <a href="#capabilities" className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              Pricing
-            </a>
-            <a href="#team" className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              Team
-            </a>
-            <button onClick={onOpenBlog} className="px-3 py-1 hover:text-[var(--ink)] transition-colors cursor-pointer">
-              Blog
-            </button>
-          </nav>
-
-          {/* Right Action CTA */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
+              type="button"
               onClick={onOpenEmailAuth}
-              className="px-3 py-2 text-[var(--ink-2)] hover:text-[var(--ink)] text-xs font-bold transition-all cursor-pointer"
+              className="min-h-0 h-9 px-3 text-[13px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               Log in
             </button>
             <button
+              type="button"
               onClick={onOpenEmailAuth}
-              className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] text-xs font-bold rounded-[4px] transition-all cursor-pointer flex items-center gap-1.5"
+              className="min-h-0 h-9 px-3.5 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] text-[13px] font-semibold rounded-full transition-opacity cursor-pointer"
             >
-              <span>Sign up free</span>
+              Get started
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Hero Section */}
-      <section className="relative pt-10 pb-16 sm:pt-16 sm:pb-24 px-4 sm:px-8 overflow-hidden bg-[var(--paper)] flex-1">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-          {/* Left Column: Big Display Typography */}
-          <div className="lg:col-span-6 space-y-6 text-left">
-            {/* Kicker text */}
-            <div
-              className="text-xs font-mono font-semibold tracking-[0.09em] text-[var(--accent)] uppercase"
-              style={{ fontFamily: MONO }}
-            >
-              Counsel's reading room
-            </div>
-
-            {/* Massive Serif Headline */}
-            <h1
-              className="text-4xl sm:text-5xl lg:text-6xl text-[var(--ink)]"
-              style={{
-                fontFamily: SERIF,
-                fontWeight: 500,
-                letterSpacing: '-0.022em',
-                lineHeight: 1.08
-              }}
-            >
-              What shall we examine in your{' '}
-              <span className="italic text-[var(--accent)]">records</span>?
+      <main className="flex-1">
+        <section className="px-4 sm:px-6 pt-12 pb-10 sm:pt-20 sm:pb-16">
+          <div className="max-w-[720px] mx-auto text-center">
+            <h1 className="text-[2rem] leading-[1.15] sm:text-5xl sm:leading-[1.12] font-semibold tracking-tight text-[var(--ink)]">
+              Ask your documents anything
             </h1>
+            <p className="mt-4 sm:mt-5 text-[15px] sm:text-lg text-[var(--ink-2)] leading-relaxed max-w-xl mx-auto">
+              Search contracts, reports, and notes in plain language. Every answer points back to the exact page.
+            </p>
 
-            {/* Sub-line: App Purpose */}
-            <div className="space-y-2">
-              <p className="text-lg font-semibold text-[var(--ink)] max-w-lg leading-relaxed">
-                Signal87 AI: Enterprise Document Memory & Legal AI Research Platform
-              </p>
-              <p className="text-base text-[var(--ink-2)] max-w-lg leading-relaxed">
-                Engineered for real-time citation synthesis and zero-hallucination verification. Every finding returns with the clause and the page it rests on—no hallucinations, no guesswork, just grounded legal intelligence.
-              </p>
-            </div>
-
-            {/* Example Question Rows */}
-            <div className="space-y-2 pt-2">
-              {EXAMPLE_QUESTIONS.map((q, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] flex items-center gap-3 text-left"
+            <form onSubmit={handleAsk} className="mt-8 sm:mt-10">
+              <label htmlFor="landing-ask" className="sr-only">
+                Ask a question about your documents
+              </label>
+              <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--rule)] rounded-full pl-4 pr-1.5 py-1.5 text-left focus-within:border-[var(--accent)] transition-colors">
+                <Search size={18} className="text-[var(--slate)] flex-shrink-0" />
+                <input
+                  id="landing-ask"
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Ask anything about your files…"
+                  className="flex-1 min-w-0 bg-transparent border-0 text-[15px] text-[var(--ink)] placeholder:text-[var(--slate)] focus:outline-none py-2"
+                />
+                <button
+                  type="submit"
+                  className="min-h-0 h-9 w-9 sm:w-auto sm:px-4 flex items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] text-[var(--teal-ink)] text-[13px] font-semibold flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                  aria-label="Ask"
                 >
-                  <span
-                    className="text-xs font-mono font-bold text-[var(--accent)] flex-shrink-0"
-                    style={{ fontFamily: MONO }}
+                  <span className="hidden sm:inline">Ask</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </form>
+
+            <ul className="mt-6 sm:mt-8 text-left space-y-1">
+              {EXAMPLE_QUESTIONS.map((question) => (
+                <li key={question}>
+                  <button
+                    type="button"
+                    onClick={() => setQuery(question)}
+                    className="w-full min-h-0 flex items-start gap-3 px-3 py-2.5 rounded-[10px] text-left text-[13px] sm:text-sm text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--card)] transition-colors cursor-pointer"
                   >
-                    {ROMAN_NUMERALS[idx]}
-                  </span>
-                  <span
-                    className="text-[14.5px] text-[var(--ink)] leading-tight"
-                    style={{ fontFamily: SERIF }}
-                  >
-                    {q}
-                  </span>
-                </div>
+                    <ArrowRight
+                      size={14}
+                      className="mt-0.5 flex-shrink-0 text-[var(--slate)]"
+                    />
+                    <span className="leading-snug">{question}</span>
+                  </button>
+                </li>
               ))}
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="pt-4 flex flex-wrap items-center gap-3">
-              <button
-                onClick={onOpenEmailAuth}
-                className="px-6 py-3 bg-[var(--accent)] hover:opacity-90 text-[var(--teal-ink)] font-bold text-sm rounded-[4px] transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <span>Start free trial</span>
-                <ArrowUpRight size={18} />
-              </button>
-              <button
-                onClick={onOpenEmailAuth}
-                className="px-6 py-3 text-[var(--ink-2)] hover:text-[var(--ink)] font-bold text-sm transition-all cursor-pointer"
-              >
-                Log in
-              </button>
-            </div>
+            </ul>
           </div>
+        </section>
 
-          {/* Right Column: UI Mockup Card */}
-          <div id="mockup" className="lg:col-span-6 relative">
-            {/* Citation Badge */}
-            <div className="absolute -top-4 right-4 z-20 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] px-3.5 py-1.5 text-right">
-              <span
-                className="text-[9px] font-mono text-[var(--slate)] uppercase tracking-[0.09em] block font-bold"
-                style={{ fontFamily: MONO }}
-              >
-                GROUNDED
-              </span>
-              <span className="text-xs font-bold text-[var(--ink)]">32 citations attached</span>
-            </div>
-
-            {/* Main Interactive Card Container */}
-            <div className="bg-[var(--card)] border border-[var(--rule)] rounded-[6px] p-5 space-y-4 relative">
-              {/* Inside Header Bar */}
-              <div className="flex items-center justify-between border-b border-[var(--rule-2)] pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[var(--verify)]" />
-                  <span
-                    className="text-[10px] font-mono font-bold text-[var(--ink)] uppercase tracking-[0.09em]"
-                    style={{ fontFamily: MONO }}
-                  >
-                    INDEXED RECORDS
+        <section id="mockup" className="px-4 sm:px-6 pb-16 sm:pb-24">
+          <div className="max-w-[760px] mx-auto">
+            <div className="bg-[var(--card)] border border-[var(--rule)] rounded-[16px] overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-[var(--rule-2)]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--verify)] flex-shrink-0" />
+                  <span className="text-[12px] font-medium text-[var(--ink)] truncate">
+                    4 files ready
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-[var(--slate)]" style={{ fontFamily: MONO }}>
-                  4 FILES READY
+                <span className="text-[12px] text-[var(--slate)] flex-shrink-0">
+                  32 citations
                 </span>
               </div>
 
-              {/* Two Column Interface Inside Card */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                {/* Active Sources List */}
-                <div className="sm:col-span-4 space-y-2 border-r border-[var(--rule-2)] sm:pr-3">
-                  <span
-                    className="text-[9px] font-mono font-bold text-[var(--slate)] uppercase tracking-[0.09em] block mb-1"
-                    style={{ fontFamily: MONO }}
-                  >
-                    ACTIVE SOURCES
-                  </span>
-
-                  {[
-                    { title: 'Research report', status: 'READING' },
-                    { title: 'Service agreement', status: 'READY' },
-                    { title: 'Budget workbook', status: 'READY' },
-                    { title: 'Meeting notes', status: 'READY' }
-                  ].map((src) => (
-                    <div
-                      key={src.title}
-                      onClick={() => setActiveSource(src.title)}
-                      className={`p-2 rounded-[4px] border text-left cursor-pointer transition-all flex items-center justify-between text-xs ${
- activeSource === src.title
- ? 'bg-[var(--raised)] border-[var(--rule)] text-[var(--ink)] font-bold'
- : 'bg-[var(--card)] border border-[var(--rule-2)] text-[var(--ink-2)] hover:bg-[var(--raised)]'
- }`}
-                    >
-                      <span className="truncate pr-1 text-[11px]">{src.title}</span>
-                      <span
-                        className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--raised)] text-[var(--slate)]"
-                        style={{ fontFamily: MONO }}
+              <div className="px-4 sm:px-5 py-3 border-b border-[var(--rule-2)] overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center gap-2 w-max">
+                  {SOURCES.map((source) => {
+                    const isActive = activeSource === source.title;
+                    return (
+                      <button
+                        key={source.title}
+                        type="button"
+                        onClick={() => setActiveSource(source.title)}
+                        className={`min-h-0 h-8 px-3 rounded-full text-[12px] whitespace-nowrap transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-[var(--raised)] text-[var(--ink)] font-medium'
+                            : 'text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)]'
+                        }`}
                       >
-                        {src.status}
-                      </span>
-                    </div>
-                  ))}
+                        {source.title}
+                        {isActive && (
+                          <span className="ml-1.5 text-[var(--slate)] font-normal">
+                            {source.status}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="px-4 sm:px-5 pt-5 pb-4 text-left">
+                <p className="text-[12px] text-[var(--accent)] font-medium">
+                  Finding
+                </p>
+                <h2 className="mt-1 text-lg sm:text-xl font-semibold tracking-tight text-[var(--ink)]">
+                  Project risks & liability caps
+                </h2>
+                <p className="mt-3 text-[14px] sm:text-[15px] leading-relaxed text-[var(--ink-2)]">
+                  The service agreement caps liability at $2 million, excluding indemnity for third-party IP claims.
+                  <sup className="ml-0.5 text-[10px] font-semibold text-[var(--accent)]">1</sup>
+                  {' '}The research report flags two renewal windows in Q3 and a 60-day termination notice.
+                  <sup className="ml-0.5 text-[10px] font-semibold text-[var(--accent)]">2</sup>
+                </p>
+
+                <div className="mt-5 space-y-2">
+                  <div className="flex items-baseline gap-2 text-[13px]">
+                    <span className="w-4 text-[11px] font-semibold text-[var(--accent)] flex-shrink-0">
+                      1
+                    </span>
+                    <span className="text-[var(--ink)] truncate">Service agreement</span>
+                    <span className="text-[var(--slate)] flex-shrink-0">p. 14</span>
+                  </div>
+                  <div className="flex items-baseline gap-2 text-[13px]">
+                    <span className="w-4 text-[11px] font-semibold text-[var(--accent)] flex-shrink-0">
+                      2
+                    </span>
+                    <span className="text-[var(--ink)] truncate">Research report</span>
+                    <span className="text-[var(--slate)] flex-shrink-0">p. 3</span>
+                  </div>
                 </div>
 
-                {/* Answer Detail */}
-                <div className="sm:col-span-8 space-y-4 text-left">
-                  <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-                    <span
-                      className="text-[10px] font-mono font-bold uppercase tracking-[0.09em]"
-                      style={{ fontFamily: MONO }}
-                    >
-                      FINDING SUMMARY
-                    </span>
-                  </div>
+                <p className="mt-5 text-[12px] text-[var(--slate)]">
+                  14 findings · 8 sources · 32 citations
+                </p>
+              </div>
 
-                  <div>
-                    <h2
-                      className="text-xl text-[var(--ink)]"
-                      style={{ fontFamily: SERIF, fontWeight: 500 }}
-                    >
-                      Project risks & liability caps
-                    </h2>
-                    <p className="text-[10px] font-mono text-[var(--slate)] mt-0.5" style={{ fontFamily: MONO }}>
-                      14 findings · 8 sources · 32 cited details
+              <form
+                onSubmit={handleAsk}
+                className="px-4 sm:px-5 pb-4"
+              >
+                <div className="flex items-center gap-2 bg-[var(--paper)] border border-[var(--rule)] rounded-full pl-4 pr-1.5 py-1">
+                  <input
+                    type="text"
+                    value={followUp}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    placeholder="Ask a follow-up…"
+                    className="flex-1 min-w-0 bg-transparent border-0 text-[13px] text-[var(--ink)] placeholder:text-[var(--slate)] focus:outline-none py-2"
+                  />
+                  <button
+                    type="submit"
+                    className="min-h-0 h-8 px-3 rounded-full bg-[var(--accent)] text-[var(--teal-ink)] text-[12px] font-semibold flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    Ask
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="capabilities" className="px-4 sm:px-6 py-16 sm:py-20 border-t border-[var(--rule)]">
+          <div className="max-w-5xl mx-auto">
+            <div className="max-w-xl">
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--ink)]">
+                Built for documents that matter
+              </h2>
+              <p className="mt-3 text-[15px] text-[var(--ink-2)] leading-relaxed">
+                Answers stay tied to your files. Open the source, compare the clause, and keep the work private.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
+              {FEATURES.map(({ icon: Icon, title, body }) => (
+                <div key={title} className="text-left">
+                  <Icon size={20} className="text-[var(--accent)]" />
+                  <h3 className="mt-4 text-[16px] font-semibold tracking-tight text-[var(--ink)]">
+                    {title}
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-2)]">
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="team" className="px-4 sm:px-6 py-16 sm:py-20 border-t border-[var(--rule)]">
+          <div className="max-w-4xl mx-auto">
+            <div className="max-w-xl">
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--ink)]">
+                Team
+              </h2>
+              <p className="mt-3 text-[15px] text-[var(--ink-2)] leading-relaxed">
+                Enterprise research AI should be verifiable. Every finding needs a citation, and nothing should disappear from memory.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <article className="p-5 sm:p-6 rounded-[14px] bg-[var(--card)] border border-[var(--rule)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent)] text-[var(--teal-ink)] text-[13px] font-semibold flex items-center justify-center flex-shrink-0">
+                    MB
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-semibold text-[var(--ink)]">
+                      Michael Benezra
+                    </h3>
+                    <p className="text-[13px] text-[var(--ink-2)]">
+                      CEO & Co-Founder
                     </p>
                   </div>
+                </div>
+                <p className="mt-4 text-[14px] leading-relaxed text-[var(--ink-2)]">
+                  Leads strategy, partnerships, and product direction. Focused on verifiable document memory for legal, municipal, and corporate teams.
+                </p>
+              </article>
 
-                  {/* Metrics */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-[var(--raised)] border border-[var(--rule)] p-2 rounded-[4px] text-left">
-                      <span className="text-base font-bold text-[var(--ink)] block" style={{ fontFamily: SERIF }}>14</span>
-                      <span className="text-[8px] font-mono text-[var(--slate)] uppercase font-bold" style={{ fontFamily: MONO }}>FINDINGS</span>
-                    </div>
-                    <div className="bg-[var(--raised)] border border-[var(--rule)] p-2 rounded-[4px] text-left">
-                      <span className="text-base font-bold text-[var(--ink)] block" style={{ fontFamily: SERIF }}>8</span>
-                      <span className="text-[8px] font-mono text-[var(--slate)] uppercase font-bold" style={{ fontFamily: MONO }}>SOURCES</span>
-                    </div>
-                    <div className="bg-[var(--raised)] border border-[var(--rule)] p-2 rounded-[4px] text-left">
-                      <span className="text-base font-bold text-[var(--ink)] block" style={{ fontFamily: SERIF }}>32</span>
-                      <span className="text-[8px] font-mono text-[var(--slate)] uppercase font-bold" style={{ fontFamily: MONO }}>CITATIONS</span>
-                    </div>
+              <article className="p-5 sm:p-6 rounded-[14px] bg-[var(--card)] border border-[var(--rule)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--raised)] text-[var(--ink)] text-[13px] font-semibold flex items-center justify-center flex-shrink-0">
+                    MC
                   </div>
-
-                  {/* Composer */}
-                  <div className="bg-[var(--card)] border border-[var(--rule)] rounded-[4px] p-2 flex items-center gap-2">
-                    <span className="text-xs font-mono text-[var(--accent)] font-bold" style={{ fontFamily: MONO }}>&gt;</span>
-                    <input
-                      type="text"
-                      value={followUpInput}
-                      onChange={(e) => setFollowUpInput(e.target.value)}
-                      placeholder="Ask anything..."
-                      className="bg-transparent border-none text-xs text-[var(--ink)] placeholder-[var(--slate)] focus:outline-hidden w-full"
-                    />
-                    <button
-                      disabled
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="px-3 py-1 bg-[var(--accent)] text-[var(--teal-ink)] text-[10px] font-mono font-bold rounded-[3px] flex-shrink-0"
-                      style={{ fontFamily: MONO }}
-                    >
-                      Ask
-                    </button>
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-semibold text-[var(--ink)]">
+                      Michael Chavira
+                    </h3>
+                    <p className="text-[13px] text-[var(--ink-2)]">
+                      Co-Founder & Chief Systems Architect
+                    </p>
                   </div>
                 </div>
-              </div>
+                <p className="mt-4 text-[14px] leading-relaxed text-[var(--ink-2)]">
+                  Builds the retrieval, parsing, and citation pipeline. Focused on fast, grounded answers without leaking data.
+                </p>
+              </article>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* Feature Highlights Grid */}
-      <section id="capabilities" className="py-16 px-4 sm:px-8 bg-[var(--card)] border-t border-[var(--rule)]">
-        <div className="max-w-7xl mx-auto space-y-8 text-center">
-          <div className="space-y-2">
-            <span
-              className="text-xs font-mono text-[var(--accent)] font-bold uppercase tracking-[0.09em]"
-              style={{ fontFamily: MONO }}
-            >
-              Grounded Legal Intelligence
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-normal text-[var(--ink)]" style={{ fontFamily: SERIF }}>
-              Why Legal & Regulatory Teams Trust Signal87
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <div className="p-6 bg-[var(--raised)] border border-[var(--rule)] rounded-[6px] space-y-3">
-              <FileText className="text-[var(--accent)]" size={22} />
-              <h3 className="font-normal text-[var(--ink)] text-lg" style={{ fontFamily: SERIF }}>Direct Paragraph Citations</h3>
-              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
-                Click any citation to open the exact page and paragraph in your PDF repo. Zero guesswork or hallucinated clauses.
-              </p>
-            </div>
-
-            <div className="p-6 bg-[var(--raised)] border border-[var(--rule)] rounded-[6px] space-y-3">
-              <GitFork className="text-[var(--accent)]" size={22} />
-              <h3 className="font-normal text-[var(--ink)] text-lg" style={{ fontFamily: SERIF }}>Multi-Contract Matrix</h3>
-              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
-                Compare indemnity caps, renewal dates, and compliance clauses across dozens of active vendor agreements simultaneously.
-              </p>
-            </div>
-
-            <div className="p-6 bg-[var(--raised)] border border-[var(--rule)] rounded-[6px] space-y-3">
-              <Shield className="text-[var(--verify)]" size={22} />
-              <h3 className="font-normal text-[var(--ink)] text-lg" style={{ fontFamily: SERIF }}>Strict Zero Training Policy</h3>
-              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
-                Your confidential documents and query history are isolated in Firestore and never used for public model training.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership & Team Section */}
-      <section id="team" className="py-16 sm:py-24 px-4 sm:px-8 bg-[var(--paper)] border-t border-[var(--rule)]">
-        <div className="max-w-5xl mx-auto space-y-12 text-center">
-          <div className="space-y-3">
-            <span
-              className="text-xs font-mono font-bold text-[var(--accent)] uppercase tracking-[0.09em]"
-              style={{ fontFamily: MONO }}
-            >
-              Executive Leadership
-            </span>
-            <h2 className="text-2xl sm:text-4xl text-[var(--ink)]" style={{ fontFamily: SERIF }}>
-              Spearheaded by Enterprise AI Pioneers
-            </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-2)] max-w-xl mx-auto">
-              Founded on a single uncompromising thesis: enterprise research AI must be completely verifiable, citation-backed, and immune to memory loss.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            <div className="bg-[var(--card)] p-6 sm:p-8 rounded-[6px] border border-[var(--rule)] space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[4px] bg-[var(--accent)] text-[var(--teal-ink)] font-bold text-base flex items-center justify-center">
-                  MB
-                </div>
-                <div>
-                  <h3 className="text-lg text-[var(--ink)]" style={{ fontFamily: SERIF }}>Michael Benezra</h3>
-                  <span className="text-xs font-mono text-[var(--accent)] font-bold block" style={{ fontFamily: MONO }}>
-                    Chief Executive Officer & Co-Founder
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs sm:text-sm text-[var(--ink-2)] leading-relaxed">
-                Michael Benezra leads Signal87’s strategic direction, enterprise partnerships, and legal tech innovation. Under his leadership, Signal87 has pioneered verifiable document memory for high-stakes municipal, legislative, and corporate governance teams.
-              </p>
-            </div>
-
-            <div className="bg-[var(--card)] p-6 sm:p-8 rounded-[6px] border border-[var(--rule)] space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-[4px] bg-[var(--raised)] text-[var(--ink)] border border-[var(--rule)] font-bold text-base flex items-center justify-center">
-                  MC
-                </div>
-                <div>
-                  <h3 className="text-lg text-[var(--ink)]" style={{ fontFamily: SERIF }}>Michael Chavira</h3>
-                  <span className="text-xs font-mono text-[var(--accent)] font-bold block" style={{ fontFamily: MONO }}>
-                    Co-Founder & Chief Systems Architect
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs sm:text-sm text-[var(--ink-2)] leading-relaxed">
-                Michael Chavira architects Signal87's ultra-low latency vector pipelines, long-context memory stores, and distributed OCR parsing nodes. His engineering principles ensure sub-second citation verification with zero data leakage.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
       <Footer
         onSelectTab={onSelectTab}
         onOpenPrivacy={onOpenPrivacy}
