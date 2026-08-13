@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X,
+  FileText,
   ShieldAlert,
   Sparkles,
   Download,
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react';
 import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
-import { getDocumentPdfUrl } from '../lib/pdfGenerator';
+import { getDocumentPdfUrl, hasRenderablePdf } from '../lib/pdfGenerator';
 
 interface DocumentDetailModalProps {
   document: DocumentItem | null;
@@ -41,6 +42,9 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const [activeMatchIndex, setActiveMatchIndex] = useState<number>(0);
 
   const pdfUrl = useMemo(() => (doc ? getDocumentPdfUrl(doc) : ''), [doc]);
+  // Only PDFs with a real file can be rendered. Everything else shows its
+  // extracted text, labelled as such, rather than a manufactured stand-in.
+  const canRenderPdf = useMemo(() => (doc ? hasRenderablePdf(doc) : false), [doc]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -293,7 +297,32 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
         {/* Reading surface */}
         <div className="flex-1 overflow-y-auto bg-[var(--bg)] px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start">
-          {activeTab === 'pdf' ? (
+          {activeTab === 'pdf' && !canRenderPdf ? (
+            <div className="w-full max-w-3xl space-y-4">
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl border border-[var(--rule)] bg-[var(--surface)] text-[13px]">
+                <FileText size={16} className="flex-shrink-0 mt-0.5 text-[var(--muted)]" />
+                <div className="space-y-1">
+                  <p className="text-[var(--ink)] font-medium m-0">
+                    {doc.type === 'pdf'
+                      ? 'The original file for this document is not available'
+                      : `${doc.type.toUpperCase()} files cannot be displayed as pages`}
+                  </p>
+                  <p className="text-[var(--ink-2)] m-0">
+                    Showing the text extracted from it. {doc.fileUrl
+                      ? 'Use Download to open the original in its own application.'
+                      : 'The original was not stored, so there is nothing to download.'}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className="whitespace-pre-wrap text-[14px] text-[var(--ink-2)] bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-5"
+                style={{ lineHeight: 1.7 }}
+              >
+                {fullText}
+              </div>
+            </div>
+          ) : activeTab === 'pdf' ? (
             <div className="w-full flex flex-col items-center">
               <PDFViewer
                 docId={doc.id}

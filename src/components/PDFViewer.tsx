@@ -139,19 +139,43 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         </div>
       )}
 
-      {error && (
+      {/* If our renderer fails for any reason, hand the file to the browser's own
+          PDF viewer rather than leaving the reader at a dead end. Page controls
+          and in-document search belong to the renderer above, so they go away —
+          but the document is still readable, which is the part that matters. */}
+      {error && fileUrl && (
+        <div className="w-full space-y-3">
+          <div className="flex items-start gap-2.5 p-3 bg-[var(--card)] border border-[var(--rule)] rounded-xl text-left">
+            <AlertCircle size={16} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-[13px] font-medium text-[var(--ink)]">
+                Showing this document in your browser's viewer
+              </div>
+              <p className="text-[11.5px] text-[var(--slate)] m-0 break-words">{error}</p>
+            </div>
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--teal-ink)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5"
+            >
+              <Download size={13} /> Download
+            </a>
+          </div>
+          <iframe
+            src={fileUrl}
+            title={fileName}
+            className="w-full rounded-xl border border-[var(--rule)] bg-white"
+            style={{ height: '70vh' }}
+          />
+        </div>
+      )}
+
+      {error && !fileUrl && (
         <div className="flex flex-col items-center justify-center p-8 bg-[var(--card)] border border-[var(--rule)] rounded-xl text-center max-w-md mx-auto my-8 space-y-3">
           <AlertCircle size={32} className="text-[var(--accent)]" />
-          <div className="text-sm font-bold text-[var(--ink)]">Could not render PDF preview</div>
+          <div className="text-sm font-bold text-[var(--ink)]">No document to display</div>
           <p className="text-xs text-[var(--slate)]">{error}</p>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-[var(--accent)] text-[var(--teal-ink)] text-xs font-semibold rounded-[4px] hover:opacity-90 transition-all flex items-center gap-2"
-          >
-            <Download size={14} /> Download & View PDF Directly
-          </a>
         </div>
       )}
 
