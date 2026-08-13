@@ -34,7 +34,6 @@ import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'luci
 
 import {
   INITIAL_REPORT_TEMPLATES,
-  INITIAL_REPORTS,
   INITIAL_AUDIT_LOGS,
   INITIAL_ORG_STATS
 } from './data/mockData';
@@ -51,13 +50,32 @@ import {
   deleteSavedItemFromFirestore
 } from './lib/firestoreService';
 
-function mergeById<T extends { id: string }>(remote: T[], local: T[]): T[] {
-  const remoteIds = new Set(remote.map((item) => item.id));
-  const remoteFirst = [...remote];
-  for (const item of local) {
-    if (!remoteIds.has(item.id)) remoteFirst.push(item);
+function readUserJson<T>(uid: string, key: string, fallback: T): T {
+  try {
+    const stored = localStorage.getItem(`signal87_${key}_${uid}`);
+    if (!stored) return fallback;
+    const parsed = JSON.parse(stored);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
   }
-  return remoteFirst;
+}
+
+function writeUserJson(uid: string, key: string, value: unknown) {
+  try {
+    localStorage.setItem(`signal87_${key}_${uid}`, JSON.stringify(value));
+  } catch (e) {
+    console.warn('Failed saving', key, e);
+  }
+}
+
+function belongsToUser<T extends { userId?: string; owner?: string }>(
+  item: T,
+  user: { uid: string; email?: string | null }
+): boolean {
+  if (item.userId) return item.userId === user.uid;
+  if (item.owner && user.email) return item.owner === user.email;
+  return false;
 }
 
 /* iOS shrinks the visual viewport when the keyboard opens but leaves the
@@ -101,113 +119,51 @@ export default function App() {
   const [showAuthBanner, setShowAuthBanner] = useState(true);
 
   // Core Data States
-  const [folders, setFolders] = useState<FolderItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_folders');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading folders from localStorage', e);
-    }
-    return [
-      { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
-    ];
-  });
+  const defaultFolders: FolderItem[] = [
+    { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
+  ];
+  const [folders, setFolders] = useState<FolderItem[]>(defaultFolders);
 
-  const [documents, setDocuments] = useState<DocumentItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_documents');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading documents from localStorage', e);
-    }
-    return [];
-  });
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
 
-  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_attached_files');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-    return [];
-  });
+  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>([]);
 
-  const [reports, setReports] = useState<GeneratedReport[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_reports');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading reports from localStorage', e);
-    }
-    return INITIAL_REPORTS;
-  });
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
 
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
   const [stats, setStats] = useState(INITIAL_ORG_STATS);
 
   // Saved Items State
-  const [savedItems, setSavedItems] = useState<SavedItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('signal87_saved_items');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading saved items from localStorage', e);
-    }
-    return [];
-  });
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [prelinkedDocId, setPrelinkedDocId] = useState<string | null>(null);
   const [newNoteRequestId, setNewNoteRequestId] = useState(0);
 
   // Persist documents to localStorage
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_documents', JSON.stringify(documents));
-    } catch (e) {
-      console.warn('Failed saving documents to localStorage', e);
-    }
-  }, [documents, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'documents', documents);
+  }, [documents, currentUser, workspaceReady]);
 
   // Persist savedItems to localStorage
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_saved_items', JSON.stringify(savedItems));
-    } catch (e) {
-      console.warn('Failed saving saved items to localStorage', e);
-    }
-  }, [savedItems, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'saved_items', savedItems);
+  }, [savedItems, currentUser, workspaceReady]);
 
   // Persist attachedFiles to localStorage
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_attached_files', JSON.stringify(attachedFiles));
-    } catch (e) {}
-  }, [attachedFiles, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'attached_files', attachedFiles);
+  }, [attachedFiles, currentUser, workspaceReady]);
 
   // Persist folders to localStorage
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_folders', JSON.stringify(folders));
-    } catch (e) {
-      console.warn('Failed saving folders to localStorage', e);
-    }
-  }, [folders, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'folders', folders);
+  }, [folders, currentUser, workspaceReady]);
 
   // Folder Action Handlers
   const handleCreateFolder = (name: string, color?: string) => {
@@ -242,11 +198,9 @@ export default function App() {
 
   // Persist reports to localStorage
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_reports', JSON.stringify(reports));
-    } catch (e) {}
-  }, [reports, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'reports', reports);
+  }, [reports, currentUser, workspaceReady]);
 
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -276,56 +230,35 @@ export default function App() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
-  const [sessions, setSessions] = useState(() => {
-    try {
-      const stored = localStorage.getItem('signal87_sessions');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed loading sessions from localStorage', e);
-    }
-    return [];
-  });
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
-    try {
-      const storedActive = localStorage.getItem('signal87_active_session_id');
-      if (storedActive) return storedActive;
-    } catch (e) {}
-    return null;
-  });
+  const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string }[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[]>([]);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   // Persist sessions array to localStorage whenever it changes
   useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem('signal87_sessions', JSON.stringify(sessions));
-    } catch (e) {
-      console.warn('Failed saving sessions to localStorage', e);
-    }
-  }, [sessions, currentUser]);
+    if (!currentUser || !workspaceReady) return;
+    writeUserJson(currentUser.uid, 'sessions', sessions);
+  }, [sessions, currentUser, workspaceReady]);
 
   // Persist activeSessionId to localStorage
   useEffect(() => {
-    if (!currentUser || !activeSessionId) return;
+    if (!currentUser || !workspaceReady || !activeSessionId) return;
     try {
-      localStorage.setItem('signal87_active_session_id', activeSessionId);
+      localStorage.setItem(`signal87_active_session_id_${currentUser.uid}`, activeSessionId);
     } catch (e) {}
-  }, [activeSessionId, currentUser]);
+  }, [activeSessionId, currentUser, workspaceReady]);
 
   // Load chat history for active session ID from localStorage or default
   useEffect(() => {
     skipChatSaveRef.current = true;
-    if (!activeSessionId) {
+    if (!activeSessionId || !currentUser) {
       setChatHistory([]);
       return;
     }
     try {
-      const storedChat = localStorage.getItem(`signal87_chat_${activeSessionId}`);
+      const storedChat = localStorage.getItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`);
       if (storedChat) {
         setChatHistory(JSON.parse(storedChat));
       } else {
@@ -335,17 +268,17 @@ export default function App() {
       console.warn('Error loading chat history for session:', activeSessionId, e);
       setChatHistory([]);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, currentUser]);
 
   // Save chatHistory to localStorage for the active session
   useEffect(() => {
-    if (!activeSessionId || !currentUser) return;
+    if (!activeSessionId || !currentUser || !workspaceReady) return;
     if (skipChatSaveRef.current) {
       skipChatSaveRef.current = false;
       return;
     }
     try {
-      localStorage.setItem(`signal87_chat_${activeSessionId}`, JSON.stringify(chatHistory));
+      localStorage.setItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`, JSON.stringify(chatHistory));
 
       // Auto-update thread title if it's currently 'New Research Session' and user has sent a message
       if (chatHistory.length > 0) {
@@ -444,25 +377,54 @@ export default function App() {
       });
   }, []);
 
-  // Sync from Firestore only after auth is restored, so rules don't reject
-  // the first paint and so we don't mix another account's leftover local data.
+  // Load only this account's workspace. Never merge another user's leftover
+  // localStorage into the current session.
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setWorkspaceReady(false);
+      setDocuments([]);
+      setSavedItems([]);
+      setReports([]);
+      setAttachedFiles([]);
+      setSessions([]);
+      setActiveSessionId(null);
+      setChatHistory([]);
+      return;
+    }
+
+    const uid = currentUser.uid;
+    const mine = <T extends { userId?: string; owner?: string }>(items: T[]) =>
+      items.filter((item) => belongsToUser(item, currentUser));
+
+    setDocuments(mine(readUserJson<DocumentItem[]>(uid, 'documents', [])));
+    setSavedItems(mine(readUserJson<SavedItem[]>(uid, 'saved_items', [])));
+    setReports(readUserJson<GeneratedReport[]>(uid, 'reports', []));
+    setAttachedFiles(readUserJson(uid, 'attached_files', []));
+    const userFolders = readUserJson<FolderItem[]>(uid, 'folders', []);
+    setFolders(userFolders.length > 0 ? userFolders : defaultFolders);
+    setSessions(readUserJson(uid, 'sessions', []));
+    try {
+      setActiveSessionId(localStorage.getItem(`signal87_active_session_id_${uid}`));
+    } catch {
+      setActiveSessionId(null);
+    }
+    setWorkspaceReady(true);
+
     let cancelled = false;
     async function syncFirestoreData() {
       const remoteDocs = await fetchDocumentsFromFirestore();
-      if (!cancelled && remoteDocs) {
-        setDocuments((prev) => mergeById(remoteDocs, prev));
+      if (!cancelled) {
+        setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
       }
 
       const remoteReports = await fetchReportsFromFirestore();
-      if (!cancelled && remoteReports && remoteReports.length > 0) {
-        setReports((prev) => mergeById(remoteReports, prev));
+      if (!cancelled) {
+        setReports(remoteReports);
       }
 
       const remoteSaved = await fetchSavedItemsFromFirestore();
-      if (!cancelled && remoteSaved) {
-        setSavedItems((prev) => mergeById(remoteSaved, prev));
+      if (!cancelled) {
+        setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
       }
     }
 
@@ -526,6 +488,16 @@ export default function App() {
       savedItems.filter((s) => s.type === 'answer').map((s) => s.id)
     );
   }, [savedItems]);
+
+  const myDocuments = useMemo(
+    () => (currentUser ? documents.filter((d) => belongsToUser(d, currentUser)) : []),
+    [documents, currentUser]
+  );
+
+  const mySavedItems = useMemo(
+    () => (currentUser ? savedItems.filter((item) => belongsToUser(item, currentUser)) : []),
+    [savedItems, currentUser]
+  );
 
   // Handlers
   const handleUploadSuccess = (newDoc: DocumentItem, parsedFile?: any) => {
@@ -661,7 +633,7 @@ export default function App() {
 
   const handleDeleteSession = (id: string) => {
     try {
-      localStorage.removeItem(`signal87_chat_${id}`);
+      if (currentUser) localStorage.removeItem(`signal87_chat_${currentUser.uid}_${id}`);
     } catch (e) {}
 
     const remaining = sessions.filter((s) => s.id !== id);
@@ -857,7 +829,7 @@ export default function App() {
         }}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        documentCount={documents.length}
+        documentCount={myDocuments.length}
         projectCount={0}
         mobileMenuOpen={mobileMenuOpen}
         onCloseMobileMenu={() => setMobileMenuOpen(false)}
@@ -1005,7 +977,7 @@ export default function App() {
           {currentTab === 'documents' && (
             <div className="flex-1 flex flex-col min-h-0">
               <DocumentLibraryView
-                documents={documents}
+                documents={myDocuments}
                 folders={folders}
                 filesView={filesView}
                 initialSearch={searchQuery}
@@ -1035,7 +1007,7 @@ export default function App() {
 
           {currentTab === 'research' && (
             <ResearchAssistantView
-              documents={documents}
+              documents={myDocuments}
               attachedFiles={attachedFiles}
               setAttachedFiles={setAttachedFiles}
               selectedModel={selectedModel}
@@ -1063,7 +1035,7 @@ export default function App() {
 
           {currentTab === 'compare' && (
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <MultiDocCompareView documents={documents} initialSelectedIds={pendingCompareIds} />
+              <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} />
             </div>
           )}
 
@@ -1072,7 +1044,7 @@ export default function App() {
               <ReportsView
                 templates={INITIAL_REPORT_TEMPLATES}
                 reports={reports}
-                documents={documents}
+                documents={myDocuments}
                 onSaveReport={handleSaveReport}
               />
             </div>
@@ -1080,7 +1052,7 @@ export default function App() {
 
           {currentTab === 'searches' && (
             <SavedSearchesView
-              documents={documents}
+              documents={myDocuments}
               initialQuery={searchQuery}
               onSelectDocument={setSelectedDocForDetail}
             />
@@ -1088,10 +1060,10 @@ export default function App() {
 
           {currentTab === 'saved' && (
             <SavedView
-              savedItems={savedItems}
+              savedItems={mySavedItems}
               onSaveItem={handleSaveSavedItem}
               onDeleteItem={handleDeleteSavedItem}
-              documents={documents}
+              documents={myDocuments}
               onSelectDocument={setSelectedDocForDetail}
               prelinkedDocId={prelinkedDocId}
               onClearPrelinkedDoc={() => setPrelinkedDocId(null)}
@@ -1142,7 +1114,7 @@ export default function App() {
           onSelectTab={setCurrentTab}
           onNewSession={handleCreateNewSession}
           onOpenMenu={() => setMobileMenuOpen(true)}
-          documentCount={documents.length}
+          documentCount={myDocuments.length}
           onOpenUpload={() => setIsUploadOpen(true)}
           onOpenNewFolderModal={() => {
             setCurrentTab('documents');
@@ -1166,7 +1138,7 @@ export default function App() {
           setUploadFolderId(null);
         }}
         onUploadSuccess={handleUploadSuccess}
-        documents={documents}
+        documents={myDocuments}
         targetFolderId={uploadFolderId}
         initialFiles={pendingDroppedFiles}
         onInitialFilesConsumed={() => setPendingDroppedFiles([])}
