@@ -45,7 +45,8 @@ interface DocumentLibraryViewProps {
   onToggleStar?: (docId: string) => void;
   onRenameDocument?: (docId: string, newTitle: string) => void;
   onChangeDocumentPermissions?: (docId: string, permissions: DocumentItem['permissions']) => void;
-  onCreateFolder?: (name: string, color?: string) => void;
+  onCreateFolder?: (name: string, color?: string, parentId?: string | null) => void;
+  onMoveFolder?: (folderId: string, parentId: string | null) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
   onMoveDocument?: (docId: string, folderId: string | undefined) => void;
@@ -92,6 +93,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onRenameDocument,
   onChangeDocumentPermissions,
   onCreateFolder,
+  onMoveFolder,
   onRenameFolder,
   onDeleteFolder,
   onMoveDocument,
@@ -136,7 +138,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [contextMoveOpen, setContextMoveOpen] = useState(false);
 
   const [draggingDocId, setDraggingDocId] = useState<string | null>(null);
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  // undefined = no crumb hovered; null = the root crumb is hovered
+  const [dragOverCrumbId, setDragOverCrumbId] = useState<string | null | undefined>(undefined);
   const [isExternalDropActive, setIsExternalDropActive] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
 
@@ -190,6 +195,51 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const categories = ['All', 'Contracts', 'Financials', 'Legal', 'Research'];
   const currentFolder = folders.find((f) => f.id === activeFolderId);
+
+  const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
+
+  // Only the folders directly inside wherever we are. Previously every folder was
+  // listed at every level, so parentId went unused and there was one flat tier.
+  const childFolders = useMemo(
+    () => folders.filter((f) => (f.parentId ?? null) === activeFolderId),
+    [folders, activeFolderId]
+  );
+
+  /** Root-first chain of folders down to the current one, for the breadcrumb. */
+  const ancestors = useMemo(() => {
+    const chain: FolderItem[] = [];
+    const seen = new Set<string>();
+    let cursor = activeFolderId ? foldersById.get(activeFolderId) : undefined;
+    while (cursor && !seen.has(cursor.id)) {
+      seen.add(cursor.id); // a malformed parent cycle would otherwise spin forever
+      chain.unshift(cursor);
+      const parent = cursor.parentId ?? null;
+      cursor = parent ? foldersById.get(parent) : undefined;
+    }
+    return chain;
+  }, [activeFolderId, foldersById]);
+
+  /** Every folder with its full path, so move menus can target any depth. */
+  const folderPaths = useMemo(() => {
+    const pathOf = (folder: FolderItem) => {
+      const parts: string[] = [];
+      const seen = new Set<string>();
+      let cursor: FolderItem | undefined = folder;
+      while (cursor && !seen.has(cursor.id)) {
+        seen.add(cursor.id);
+        parts.unshift(cursor.name);
+        const parent = cursor.parentId ?? null;
+        cursor = parent ? foldersById.get(parent) : undefined;
+      }
+      return parts;
+    };
+    return folders
+      .map((folder) => {
+        const parts = pathOf(folder);
+        return { folder, path: parts.join(' / '), depth: parts.length - 1 };
+      })
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [folders, foldersById]);
 
   const getLastModified = (doc: DocumentItem) =>
     (doc.versionHistory && doc.versionHistory.length > 0
@@ -392,12 +442,36 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     }
   };
 
-  const getFolderFileCount = (fldId: string) => documents.filter((d) => d.folderId === fldId && !d.trashed).length;
+  /** Every folder in the subtree rooted here, including itself. */
+  const folderSubtree = (rootId: string): Set<string> => {
+    const out = new Set<string>([rootId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const f of folders) {
+        const parent = f.parentId ?? null;
+        if (parent && out.has(parent) && !out.has(f.id)) {
+          out.add(f.id);
+          grew = true;
+        }
+      }
+    }
+    return out;
+  };
+
+  // Counted across the subtree — a folder showing "0 files" while its subfolders
+  // are full would read as empty.
+  const getFolderFileCount = (fldId: string) => {
+    const subtree = folderSubtree(fldId);
+    return documents.filter((d) => d.folderId && subtree.has(d.folderId) && !d.trashed).length;
+  };
 
   const handleCreateFolderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
-    if (onCreateFolder) onCreateFolder(newFolderName.trim(), selectedFolderColor);
+    // Created inside whatever folder is currently open, so nesting is reachable
+    // from the UI rather than only from the data model.
+    if (onCreateFolder) onCreateFolder(newFolderName.trim(), selectedFolderColor, activeFolderId);
     setNewFolderName('');
     setIsNewFolderModalOpen(false);
   };
@@ -459,19 +533,105 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     setDraggingDocId(null);
     setDragOverFolderId(null);
   };
+  const handleFolderDragStart = (e: React.DragEvent, folderId: string) => {
+    e.dataTransfer.setData('application/x-signal87-folder', folderId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingFolderId(folderId);
+  };
+
+  const handleFolderDragEnd = () => {
+    setDraggingFolderId(null);
+    setDragOverFolderId(null);
+    setDragOverCrumbId(undefined);
+  };
+
+  /** A folder cannot be dropped into itself or anything beneath it. */
+  const canDropFolderInto = (folderId: string, targetId: string | null) =>
+    folderId !== targetId && !(targetId && folderSubtree(folderId).has(targetId));
+
   const handleFolderDragOver = (e: React.DragEvent, folderId: string) => {
-    if (e.dataTransfer.types.includes('application/x-signal87-doc')) {
+    const types = e.dataTransfer.types;
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      setDragOverFolderId(folderId);
+      return;
+    }
+    if (types.includes('application/x-signal87-folder')) {
+      if (draggingFolderId && !canDropFolderInto(draggingFolderId, folderId)) return;
       e.preventDefault();
       setDragOverFolderId(folderId);
     }
   };
+
   const handleFolderDrop = (e: React.DragEvent, folderId: string) => {
-    if (!e.dataTransfer.types.includes('application/x-signal87-doc')) return;
-    e.preventDefault();
-    const docId = e.dataTransfer.getData('application/x-signal87-doc');
-    if (docId && onMoveDocument) onMoveDocument(docId, folderId);
+    const types = e.dataTransfer.types;
+
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      const docId = e.dataTransfer.getData('application/x-signal87-doc');
+      // Dragging one of several selected rows moves the whole selection.
+      if (docId && onMoveDocument) {
+        if (selectedIds.has(docId) && selectedDocs.length > 1) {
+          runOnSelection((d) => onMoveDocument(d.id, folderId));
+        } else {
+          onMoveDocument(docId, folderId);
+        }
+      }
+    } else if (types.includes('application/x-signal87-folder')) {
+      e.preventDefault();
+      const movingId = e.dataTransfer.getData('application/x-signal87-folder');
+      if (movingId && onMoveFolder && canDropFolderInto(movingId, folderId)) {
+        onMoveFolder(movingId, folderId);
+      }
+    } else {
+      return;
+    }
+
     setDraggingDocId(null);
+    setDraggingFolderId(null);
     setDragOverFolderId(null);
+  };
+
+  const handleCrumbDragOver = (e: React.DragEvent, crumbId: string | null) => {
+    const types = e.dataTransfer.types;
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      setDragOverCrumbId(crumbId);
+      return;
+    }
+    if (types.includes('application/x-signal87-folder')) {
+      if (draggingFolderId && !canDropFolderInto(draggingFolderId, crumbId)) return;
+      e.preventDefault();
+      setDragOverCrumbId(crumbId);
+    }
+  };
+
+  const handleCrumbDrop = (e: React.DragEvent, crumbId: string | null) => {
+    const types = e.dataTransfer.types;
+
+    if (types.includes('application/x-signal87-doc')) {
+      e.preventDefault();
+      const docId = e.dataTransfer.getData('application/x-signal87-doc');
+      if (docId && onMoveDocument) {
+        if (selectedIds.has(docId) && selectedDocs.length > 1) {
+          runOnSelection((d) => onMoveDocument(d.id, crumbId ?? undefined));
+        } else {
+          onMoveDocument(docId, crumbId ?? undefined);
+        }
+      }
+    } else if (types.includes('application/x-signal87-folder')) {
+      e.preventDefault();
+      const movingId = e.dataTransfer.getData('application/x-signal87-folder');
+      if (movingId && onMoveFolder && canDropFolderInto(movingId, crumbId)) {
+        onMoveFolder(movingId, crumbId);
+      }
+    } else {
+      return;
+    }
+
+    setDraggingDocId(null);
+    setDraggingFolderId(null);
+    setDragOverCrumbId(undefined);
   };
 
   // --- Drag and drop: external OS files dropped anywhere on the panel upload them ---
@@ -600,14 +760,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   <span>No folder</span>
                   {!doc.folderId && <Check size={12} className="text-[var(--teal)]" />}
                 </button>
-                {folders.map((f) => (
+                {folderPaths.map(({ folder, depth }) => (
                   <button
-                    key={f.id}
-                    onClick={() => { onMoveDocument(doc.id, f.id); closeAllMenus(); }}
+                    key={folder.id}
+                    onClick={() => { onMoveDocument(doc.id, folder.id); closeAllMenus(); }}
                     className="w-full px-2 py-1 text-left hover:bg-[var(--surface)] text-[12px] text-[var(--ink)] rounded flex items-center justify-between"
+                    style={{ paddingLeft: `${8 + depth * 12}px` }}
                   >
-                    <span className="truncate max-w-[120px]">{f.name}</span>
-                    {doc.folderId === f.id && <Check size={12} className="text-[var(--teal)]" />}
+                    <span className="truncate max-w-[120px]">{folder.name}</span>
+                    {doc.folderId === folder.id && <Check size={12} className="text-[var(--teal)]" />}
                   </button>
                 ))}
               </div>
@@ -666,7 +827,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     </>
   );
 
-  const showFolders = filesView === 'workspace' && folders.length > 0 && !activeFolderId;
+  // Rendered at every level now, not just the root, so nested folders are
+  // reachable instead of vanishing the moment you open their parent.
+  const showFolders = filesView === 'workspace' && childFolders.length > 0;
 
   const emptyStateCopy: Record<FilesView, { title: string; body: string }> = {
     workspace: {
@@ -701,24 +864,55 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
-                <button onClick={() => handleSetActiveFolderId(null)} className="hover:text-[var(--ink)] cursor-pointer transition-colors">
+              {/* Full ancestor trail. Each crumb is also a drop target, which is
+                  the only way to move something back out of a nested folder. */}
+              <div className="flex items-center gap-1.5 text-[12px] text-[var(--muted)] flex-wrap">
+                <button
+                  onClick={() => handleSetActiveFolderId(null)}
+                  onDragOver={(e) => handleCrumbDragOver(e, null)}
+                  onDragLeave={() => setDragOverCrumbId(undefined)}
+                  onDrop={(e) => handleCrumbDrop(e, null)}
+                  className={`hover:text-[var(--ink)] cursor-pointer transition-colors rounded px-1 -mx-1 ${
+                    dragOverCrumbId === null ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : ''
+                  }`}
+                >
                   {VIEW_TITLES[filesView]}
                 </button>
-                {currentFolder && (
-                  <>
-                    <ChevronRight size={12} />
-                    <span className="text-[var(--ink)] font-medium">{currentFolder.name}</span>
-                  </>
-                )}
+                {ancestors.map((crumb, i) => {
+                  const isLast = i === ancestors.length - 1;
+                  return (
+                    <React.Fragment key={crumb.id}>
+                      <ChevronRight size={12} className="flex-shrink-0" />
+                      {isLast ? (
+                        <span className="text-[var(--ink)] font-medium">{crumb.name}</span>
+                      ) : (
+                        <button
+                          onClick={() => handleSetActiveFolderId(crumb.id)}
+                          onDragOver={(e) => handleCrumbDragOver(e, crumb.id)}
+                          onDragLeave={() => setDragOverCrumbId(undefined)}
+                          onDrop={(e) => handleCrumbDrop(e, crumb.id)}
+                          className={`hover:text-[var(--ink)] cursor-pointer transition-colors rounded px-1 -mx-1 ${
+                            dragOverCrumbId === crumb.id ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : ''
+                          }`}
+                        >
+                          {crumb.name}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
 
               <div className="flex items-center gap-2 mt-1">
                 {activeFolderId && (
                   <button
-                    onClick={() => handleSetActiveFolderId(null)}
+                    onClick={() => handleSetActiveFolderId(currentFolder?.parentId ?? null)}
                     className="p-1 -ml-1 text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
-                    title="Back to all files"
+                    title={
+                      currentFolder?.parentId
+                        ? `Back to ${foldersById.get(currentFolder.parentId)?.name ?? 'parent folder'}`
+                        : 'Back to all files'
+                    }
                   >
                     <ArrowLeft size={18} />
                   </button>
@@ -960,16 +1154,17 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       >
                         No folder
                       </button>
-                      {folders.map((f) => (
+                      {folderPaths.map(({ folder, depth }) => (
                         <button
-                          key={f.id}
+                          key={folder.id}
                           onClick={() => {
-                            runOnSelection((d) => onMoveDocument(d.id, f.id));
+                            runOnSelection((d) => onMoveDocument(d.id, folder.id));
                             setSelectionMoveOpen(false);
                           }}
                           className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer truncate"
+                          style={{ paddingLeft: `${8 + depth * 12}px` }}
                         >
-                          {f.name}
+                          {folder.name}
                         </button>
                       ))}
                     </div>
@@ -1011,19 +1206,30 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 Folders
               </h2>
               <div>
-                {folders.map((fld) => {
+                {childFolders.map((fld) => {
                   const fileCount = getFolderFileCount(fld.id);
                   const isEditing = editingFolderId === fld.id;
                   const isDropTarget = dragOverFolderId === fld.id;
                   return (
                     <div
                       key={fld.id}
-                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--teal-soft)]' : ''}`}
+                      draggable={!isEditing && !!onMoveFolder}
+                      onDragStart={(e) => handleFolderDragStart(e, fld.id)}
+                      onDragEnd={handleFolderDragEnd}
+                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--teal-soft)]' : ''} ${draggingFolderId === fld.id ? 'opacity-40' : ''}`}
                       onClick={() => { if (!isEditing) handleSetActiveFolderId(fld.id); }}
                       onContextMenu={(e) => openContextMenu(e, 'folder', fld.id)}
                       onDragOver={(e) => handleFolderDragOver(e, fld.id)}
                       onDragLeave={() => setDragOverFolderId(null)}
                       onDrop={(e) => handleFolderDrop(e, fld.id)}
+                      tabIndex={0}
+                      role="button"
+                      onKeyDown={(e) => {
+                        if (!isEditing && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          handleSetActiveFolderId(fld.id);
+                        }
+                      }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <Folder size={18} className="flex-shrink-0 text-[var(--muted)]" />
@@ -1417,7 +1623,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-md w-full p-6 text-[var(--ink)] space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule-2)] pb-3">
-              <h2 className="text-[16px] font-semibold text-[var(--ink)]">New folder</h2>
+              <h2 className="text-[16px] font-semibold text-[var(--ink)]">
+                {currentFolder ? `New folder in ${currentFolder.name}` : 'New folder'}
+              </h2>
               <button onClick={() => setIsNewFolderModalOpen(false)} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
                 <X size={18} />
               </button>

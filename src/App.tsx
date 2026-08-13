@@ -194,15 +194,44 @@ export default function App() {
   }, [folders]);
 
   // Folder Action Handlers
-  const handleCreateFolder = (name: string, color?: string) => {
+  /** Every folder in the subtree rooted at folderId, including itself. */
+  const collectFolderSubtree = (folderId: string, all: FolderItem[]): Set<string> => {
+    const out = new Set<string>([folderId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const f of all) {
+        const parent = f.parentId ?? null;
+        if (parent && out.has(parent) && !out.has(f.id)) {
+          out.add(f.id);
+          grew = true;
+        }
+      }
+    }
+    return out;
+  };
+
+  const handleCreateFolder = (name: string, color?: string, parentId?: string | null) => {
     const newFld: FolderItem = {
       id: `fld_${Date.now()}`,
       name,
       color: color || '#1a73e8',
-      parentId: null,
+      parentId: parentId ?? null,
       createdAt: new Date().toISOString()
     };
     setFolders((prev) => [...prev, newFld]);
+  };
+
+  const handleMoveFolder = (folderId: string, parentId: string | null) => {
+    if (folderId === parentId) return;
+    // Moving a folder inside its own subtree would detach that branch from the
+    // root and leave it unreachable, so refuse it.
+    if (parentId && collectFolderSubtree(folderId, folders).has(parentId)) return;
+    setFolders((prev) =>
+      prev.map((f) =>
+        f.id === folderId ? { ...f, parentId, updatedAt: new Date().toISOString() } : f
+      )
+    );
   };
 
   const handleRenameFolder = (folderId: string, newName: string) => {
@@ -212,10 +241,15 @@ export default function App() {
   };
 
   const handleDeleteFolder = (folderId: string) => {
-    setFolders((prev) => prev.filter((f) => f.id !== folderId));
+    // Deleting a folder deletes its subtree. Removing only the folder itself
+    // would leave its children pointing at a parent that no longer exists,
+    // which hides them from every view instead of freeing them.
+    const doomed = collectFolderSubtree(folderId, folders);
+    setFolders((prev) => prev.filter((f) => !doomed.has(f.id)));
     setDocuments((prev) =>
-      prev.map((d) => (d.folderId === folderId ? { ...d, folderId: undefined } : d))
+      prev.map((d) => (d.folderId && doomed.has(d.folderId) ? { ...d, folderId: undefined } : d))
     );
+    if (selectedFolderId && doomed.has(selectedFolderId)) setSelectedFolderId(null);
   };
 
   const handleMoveDocument = (docId: string, folderId: string | undefined) => {
@@ -960,6 +994,7 @@ export default function App() {
                 onRenameDocument={handleRenameDocument}
                 onChangeDocumentPermissions={handleChangeDocumentPermissions}
                 onCreateFolder={handleCreateFolder}
+                onMoveFolder={handleMoveFolder}
                 onRenameFolder={handleRenameFolder}
                 onDeleteFolder={handleDeleteFolder}
                 onMoveDocument={handleMoveDocument}
