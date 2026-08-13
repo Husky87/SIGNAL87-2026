@@ -131,7 +131,8 @@ app.post('/api/chat', async (req, res) => {
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
         .map((doc: any, index: number) => {
-          return `--- REPOSITORY DOC ${index + 1}: ${doc.title} (ID: ${doc.id}, Category: ${doc.category || 'General'}) ---\nSummary: ${doc.summary || 'None'}\nExcerpt: ${doc.contentPreview || ''}\n`;
+          const body = doc.fullText || doc.contentPreview || doc.summary || '';
+          return `--- REPOSITORY DOC ${index + 1}: ${doc.title} (ID: ${doc.id}, Category: ${doc.category || 'General'}) ---\nSummary: ${doc.summary || 'None'}\nExcerpt: ${body}\n`;
         })
         .join('\n\n');
     }
@@ -244,7 +245,7 @@ app.post('/api/research', async (req, res) => {
     let docContext = '';
     if (documents && Array.isArray(documents) && documents.length > 0) {
       docContext = documents
-        .map((doc: any, idx: number) => `Doc ${idx + 1}: ${doc.title}\nSummary: ${doc.summary}\nContent: ${doc.contentPreview}`)
+        .map((doc: any, idx: number) => `Doc ${idx + 1}: ${doc.title}\nSummary: ${doc.summary}\nContent: ${doc.fullText || doc.contentPreview || ''}`)
         .join('\n\n');
     }
 
@@ -348,7 +349,7 @@ app.post('/api/compare', async (req, res) => {
     }
 
     const formattedDocs = documents
-      .map((doc: any, idx: number) => `DOCUMENT ${idx + 1}: ${doc.title}\nContent Excerpt/Summary: ${doc.summary || doc.contentPreview}`)
+      .map((doc: any, idx: number) => `DOCUMENT ${idx + 1}: ${doc.title}\nContent Excerpt/Summary: ${doc.fullText || doc.contentPreview || doc.summary || ''}`)
       .join('\n\n');
 
     const prompt = `Compare the following ${documents.length} documents in detail:\n\n${formattedDocs}`;
@@ -404,7 +405,7 @@ app.post('/api/reports/generate', async (req, res) => {
     const { title, templateName, documents, customInstructions } = req.body;
 
     const docContext = (documents || [])
-      .map((d: any) => `- ${d.title}: ${d.summary || d.contentPreview}`)
+      .map((d: any) => `- ${d.title}: ${d.fullText || d.contentPreview || d.summary || ''}`)
       .join('\n');
 
     const prompt = `Report Title: ${title || 'Intelligence Brief'}

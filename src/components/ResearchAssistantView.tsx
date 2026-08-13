@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation, GeneratedReport } from '../types';
-import { fetchChatMessagesFromFirestore, saveChatMessageToFirestore } from '../lib/firestoreService';
+import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, determineDeliverableType } from './ActionRouterComponents';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
@@ -289,6 +289,10 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           }
           setIsParsingFile(false);
         };
+        reader.onerror = () => {
+          console.error('Failed to read image', file.name);
+          setIsParsingFile(false);
+        };
         reader.readAsDataURL(file);
         return;
       }
@@ -432,29 +436,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   };
 
-  // Sync with Firestore
-  useEffect(() => {
-    async function loadFirestoreChat() {
-      const stored = await fetchChatMessagesFromFirestore();
-      if (stored && stored.length > 0) {
-        setChatHistory(stored);
-        const assistantMsgs = stored.filter((m) => m.role === 'assistant');
-        if (assistantMsgs.length > 0) {
-          const latest = assistantMsgs[assistantMsgs.length - 1];
-          if (latest.text.length > 250) {
-            setActiveArtifact({
-              id: latest.id,
-              title: latest.isDeepResearch ? 'Deep Research Synthesis' : 'Workspace Report Deliverable',
-              content: latest.text,
-              citations: latest.citations,
-              timestamp: latest.timestamp
-            });
-          }
-        }
-      }
-    }
-    loadFirestoreChat();
-  }, []);
+  // Session chat is owned by App (per activeSessionId). Do not replace it
+  // with an unscoped Firestore dump.
 
   // Sync document selection when documents prop changes
   useEffect(() => {
@@ -579,8 +562,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           includeReasoningSteps: true
         };
       } else {
+        const priorTurns = [...chatHistory, userMsg]
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-12)
+          .map((m) => ({ role: m.role, content: m.text }));
         bodyPayload = {
           prompt: userMsgText,
+          messages: priorTurns,
           documents: fullTextDocumentPayload,
           model: selectedModel,
           ingestedFilesData,
@@ -728,11 +716,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   };
 
   // A question asked from the home screen arrives here and sends itself.
+  const consumedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialQuery) {
-      handleSendQuery(initialQuery);
-      if (onInitialQueryConsumed) onInitialQueryConsumed();
-    }
+    if (!initialQuery || consumedQueryRef.current === initialQuery) return;
+    consumedQueryRef.current = initialQuery;
+    handleSendQuery(initialQuery);
+    if (onInitialQueryConsumed) onInitialQueryConsumed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 

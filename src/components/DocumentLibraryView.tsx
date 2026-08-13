@@ -51,6 +51,7 @@ interface DocumentLibraryViewProps {
   onFilesDropped?: (files: File[]) => void;
   initialFolderId?: string | null;
   onFolderChange?: (id: string | null) => void;
+  initialSearch?: string;
 }
 
 const DEFAULT_FOLDER_COLORS = [
@@ -96,9 +97,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onMoveDocument,
   onFilesDropped,
   initialFolderId = null,
-  onFolderChange
+  onFolderChange,
+  initialSearch = ''
 }) => {
-  const [searchFilter, setSearchFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState(initialSearch);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFolderId, setActiveFolderId] = useState<string | null>(initialFolderId);
 
@@ -115,6 +117,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       localStorage.setItem('signal87_files_view_mode', viewMode);
     } catch {}
   }, [viewMode]);
+
+  useEffect(() => {
+    setSearchFilter(initialSearch);
+  }, [initialSearch]);
 
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');

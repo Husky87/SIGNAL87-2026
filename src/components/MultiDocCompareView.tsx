@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GitFork,
   Sparkles,
@@ -16,10 +16,17 @@ import { DocumentItem, ComparisonResult } from '../types';
 
 interface MultiDocCompareViewProps {
   documents: DocumentItem[];
+  initialSelectedIds?: string[];
 }
 
-export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ documents }) => {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ documents, initialSelectedIds = [] }) => {
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
+
+  useEffect(() => {
+    if (initialSelectedIds.length > 0) {
+      setSelectedIds(initialSelectedIds);
+    }
+  }, [initialSelectedIds]);
   const [loading, setLoading] = useState(false);
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
 
@@ -153,7 +160,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
                 <CheckCircle2 size={18} className="text-[#7dd3fc]" /> Shared Similarities & Overlapping Clauses
               </h3>
               <ul className="space-y-2.5">
-                {comparison.similarities.map((item, idx) => (
+                {(comparison.similarities || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-[#7dd3fc] font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -168,7 +175,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
                 <AlertTriangle size={18} className="text-amber-400" /> Key Differences & Divergences
               </h3>
               <ul className="space-y-2.5">
-                {comparison.differences.map((item, idx) => (
+                {(comparison.differences || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-amber-400 font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -183,7 +190,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
                 <ShieldAlert size={18} className="text-rose-400" /> Missing Clauses & Omissions
               </h3>
               <ul className="space-y-2.5">
-                {comparison.missingClauses.map((item, idx) => (
+                {(comparison.missingClauses || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-rose-400 font-bold mt-0.5">•</span>
                     <span>{item}</span>
@@ -198,7 +205,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({ docume
                 <GitFork size={18} className="text-[#7dd3fc]" /> Direct Conflicts & Risk Exposure
               </h3>
               <ul className="space-y-2.5">
-                {comparison.conflicts.map((item, idx) => (
+                {(comparison.conflicts || []).map((item, idx) => (
                   <li key={idx} className="p-3 bg-[#28292a] rounded-xl border border-[#37393b] text-xs text-[#c4c7c5] leading-relaxed flex items-start gap-2">
                     <span className="text-[#7dd3fc] font-bold mt-0.5">•</span>
                     <span>{item}</span>

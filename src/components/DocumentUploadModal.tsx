@@ -21,6 +21,7 @@ interface DocumentUploadModalProps {
   // Called once every queued file finishes, right before the modal
   // auto-closes, so the app can navigate back to where the results live.
   onAllUploadsComplete?: () => void;
+  targetFolderId?: string | null;
 }
 
 interface FileProgressItem {
@@ -34,7 +35,7 @@ interface FileProgressItem {
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen, onClose, onUploadSuccess, initialFiles, onInitialFilesConsumed, onAllUploadsComplete
+  isOpen, onClose, onUploadSuccess, initialFiles, onInitialFilesConsumed, onAllUploadsComplete, targetFolderId
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileProgressItem[]>([]);
@@ -69,6 +70,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     if (fileObj) {
       parsedResult = await parseFileContent(fileObj);
       extractedText = parsedResult.extractedText || extractedText;
+      if (extractedText.startsWith('[Error parsing') || extractedText.startsWith('Cannot extract text')) {
+        updateItem({ status: 'error', progress: 0, stepMessage: extractedText.slice(0, 160) });
+        return;
+      }
     } else {
       await new Promise((r) => setTimeout(r, 250));
     }
@@ -151,7 +156,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       summary: aiSummary || backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
       entities: backendData.entities || [{ name: title, type: 'Contract', relevance: 90 }],
       riskHighlights: backendData.riskHighlights || ['Standard compliance verification complete'],
-      contentPreview: extractedText, fullText: extractedText, category: 'Legal', projectIds: [], fileUrl
+      contentPreview: extractedText, fullText: extractedText, category: 'Legal', projectIds: [], fileUrl,
+      folderId: targetFolderId || undefined
     };
 
     // Cache only the original bytes for ingestion/recovery. PDFViewer now validates

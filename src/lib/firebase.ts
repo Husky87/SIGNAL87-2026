@@ -42,7 +42,11 @@ export const storage = getStorage(app);
 // Uploads the original file bytes so the real document can be re-rendered
 // after a reload — blob: URLs only live for the browser tab that created them.
 export async function uploadDocumentFile(file: File, docId: string): Promise<string> {
-  const storageRef = ref(storage, `documents/${docId}/${file.name}`);
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    throw new Error('Not signed in');
+  }
+  const storageRef = ref(storage, `users/${uid}/documents/${docId}/${file.name}`);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 }

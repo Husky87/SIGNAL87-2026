@@ -59,6 +59,8 @@ export interface DocumentItem {
   starred?: boolean;
   trashed?: boolean;
   trashedAt?: string;
+  fullText?: string;
+  userId?: string;
 }
 
 export interface Citation {
