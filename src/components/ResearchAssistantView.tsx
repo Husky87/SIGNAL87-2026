@@ -672,15 +672,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         excelExportData: excelExportData || undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         deliverableType: routedDeliverableType,
-        citations: data.citations || [
-          {
-            docId: activeDocs[0]?.id || 'doc-101',
-            docTitle: activeDocs[0]?.title || 'Document',
-            paragraphRef: 'Sec 4, Para 2',
-            snippet: activeDocs[0]?.summary || 'Relevant citation match',
-            confidence: 96
-          }
-        ],
+        // Only real citations. This previously synthesised one pointing at
+        // "Sec 4, Para 2" with 96% confidence whenever the API returned none —
+        // which is always, since /api/research has no citations field — so every
+        // answer carried an invented source reference under a heading reading
+        // VERIFICATION TRACE. The trace block is guarded on a non-empty array,
+        // so it now simply does not render when there is nothing to cite.
+        citations: data.citations,
         verificationTrace: data.verificationTrace || {
           steps: [
             'Scanned vector indices across selected documents',
