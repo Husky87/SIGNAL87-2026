@@ -24,7 +24,10 @@ import {
   Plus,
   ArrowUp,
   ArrowDown,
-  GitFork
+  GitFork,
+  CheckSquare,
+  Square,
+  MinusSquare
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
 import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
@@ -102,6 +105,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onFolderChange
 }) => {
   const [searchFilter, setSearchFilter] = useState('');
+  const [searchScope, setSearchScope] = useState<'folder' | 'everywhere'>('everywhere');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFolderId, setActiveFolderId] = useState<string | null>(initialFolderId);
 
@@ -124,7 +128,16 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   // Drive-style multi-select: a plain click replaces the selection, cmd/ctrl-click
   // toggles one item, shift-click extends a range from the last item clicked.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Two separate marks: the anchor a shift-range measures from, and the cursor the
+  // arrow keys move. Conflating them makes shift+arrow collapse onto one item.
   const [rangeAnchorId, setRangeAnchorId] = useState<string | null>(null);
+  const [cursorId, setCursorId] = useState<string | null>(null);
+  // Whether the single-selection details panel should be showing. Ticking a
+  // checkbox selects without opening it: on phones that panel is a full-screen
+  // overlay, so opening it on the first tick made the second checkbox
+  // unreachable and multi-select impossible by touch.
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingDocTitle, setRenamingDocTitle] = useState('');
 
@@ -258,6 +271,34 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   }, [documents, filesView]);
 
   const uniqueOwners = useMemo(() => Array.from(new Set(documents.map((d) => d.owner))).filter(Boolean), [documents]);
+
+  /**
+   * Lowercased haystack per document, covering everything a user might search for
+   * rather than the filename alone. Memoised against `documents` so typing costs
+   * one substring test per document instead of re-lowercasing every summary and
+   * extracted body on each keystroke.
+   */
+  const searchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    for (const doc of documents) {
+      index.set(
+        doc.id,
+        [
+          doc.title,
+          doc.type,
+          doc.owner,
+          doc.summary ?? '',
+          doc.contentPreview ?? '',
+          (doc.tags ?? []).join(' '),
+          (doc.entities ?? []).map((e) => e.name).join(' '),
+          (doc.riskHighlights ?? []).join(' ')
+        ]
+          .join('\n')
+          .toLowerCase()
+      );
+    }
+    return index;
+  }, [documents]);
   const uniqueTypes = useMemo(() => Array.from(new Set(documents.map((d) => d.type))), [documents]);
 
   const filteredDocs = useMemo(() => {
@@ -265,7 +306,14 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     const now = Date.now();
 
     let list = basePool.filter((doc) => {
-      const folderMatch = filesView === 'workspace' && activeFolderId ? doc.folderId === activeFolderId : true;
+      // While browsing, the open folder scopes the list. While searching, the
+      // default is the whole library — a query that silently skipped matches in
+      // other folders looked like the document simply was not there.
+      const scopeToFolder = !query || searchScope === 'folder';
+      const folderMatch =
+        filesView === 'workspace' && activeFolderId && scopeToFolder
+          ? doc.folderId === activeFolderId
+          : true;
       const categoryMatch = activeCategory === 'All' || (doc.category || '').toLowerCase() === activeCategory.toLowerCase();
       const typeMatch = !filterType || doc.type === filterType;
       const ownerMatch = !filterOwner || doc.owner === filterOwner;
@@ -279,7 +327,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         (filterModified === 'month' && age < 1000 * 60 * 60 * 24 * 30) ||
         (filterModified === 'year' && age < 1000 * 60 * 60 * 24 * 365);
 
-      const searchMatch = !query || doc.title.toLowerCase().includes(query) || doc.type.toLowerCase().includes(query);
+      // Matches title, type, owner, summary, extracted body, tags, entities and
+      // risk highlights — previously only the title and file type.
+      const searchMatch = !query || (searchIndex.get(doc.id) ?? '').includes(query);
 
       return folderMatch && categoryMatch && typeMatch && ownerMatch && modifiedMatch && searchMatch;
     });
@@ -314,12 +364,14 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       });
     }
     return list;
-  }, [basePool, searchFilter, activeCategory, activeFolderId, filterType, filterOwner, filterModified, sortField, sortDir, filesView]);
+  }, [basePool, searchFilter, searchScope, searchIndex, activeCategory, activeFolderId, filterType, filterOwner, filterModified, sortField, sortDir, filesView]);
 
   // The details panel describes one document, so it only stands in for a single
   // selection; batch actions live in the selection bar instead.
   const selectedDoc =
-    selectedIds.size === 1 ? documents.find((d) => selectedIds.has(d.id)) || null : null;
+    detailsVisible && selectedIds.size === 1
+      ? documents.find((d) => selectedIds.has(d.id)) || null
+      : null;
 
   const selectedDocs = useMemo(
     () => filteredDocs.filter((d) => selectedIds.has(d.id)),
@@ -329,10 +381,13 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const clearSelection = () => {
     setSelectedIds(new Set());
     setRangeAnchorId(null);
+    setCursorId(null);
+    setDetailsVisible(false);
   };
 
   const handleItemClick = (e: React.MouseEvent | React.KeyboardEvent, docId: string) => {
     const ids = filteredDocs.map((d) => d.id);
+    setDetailsVisible(true);
 
     if (e.shiftKey && rangeAnchorId) {
       const from = ids.indexOf(rangeAnchorId);
@@ -352,11 +407,72 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         return next;
       });
       setRangeAnchorId(docId);
+      setCursorId(docId);
       return;
     }
 
     setSelectedIds(new Set([docId]));
     setRangeAnchorId(docId);
+    setCursorId(docId);
+  };
+
+  /** Toggles one item without disturbing the rest — what a checkbox should do. */
+  const toggleOne = (docId: string) => {
+    setDetailsVisible(false);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
+      return next;
+    });
+    setRangeAnchorId(docId);
+    setCursorId(docId);
+  };
+
+  const allVisibleSelected =
+    filteredDocs.length > 0 && filteredDocs.every((d) => selectedIds.has(d.id));
+
+  const toggleSelectAllVisible = () => {
+    setDetailsVisible(false);
+    if (allVisibleSelected) clearSelection();
+    else setSelectedIds(new Set(filteredDocs.map((d) => d.id)));
+  };
+
+  /** Columns currently laid out by the CSS grid, so Up/Down move a visual row. */
+  const gridColumnCount = () => {
+    const el = gridRef.current;
+    if (!el) return 1;
+    const cols = window.getComputedStyle(el).gridTemplateColumns;
+    const n = cols ? cols.split(' ').filter(Boolean).length : 1;
+    return n > 0 ? n : 1;
+  };
+
+  const moveCursor = (delta: number, extend: boolean) => {
+    const ids = filteredDocs.map((d) => d.id);
+    if (ids.length === 0) return;
+
+    const from = cursorId ? ids.indexOf(cursorId) : -1;
+    const to = from === -1 ? 0 : Math.min(ids.length - 1, Math.max(0, from + delta));
+    const nextId = ids[to];
+
+    if (extend) {
+      const anchor = rangeAnchorId ?? nextId;
+      const a = ids.indexOf(anchor);
+      const [lo, hi] = a <= to ? [a, to] : [to, a];
+      setSelectedIds(new Set(ids.slice(lo, hi + 1)));
+      setRangeAnchorId(anchor);
+    } else {
+      setSelectedIds(new Set([nextId]));
+      setRangeAnchorId(nextId);
+    }
+    setCursorId(nextId);
+
+    // Keep the cursor on screen without yanking the whole page around.
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-doc-id="${nextId}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
   };
 
   // Batch actions operate on the visible selection, then clear it — leaving rows
@@ -419,6 +535,23 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         setSelectedIds(new Set(filteredDocs.map((d) => d.id)));
         return;
       }
+
+      // In grid view Up/Down cross a visual row; in list view everything is ±1.
+      const step = viewMode === 'grid' ? gridColumnCount() : 1;
+      const arrows: Record<string, number> = {
+        ArrowDown: step,
+        ArrowUp: -step,
+        ArrowRight: viewMode === 'grid' ? 1 : 0,
+        ArrowLeft: viewMode === 'grid' ? -1 : 0
+      };
+      if (e.key in arrows) {
+        const delta = arrows[e.key];
+        if (delta !== 0) {
+          e.preventDefault();
+          moveCursor(delta, e.shiftKey);
+        }
+        return;
+      }
       if (e.key === 'Escape' && selectedIds.size > 0) {
         clearSelection();
         return;
@@ -431,7 +564,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredDocs, selectedIds, filesView]);
+  }, [filteredDocs, selectedIds, filesView, viewMode, cursorId, rangeAnchorId]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -975,13 +1108,36 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder={currentFolder ? `Search files in ${currentFolder.name}` : `Search ${basePool.length} files`}
+                placeholder={
+                  currentFolder && searchScope === 'folder'
+                    ? `Search files in ${currentFolder.name}`
+                    : `Search ${basePool.length} files`
+                }
                 className="w-full pl-10 pr-9 py-3 bg-[var(--surface)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
               />
               {searchFilter && (
                 <button onClick={() => setSearchFilter('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--ink)] p-1 cursor-pointer">
                   <X size={14} />
                 </button>
+              )}
+
+              {searchFilter.trim() && currentFolder && (
+                <div className="absolute left-0 top-full mt-2 flex items-center gap-1.5 text-[11.5px]">
+                  <span className="text-[var(--muted)]">Searching</span>
+                  {(['everywhere', 'folder'] as const).map((scope) => (
+                    <button
+                      key={scope}
+                      onClick={() => setSearchScope(scope)}
+                      className={`px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                        searchScope === scope
+                          ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                          : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
+                      }`}
+                    >
+                      {scope === 'everywhere' ? 'Everywhere' : `In ${currentFolder.name}`}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -1108,6 +1264,17 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <span className="text-[13px] text-[var(--ink)] font-medium">
                 {selectedDocs.length} selected
               </span>
+
+              {/* The header select-all sits in a row hidden below sm, so the bar
+                  carries its own — otherwise phones have no way to select all. */}
+              {!allVisibleSelected && filteredDocs.length > selectedDocs.length && (
+                <button
+                  onClick={toggleSelectAllVisible}
+                  className="px-2 py-1 text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] rounded-full cursor-pointer"
+                >
+                  Select all {filteredDocs.length}
+                </button>
+              )}
 
               <div className="flex-1 min-w-2" />
 
@@ -1292,9 +1459,25 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <div>
                 {/* Sortable column header — extra columns reveal as space allows */}
                 <div className="hidden sm:grid grid-cols-[1fr_110px_40px] md:grid-cols-[1fr_140px_120px_90px_40px] gap-3 px-1 pb-2 border-b border-[var(--rule)] text-[11px] uppercase text-[var(--muted)]" style={{ letterSpacing: '0.06em' }}>
-                  <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
-                    Name {sortField === 'name' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-                  </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={toggleSelectAllVisible}
+                      title={allVisibleSelected ? 'Deselect all' : 'Select all'}
+                      aria-label={allVisibleSelected ? 'Deselect all' : 'Select all'}
+                      className="flex-shrink-0 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    >
+                      {allVisibleSelected ? (
+                        <CheckSquare size={15} className="text-[var(--teal)]" />
+                      ) : selectedDocs.length > 0 ? (
+                        <MinusSquare size={15} className="text-[var(--teal)]" />
+                      ) : (
+                        <Square size={15} />
+                      )}
+                    </button>
+                    <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
+                      Name {sortField === 'name' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
+                    </button>
+                  </div>
                   <button onClick={() => toggleSort('owner')} className="hidden md:flex items-center gap-1 text-left hover:text-[var(--ink)] cursor-pointer">
                     Owner {sortField === 'owner' && (sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
                   </button>
@@ -1320,6 +1503,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      data-doc-id={doc.id}
                       tabIndex={0}
                       role="button"
                       aria-pressed={isSelected}
@@ -1337,6 +1521,20 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
+                        {/* Always visible on touch, where there is no cmd or shift key
+                            to multi-select with; on pointer devices it appears on
+                            hover or once something is selected. */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleOne(doc.id); }}
+                          aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
+                          className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
+                            isSelected
+                              ? 'opacity-100 text-[var(--teal)]'
+                              : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
+                          }`}
+                        >
+                          {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+                        </button>
                         {(() => {
                           const { Icon, color } = getTypeMeta(doc.type);
                           return <Icon size={18} className="flex-shrink-0" style={{ color }} />;
@@ -1393,7 +1591,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+              <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {filteredDocs.map((doc) => {
                   const isSelected = selectedIds.has(doc.id);
                   return (
@@ -1405,6 +1603,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       onClick={(e) => handleItemClick(e, doc.id)}
                       onDoubleClick={() => onSelectDocument(doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
+                      data-doc-id={doc.id}
                       tabIndex={0}
                       role="button"
                       aria-pressed={isSelected}
@@ -1423,6 +1622,17 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     >
                       {/* Title row sits above the preview, Drive-style */}
                       <div className="flex items-center gap-2 mb-2 min-w-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleOne(doc.id); }}
+                          aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
+                          className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
+                            isSelected
+                              ? 'opacity-100 text-[var(--teal)]'
+                              : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
+                          }`}
+                        >
+                          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                        </button>
                         {(() => {
                           const { Icon, color } = getTypeMeta(doc.type);
                           return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
