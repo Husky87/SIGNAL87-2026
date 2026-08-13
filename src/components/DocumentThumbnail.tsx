@@ -72,7 +72,7 @@ const SpreadsheetPage: React.FC<{ text: string }> = ({ text }) => {
         width: '100%',
         borderCollapse: 'collapse',
         tableLayout: 'fixed',
-        fontSize: '5px',
+        fontSize: '2.2cqw',
         lineHeight: 1.45,
         color: PAPER_INK
       }}
@@ -85,7 +85,7 @@ const SpreadsheetPage: React.FC<{ text: string }> = ({ text }) => {
                 key={c}
                 style={{
                   border: '0.4px solid rgba(0,0,0,0.13)',
-                  padding: '1.6px 2.2px',
+                  padding: '0.7cqw 1cqw',
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                   textOverflow: 'ellipsis',
@@ -126,11 +126,11 @@ const ProsePage: React.FC<{ text: string }> = ({ text }) => {
       {heading && (
         <div
           style={{
-            fontSize: '6.6px',
+            fontSize: '2.9cqw',
             fontWeight: 700,
             lineHeight: 1.35,
             color: PAPER_INK,
-            marginBottom: '4px'
+            marginBottom: '1.8cqw'
           }}
         >
           {heading}
@@ -138,7 +138,7 @@ const ProsePage: React.FC<{ text: string }> = ({ text }) => {
       )}
       <div
         style={{
-          fontSize: '5.2px',
+          fontSize: '2.3cqw',
           lineHeight: 1.6,
           color: PAPER_INK_SOFT,
           whiteSpace: 'pre-wrap',
@@ -189,6 +189,11 @@ export const DocumentThumbnail: React.FC<{ doc: DocumentItem }> = ({ doc }) => {
       className="absolute inset-0 overflow-hidden"
       style={{
         background: PAPER,
+        // Page text is sized in cqw against this box, so a preview looks like the
+        // same page whether it sits in a 2-column phone grid or a 4-column desktop
+        // one. Required for the cqw units below to resolve — without a query
+        // container they fall back to viewport width.
+        containerType: 'inline-size',
         // The frame is sized by aspect-ratio, not by this text, so letting the
         // browser skip layout for off-screen previews costs no layout shift.
         contentVisibility: 'auto'
@@ -199,10 +204,11 @@ export const DocumentThumbnail: React.FC<{ doc: DocumentItem }> = ({ doc }) => {
         {isSpreadsheet(doc.type) ? (
           <SpreadsheetPage text={preview} />
         ) : (
-          /* Comfortably more than the ~1800 characters that fit, so the page
-             crops mid-flow under the fade rather than trailing off into blank
-             paper — but not so much that long libraries pay to lay out text
-             nobody can see. */
+          /* Comfortably more than fills the frame, so the page crops mid-flow
+             under the fade rather than trailing off into blank paper — but not so
+             much that long libraries pay to lay out text nobody can see. Because
+             the type scales with the box, the amount that fits is the same at
+             every card width. */
           <ProsePage text={preview.slice(0, 2200)} />
         )}
       </div>
