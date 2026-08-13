@@ -31,7 +31,11 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 // Notice custom databaseId in config!
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || undefined);
+// This project's Firestore instance is a *named* database, not the default one.
+// Omitting the id makes the SDK target '(default)', which does not exist here —
+// every read and write then fails with "Database '(default)' not found" and the
+// app silently falls back to localStorage, so nothing is ever persisted.
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
 
 export const storage = getStorage(app);
 
