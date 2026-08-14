@@ -104,7 +104,7 @@ export const parseInlineStyles = (
               }
             }}
             className="text-[var(--accent)] hover:text-teal-600 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
-            title={`View: ${cite.docTitle} (${cite.paragraphRef || 'Section Ref'})`}
+            title={cite.paragraphRef ? `View: ${cite.docTitle} (${cite.paragraphRef})` : `View: ${cite.docTitle}`}
           >
             {part}
           </button>
@@ -418,8 +418,12 @@ export const GeminiMarkdownRenderer: React.FC<{
           <div className="space-y-1.5 pt-1 border-t border-[var(--rule)]">
             {citations.map((c, i) => {
               const citeTag = `CIT-0${i + 1}`;
-              const docMeta = `${c.docTitle} · ${c.paragraphRef || 'p.1'}`;
-              const score = `${c.confidence || 90}%`;
+              // No invented location. This printed "p.1" whenever the citation
+              // carried no reference, which was every citation.
+              const docMeta = c.paragraphRef ? `${c.docTitle} · ${c.paragraphRef}` : c.docTitle;
+              // Only a real score. Defaulting to 90 meant the trace always showed
+              // a confidence, whether or not one had ever been calculated.
+              const score = typeof c.confidence === 'number' ? `${c.confidence}%` : '';
 
               const handleCiteClick = () => {
                 if (onSelectDocument) {

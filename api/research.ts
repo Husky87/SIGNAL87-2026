@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const readableDocs = allDocs.filter((doc: any) =>
       hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
     );
-    const unreadableTitles = allDocs
+    const unreadableTitles: string[] = allDocs
       .filter((doc: any) => !readableDocs.includes(doc))
       .map((doc: any) => doc.title);
 
@@ -48,9 +48,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         unreadableTitles.map((t: string) => `- ${t}`).join('\n');
     }
 
+    // Same guard as the repository set: an attached document whose extraction
+    // failed carries noise or nothing, and must not be presented as evidence.
+    const allAttached: any[] = Array.isArray(ingestedFilesData) ? ingestedFilesData : [];
+    const readableAttached = allAttached.filter((f: any) => hasUsableText(f.extractedText));
+    for (const f of allAttached) {
+      if (!readableAttached.includes(f)) unreadableTitles.push(f.fileName);
+    }
+
     let attachedFilesContext = '';
-    if (ingestedFilesData && Array.isArray(ingestedFilesData) && ingestedFilesData.length > 0) {
-      attachedFilesContext = ingestedFilesData
+    if (readableAttached.length > 0) {
+      attachedFilesContext = readableAttached
         .map((f: any, idx: number) => `Attachment ${idx + 1}: ${f.fileName} (${f.summaryInfo || ''})\nRaw Content:\n${f.extractedText}`)
         .join('\n\n');
     }

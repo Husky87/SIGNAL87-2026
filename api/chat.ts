@@ -148,23 +148,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .join('\n\n');
     }
 
-    let unreadableNotice = '';
-    if (unreadableDocs.length > 0) {
-      unreadableNotice =
-        `THE FOLLOWING DOCUMENTS COULD NOT BE READ — no text was extracted from them, so you have ` +
-        `no access to their contents and must not answer questions about what they say. Name them and ` +
-        `tell the user the document needs to be re-uploaded so its text can be extracted:\n` +
-        unreadableDocs.map((d: any) => `- ${d.title}`).join('\n');
-    }
-
     // Prepare attached parsed files context
+    // Attaching a document copies its stored text into this payload, so a
+    // document whose extraction failed arrives here as noise or as an empty
+    // body wrapped in a header. Unfiltered, the model saw a file that said
+    // nothing and reported that no document was attached at all.
+    const allAttached: any[] = Array.isArray(ingestedFilesData) ? ingestedFilesData : [];
+    const readableAttached = allAttached.filter((f: any) => hasUsableText(f.extractedText));
+    const unreadableAttached = allAttached.filter((f: any) => !readableAttached.includes(f));
+
     let attachedFilesContext = '';
-    if (ingestedFilesData && Array.isArray(ingestedFilesData) && ingestedFilesData.length > 0) {
-      attachedFilesContext = ingestedFilesData
+    if (readableAttached.length > 0) {
+      attachedFilesContext = readableAttached
         .map((f: any, idx: number) => {
           return `=== INGESTED ACTIVE FILE ${idx + 1}: ${f.fileName} (${f.summaryInfo || ''}) ===\n[RAW EXTRACTED CONTENT FOR DIRECT ANALYSIS]:\n${f.extractedText}\n=== END OF FILE ${f.fileName} ===`;
         })
         .join('\n\n');
+    }
+
+    let unreadableNotice = '';
+    if (unreadableDocs.length > 0 || unreadableAttached.length > 0) {
+      unreadableNotice =
+        `THE FOLLOWING DOCUMENTS COULD NOT BE READ — no text was extracted from them, so you have ` +
+        `no access to their contents and must not answer questions about what they say. Name them and ` +
+        `tell the user the document needs to be re-uploaded so its text can be extracted:\n` +
+        [...unreadableDocs.map((d: any) => d.title), ...unreadableAttached.map((f: any) => f.fileName)]
+          .map((t: string) => `- ${t}`)
+          .join('\n');
     }
 
     const userPrompt = prompt || (messages ? messages[messages.length - 1]?.content : '');
@@ -277,8 +287,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Cite whichever documents actually informed this answer: files attached
     // to this message take priority over the separately-selected repository
     // set, since those are what the model was actually asked about.
-    const citationSource = (ingestedFilesData && ingestedFilesData.length > 0)
-      ? ingestedFilesData.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
+    const citationSource = (readableAttached.length > 0)
+      ? readableAttached.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
       : readableDocs;
     // Names the documents the model was given, which is all that can honestly be
     // claimed here. It previously also emitted a paragraph reference and a
