@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
+import { buildChatMessages } from '../src/lib/chatPayload.js';
 
 // Server-side Gemini initialization
 function getGeminiClient() {
@@ -258,14 +259,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Text-only input
-    // Construct normalized OpenAI message array structure
-    const openAiPayloadMessages = messages && Array.isArray(messages) && messages.length > 0
-      ? messages
-      : [
-          { role: 'system' as const, content: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION },
-          { role: 'user' as const, content: fullPrompt }
-        ];
+    // Text-only input. The conversation history is kept for continuity, but the
+    // final user turn is fullPrompt — the question with its documents attached.
+    const openAiPayloadMessages = buildChatMessages({
+      systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION,
+      messages,
+      groundedPrompt: fullPrompt
+    });
 
     const startTime = Date.now();
     const timeoutPromise = new Promise<never>((_, reject) =>
