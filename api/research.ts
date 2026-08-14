@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
+import { hasUsableText } from '../src/lib/extractedText.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -21,14 +22,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Research goal is required' });
     }
 
+    // See api/chat.ts: documents whose extraction failed still hold the raw PDF
+    // container as their text, which reads as confident nonsense to the model.
+    const allDocs: any[] = Array.isArray(documents) ? documents : [];
+    const readableDocs = allDocs.filter((doc: any) =>
+      hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
+    );
+    const unreadableTitles = allDocs
+      .filter((doc: any) => !readableDocs.includes(doc))
+      .map((doc: any) => doc.title);
+
     let docContext = '';
-    if (documents && Array.isArray(documents) && documents.length > 0) {
-      docContext = documents
+    if (readableDocs.length > 0) {
+      docContext = readableDocs
         .map((doc: any, idx: number) => {
-          const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.';
+          const body = doc.fullText || doc.contentPreview || doc.summary;
           return `Doc ${idx + 1}: ${doc.title}\n${body}`;
         })
         .join('\n\n');
+    }
+    if (unreadableTitles.length > 0) {
+      docContext +=
+        `\n\nDOCUMENTS THAT COULD NOT BE READ (no text extracted — do not answer from them, ` +
+        `name them and say they must be re-uploaded):\n` +
+        unreadableTitles.map((t: string) => `- ${t}`).join('\n');
     }
 
     let attachedFilesContext = '';

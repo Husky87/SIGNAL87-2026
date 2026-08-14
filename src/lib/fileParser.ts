@@ -86,9 +86,13 @@ export async function parseFileContent(file: File): Promise<ParsedFileResult> {
         }
         extractedText = pageTexts.join('\n\n');
       } catch (pdfErr) {
-        console.warn('PDF.js parsing fallback triggered:', pdfErr);
-        // Fallback to text decoding
-        extractedText = await readFileAsText(file);
+        // Deliberately no fallback to readFileAsText here. Decoding the raw
+        // bytes of a PDF yields the container — %PDF headers, object tables,
+        // compressed streams — not the document, and that noise was being
+        // stored as the document's text and answered from. Record the failure
+        // instead, so the document is marked unreadable rather than wrong.
+        console.warn('PDF text extraction failed:', pdfErr);
+        extractedText = `[Error parsing file content for ${file.name}: ${pdfErr instanceof Error ? pdfErr.message : String(pdfErr)}]`;
       }
     } else if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'pptx', 'ppt', 'doc'].includes(extension) || file.type.startsWith('image/')) {
       throw new Error(

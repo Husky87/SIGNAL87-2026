@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
+import { hasUsableText } from '../src/lib/extractedText.js';
 
 // Server-side Gemini initialization
 function getGeminiClient() {
@@ -128,15 +129,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Prompt or messages array is required' });
     }
 
-    // Prepare document context from provided selected documents
+    // Only documents whose stored text is real prose become evidence. Anything
+    // whose extraction failed still carries the raw PDF container as its text,
+    // and feeding that to the model produced confident answers drawn from noise.
+    const allDocs: any[] = Array.isArray(documents) ? documents : [];
+    const readableDocs = allDocs.filter((doc: any) =>
+      hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
+    );
+    const unreadableDocs = allDocs.filter((doc: any) => !readableDocs.includes(doc));
+
     let docContext = '';
-    if (documents && Array.isArray(documents) && documents.length > 0) {
-      docContext = documents
+    if (readableDocs.length > 0) {
+      docContext = readableDocs
         .map((doc: any, index: number) => {
-          const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.';
+          const body = doc.fullText || doc.contentPreview || doc.summary;
           return `--- DOCUMENT ${index + 1}: ${doc.title} ---\n${body}\n`;
         })
         .join('\n\n');
+    }
+
+    let unreadableNotice = '';
+    if (unreadableDocs.length > 0) {
+      unreadableNotice =
+        `THE FOLLOWING DOCUMENTS COULD NOT BE READ — no text was extracted from them, so you have ` +
+        `no access to their contents and must not answer questions about what they say. Name them and ` +
+        `tell the user the document needs to be re-uploaded so its text can be extracted:\n` +
+        unreadableDocs.map((d: any) => `- ${d.title}`).join('\n');
     }
 
     // Prepare attached parsed files context
@@ -158,11 +176,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (docContext) {
       fullPrompt = `REPOSITORY KNOWLEDGE BASE CONTEXT:\n${docContext}\n\n` + fullPrompt;
     }
+    if (unreadableNotice) {
+      fullPrompt = `${unreadableNotice}\n\n` + fullPrompt;
+    }
 
     // State the absence explicitly. With no context the model simply saw a bare
     // question and answered it from memory — which is how a request for the date
     // on the only uploaded contract came back with an invented one.
-    if (!docContext && !attachedFilesContext) {
+    if (!docContext && !attachedFilesContext && !unreadableNotice) {
       fullPrompt =
         'NO DOCUMENTS ARE AVAILABLE FOR THIS QUESTION. The user has attached nothing and the repository context is empty. ' +
         'You therefore cannot answer any question about the contents of their documents. Say that no document is attached ' +
@@ -258,7 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // set, since those are what the model was actually asked about.
     const citationSource = (ingestedFilesData && ingestedFilesData.length > 0)
       ? ingestedFilesData.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
-      : (documents || []);
+      : readableDocs;
     // Names the documents the model was given, which is all that can honestly be
     // claimed here. It previously also emitted a paragraph reference and a
     // confidence score, both generated with Math.random() — "Sec. 1, Para 3" at
