@@ -33,10 +33,9 @@ interface AnalysisResponse {
   executionTimeMs: number;
 }
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse<AnalysisResponse | { error: string; details?: string }>
-) {
+// VercelResponse is not a generic in @vercel/node v3, so the payload type is
+// pinned on the success path below rather than on the handler signature.
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });

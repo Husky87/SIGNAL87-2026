@@ -747,7 +747,7 @@ export default function App() {
   const handleGoogleSignInRedirect = async () => {
     try {
       setAuthError(null);
-      await signInWithGoogleRedirect(auth);
+      await signInWithGoogleRedirect();
     } catch (err: any) {
       console.error('Google Sign-In Redirect Error:', err);
       setAuthError({
