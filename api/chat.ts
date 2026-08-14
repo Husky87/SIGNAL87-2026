@@ -36,6 +36,21 @@ const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI 
    - Guide users directly to platform settings, API integrations, and workflow tools.
    - Wrap UI elements or settings paths in inline code formatting (e.g., \`Settings > Integrations > API Keys\`).
 
+# GROUNDING — THE MOST IMPORTANT RULE
+
+Every factual claim about the user's documents must come from the document text supplied in this
+request. Nothing else is a source.
+
+- If no document text was supplied, you cannot answer questions about their documents. Say plainly
+  that nothing is attached and ask them to attach the document. Never fall back on prior knowledge,
+  and never produce a plausible-looking value to fill the gap. A wrong date, party, or amount in a
+  contract is worse than no answer.
+- If the supplied documents do not contain what was asked, say which documents you checked and that
+  the answer is not in them. Do not extrapolate.
+- Quote or closely paraphrase the wording you are relying on, so the user can find it themselves.
+- Never state a confidence level, a percentage, a section number, or a page reference unless it comes
+  from the document text in front of you.
+
 # ANSWER LENGTH — MATCH THE QUESTION
 
 This is the single most important rule. Read what is actually being asked and answer at that size.
@@ -144,6 +159,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fullPrompt = `REPOSITORY KNOWLEDGE BASE CONTEXT:\n${docContext}\n\n` + fullPrompt;
     }
 
+    // State the absence explicitly. With no context the model simply saw a bare
+    // question and answered it from memory — which is how a request for the date
+    // on the only uploaded contract came back with an invented one.
+    if (!docContext && !attachedFilesContext) {
+      fullPrompt =
+        'NO DOCUMENTS ARE AVAILABLE FOR THIS QUESTION. The user has attached nothing and the repository context is empty. ' +
+        'You therefore cannot answer any question about the contents of their documents. Say that no document is attached ' +
+        'and ask them to attach one. Do not answer from prior knowledge.\n\n' + fullPrompt;
+    }
+
     // Handle multimodal input
     if (imageParts.length > 0) {
       if (process.env.GEMINI_API_KEY) {
@@ -234,12 +259,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const citationSource = (ingestedFilesData && ingestedFilesData.length > 0)
       ? ingestedFilesData.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
       : (documents || []);
-    const citations = citationSource.slice(0, 3).map((doc: any, idx: number) => ({
+    // Names the documents the model was given, which is all that can honestly be
+    // claimed here. It previously also emitted a paragraph reference and a
+    // confidence score, both generated with Math.random() — "Sec. 1, Para 3" at
+    // "96%" pointed at nothing and measured nothing, under a heading reading
+    // VERIFICATION TRACE. Location and confidence are omitted unless known.
+    const citations = citationSource.slice(0, 3).map((doc: any) => ({
       docId: doc.id,
       docTitle: doc.title,
-      paragraphRef: `Sec. ${idx + 1}, Para ${Math.floor(Math.random() * 5) + 1}`,
-      snippet: doc.summary ? doc.summary.substring(0, 120) + '...' : 'Grounded document match',
-      confidence: Math.floor(Math.random() * 10) + 90 // 90-99%
+      ...(doc.summary ? { snippet: doc.summary.substring(0, 120) + '...' } : {})
     }));
 
     return res.json({

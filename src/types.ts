@@ -66,9 +66,11 @@ export interface DocumentItem {
 export interface Citation {
   docId: string;
   docTitle: string;
-  paragraphRef: string;
-  snippet: string;
-  confidence: number; // Percentage, e.g. 98
+  /** Location within the document. Omitted unless it is genuinely known. */
+  paragraphRef?: string;
+  snippet?: string;
+  /** Only set when a real score exists. Never invent one to fill the field. */
+  confidence?: number;
 }
 
 export interface ChatMessage {

@@ -248,6 +248,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>(documents.map((d) => d.id));
+  const knownDocIdsRef = useRef<Set<string>>(new Set(documents.map((d) => d.id)));
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -382,6 +383,26 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const [showActionsDropdown, setShowActionsDropdown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Include documents in the question as they arrive.
+   *
+   * The selection was seeded once from `documents` in useState, but the library
+   * loads asynchronously after sign-in, so at first render it is empty and the
+   * seed captured nothing. Nothing re-synced it, so questions were sent with no
+   * document context at all and the model answered from memory — asking for a
+   * date in the only uploaded contract returned an invented one.
+   *
+   * Only ids never seen before are added, so deliberately deselecting a document
+   * is not undone on the next render.
+   */
+  useEffect(() => {
+    const fresh = documents.filter((d) => !knownDocIdsRef.current.has(d.id)).map((d) => d.id);
+    documents.forEach((d) => knownDocIdsRef.current.add(d.id));
+    if (fresh.length > 0) {
+      setSelectedDocIds((prev) => Array.from(new Set([...prev, ...fresh])));
+    }
+  }, [documents]);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
