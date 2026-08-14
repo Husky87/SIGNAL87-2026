@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   FolderOpen,
   Search,
@@ -7,6 +7,8 @@ import {
   ChevronDown,
   X,
   Plus,
+  StickyNote,
+  FolderPlus,
   Bookmark,
   Settings,
   Upload,
@@ -67,6 +69,8 @@ interface SidebarProps {
   onSignOut?: () => void;
   filesView?: FilesView;
   onSelectFilesView?: (view: FilesView) => void;
+  onOpenNewFolderModal?: () => void;
+  onOpenNewNote?: () => void;
 }
 
 const FILES_SUB_ITEMS: { id: FilesView; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -75,6 +79,20 @@ const FILES_SUB_ITEMS: { id: FilesView; label: string; icon: React.ComponentType
   { id: 'starred', label: 'Starred', icon: Star },
   { id: 'shared', label: 'Shared', icon: Share2 },
   { id: 'trash', label: 'Trash', icon: Trash2 },
+];
+
+type NewAction = 'ask' | 'note' | 'folder' | 'upload';
+
+const NEW_MENU_ITEMS: {
+  id: NewAction;
+  label: string;
+  hint: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { id: 'ask', label: 'Ask a question', hint: 'Start a new thread', icon: Search },
+  { id: 'note', label: 'New note', hint: 'Write something down', icon: StickyNote },
+  { id: 'folder', label: 'New folder', hint: 'Organise your files', icon: FolderPlus },
+  { id: 'upload', label: 'Upload files', hint: 'PDF, DOCX, XLSX, CSV', icon: Upload },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -90,8 +108,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSignOut,
   filesView = 'workspace',
   onSelectFilesView,
+  onOpenNewFolderModal,
+  onOpenNewNote,
 }) => {
   const [filesExpanded, setFilesExpanded] = useState(true);
+  const [newMenuOpen, setNewMenuOpen] = useState(false);
+
+  // Dismiss the way a menu is expected to: click away, or Escape.
+  //
+  // Matched by attribute rather than by a ref, because this component renders
+  // its nav twice — once for the desktop rail and once for the mobile drawer.
+  // A single ref would only ever point at whichever copy mounted last, so
+  // clicking inside the other one would dismiss the menu under the pointer.
+  useEffect(() => {
+    if (!newMenuOpen) return;
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Element | null;
+      if (!target?.closest?.('[data-new-menu]')) setNewMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNewMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [newMenuOpen]);
 
   const navItems: {
     id: NavTab | 'new' | 'upload';
@@ -110,6 +156,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleNewThread = () => {
     if (onNewSession) onNewSession();
     onSelectTab('research');
+    if (onCloseMobileMenu) onCloseMobileMenu();
+  };
+
+  const runNewAction = (action: NewAction) => {
+    if (action === 'ask') {
+      handleNewThread();
+      return;
+    }
+
+    if (action === 'upload') {
+      if (onOpenUpload) onOpenUpload();
+    } else if (action === 'note') {
+      // The editor lives in Saved, so land there before asking for a new note.
+      if (onOpenNewNote) onOpenNewNote();
+      else {
+        onSelectTab('saved');
+        window.dispatchEvent(new CustomEvent('open-new-note'));
+      }
+    } else if (action === 'folder') {
+      // Likewise, the folder modal belongs to the file library.
+      if (onOpenNewFolderModal) onOpenNewFolderModal();
+      else {
+        onSelectTab('documents');
+        window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
+      }
+    }
+
     if (onCloseMobileMenu) onCloseMobileMenu();
   };
 
@@ -141,13 +214,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
         (item.id === 'admin' &&
           (currentTab === 'admin' || currentTab === 'organization')));
 
+    // New opens a menu rather than firing one hidden action. It used to start a
+    // question thread immediately, so creating a note or a folder from here was
+    // not reachable at all on desktop.
+    if (isNew) {
+      return (
+        <div key={item.id} data-new-menu className="relative">
+          <button
+            type="button"
+            onClick={() => setNewMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={newMenuOpen}
+            title="Create something new"
+            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--teal)] hover:opacity-90 border-transparent text-white ${
+              collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''
+            }`}
+          >
+            <Icon size={16} className="flex-shrink-0 text-white" />
+            {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
+          </button>
+
+          {newMenuOpen && (
+            <div
+              role="menu"
+              aria-label="Create new"
+              className="absolute left-0 top-full mt-2 z-50 min-w-[13rem] rounded-2xl border border-[var(--rule)] bg-[var(--card)] p-1.5 shadow-xl"
+            >
+              {NEW_MENU_ITEMS.map(({ id, label, icon: ItemIcon, hint }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setNewMenuOpen(false);
+                    runNewAction(id);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                >
+                  <ItemIcon size={16} className="flex-shrink-0 text-[var(--slate)]" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-medium truncate">{label}</span>
+                    <span className="block text-[11px] text-[var(--slate)] truncate">{hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <button
         key={item.id}
         onClick={() => {
-          if (isNew) {
-            handleNewThread();
-          } else if (isUpload) {
+          if (isUpload) {
             if (onOpenUpload) onOpenUpload();
             if (onCloseMobileMenu) onCloseMobileMenu();
           } else {
@@ -155,11 +276,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (onCloseMobileMenu) onCloseMobileMenu();
           }
         }}
-        title={isNew ? 'Start a new question' : isUpload ? 'Upload a document' : undefined}
+        title={isUpload ? 'Upload a document' : undefined}
         className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
- isNew
- ? 'bg-[var(--teal)] hover:opacity-90 border-transparent text-white font-semibold'
- : isActive
+ isActive
  ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent-ink)] font-semibold'
  : 'bg-transparent border-transparent text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
  } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
@@ -167,7 +286,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Icon
           size={16}
           className={`flex-shrink-0 ${
- isNew ? 'text-white' : isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
+ isActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'
  }`}
         />
         {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}

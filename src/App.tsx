@@ -688,6 +688,21 @@ export default function App() {
     setCurrentTab('research');
   };
 
+  // Shared by the sidebar's New menu and the mobile dock's sheet, so both offer
+  // the same set of things to create and route them the same way.
+  const handleOpenNewFolder = () => {
+    setCurrentTab('documents');
+    // The modal belongs to the file library, which has to be mounted to hear this.
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
+    }, 100);
+  };
+
+  const handleOpenNewNote = () => {
+    setNewNoteRequestId((id) => id + 1);
+    setCurrentTab('saved');
+  };
+
   const handleDeleteSession = (id: string) => {
     try {
       if (currentUser) localStorage.removeItem(`signal87_chat_${currentUser.uid}_${id}`);
@@ -908,6 +923,8 @@ export default function App() {
           setCurrentTab('documents');
           setMobileMenuOpen(false);
         }}
+        onOpenNewFolderModal={handleOpenNewFolder}
+        onOpenNewNote={handleOpenNewNote}
       />
 
       {/* Main Workspace Area */}
@@ -1178,17 +1195,8 @@ export default function App() {
           onOpenMenu={() => setMobileMenuOpen(true)}
           documentCount={myDocuments.length}
           onOpenUpload={() => setIsUploadOpen(true)}
-          onOpenNewFolderModal={() => {
-            setCurrentTab('documents');
-            // Dispatch custom event to trigger folder creation modal
-            setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
-            }, 100);
-          }}
-          onOpenNewNote={() => {
-            setNewNoteRequestId((id) => id + 1);
-            setCurrentTab('saved');
-          }}
+          onOpenNewFolderModal={handleOpenNewFolder}
+          onOpenNewNote={handleOpenNewNote}
         />
       </div>
 

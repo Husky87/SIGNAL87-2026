@@ -13,7 +13,8 @@
     "test:payload": "tsx tests/payload.test.ts",
     "test:read": "node tests/run-reading.mjs",
     "test:answer": "tsx tests/answering.e2e.ts",
-    "test": "npm run test:payload && npm run test:read && npm run test:answer"
+    "test": "npm run test:payload && npm run test:read && npm run test:answer && npm run test:newmenu",
+    "test:newmenu": "node tests/newmenu.e2e.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

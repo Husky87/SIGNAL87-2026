@@ -4,7 +4,6 @@ import {
   FolderOpen,
   FolderPlus,
   Upload,
-  Sparkles,
   X,
   Bookmark,
   Menu,
@@ -102,6 +101,26 @@ export const MobileDock: React.FC<MobileDockProps> = ({
             {/* Action Options Grid */}
             <div className="grid grid-cols-2 gap-6 text-center">
               <button
+                onClick={() => handleAction('chat')}
+                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+              >
+                <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] text-[var(--accent-ink)] flex items-center justify-center border border-[var(--accent)]/20 group-active:scale-95 transition-transform">
+                  <Search size={22} />
+                </div>
+                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Ask</span>
+              </button>
+
+              <button
+                onClick={() => handleAction('note')}
+                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+              >
+                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
+                  <StickyNote size={22} />
+                </div>
+                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
+              </button>
+
+              <button
                 onClick={() => handleAction('folder')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
@@ -119,26 +138,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                   <Upload size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>
-              </button>
-
-              <button
-                onClick={() => handleAction('note')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
-                  <StickyNote size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
-              </button>
-
-              <button
-                onClick={() => handleAction('chat')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center border border-red-100 dark:border-red-900 group-active:scale-95 transition-transform">
-                  <Sparkles size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">AI Chat</span>
               </button>
             </div>
           </div>
