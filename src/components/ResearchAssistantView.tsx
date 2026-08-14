@@ -49,11 +49,6 @@ import { ActionRouterCard, determineDeliverableType } from './ActionRouterCompon
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { AttachExistingDocumentModal } from './AttachExistingDocumentModal';
 
-const COMPOSER_GLOW =
-  '0 0 0 1px rgba(32, 184, 205, 0.45), 0 0 28px 4px rgba(32, 184, 205, 0.22), 0 0 72px 16px rgba(32, 184, 205, 0.12)';
-const COMPOSER_GLOW_FOCUS =
-  '0 0 0 1px rgba(32, 184, 205, 0.7), 0 0 36px 6px rgba(32, 184, 205, 0.3), 0 0 88px 20px rgba(32, 184, 205, 0.16)';
-
 export interface ResearchAssistantViewProps {
   documents: DocumentItem[];
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
@@ -386,7 +381,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     timestamp: string;
   } | null>(null);
   const [showActionsDropdown, setShowActionsDropdown] = useState(false);
-  const [composerFocused, setComposerFocused] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -874,8 +868,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           }}
         />
         <div
-          className="relative bg-[#161818] rounded-[22px] pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 transition-[box-shadow] duration-300 min-h-[52px] sm:min-h-[48px]"
-          style={{ boxShadow: composerFocused ? COMPOSER_GLOW_FOCUS : COMPOSER_GLOW }}
+          className="s87-field relative pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 min-h-[52px] sm:min-h-[48px]"
         >
           <div className="relative flex-shrink-0">
             <button
@@ -929,8 +922,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           <textarea
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
-            onFocus={() => setComposerFocused(true)}
-            onBlur={() => setComposerFocused(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

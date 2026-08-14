@@ -17,12 +17,6 @@ const SUGGESTIONS = [
   'Compare clauses across versions'
 ];
 
-const BAR_GLOW =
-  '0 0 0 1px rgba(32, 184, 205, 0.45), 0 0 28px 4px rgba(32, 184, 205, 0.22), 0 0 72px 16px rgba(32, 184, 205, 0.12)';
-
-const BAR_GLOW_FOCUS =
-  '0 0 0 1px rgba(32, 184, 205, 0.7), 0 0 36px 6px rgba(32, 184, 205, 0.3), 0 0 88px 20px rgba(32, 184, 205, 0.16)';
-
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenEmailAuth,
   onOpenPrivacy,
@@ -31,7 +25,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onSelectTab
 }) => {
   const [query, setQuery] = useState('');
-  const [focused, setFocused] = useState(false);
 
   const handleAsk = (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -85,8 +78,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             />
 
             <div
-              className="relative flex items-center gap-3 bg-[#161818] rounded-[22px] pl-4 sm:pl-5 pr-3 min-h-[52px] sm:min-h-[56px] text-left transition-[box-shadow] duration-300"
-              style={{ boxShadow: focused ? BAR_GLOW_FOCUS : BAR_GLOW }}
+              className="s87-field relative flex items-center gap-3 pl-4 sm:pl-5 pr-3 min-h-[52px] sm:min-h-[56px] text-left" 
             >
               <span
                 className="flex-shrink-0 text-[15px] sm:text-base font-medium text-[#20B8CD] select-none"
@@ -100,8 +92,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
                 placeholder="Search your documents..."
                 className="flex-1 min-w-0 bg-transparent border-0 text-base text-[#F3F3EE] placeholder:text-white/30 focus:outline-none py-3 caret-[#20B8CD]"
               />

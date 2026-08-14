@@ -230,3 +230,53 @@
 .s87-app .shadow-2xl, .s87-app .shadow-xl, .s87-app .shadow-lg,
 .s87-app .shadow-md,  .s87-app .shadow-sm, .s87-app .shadow,
 .s87-app .shadow-xs,  .s87-app .shadow-2xs { box-shadow: none !important; }
+
+/* ── Field treatment ──────────────────────────────────────────────────────
+   One definition for every text field in the app, matching the composer:
+   a dark pill with a turquoise glow that brightens on focus. Defined here
+   rather than per-component so the look cannot drift — it was previously
+   duplicated as string literals in two files and absent everywhere else.
+   Checkboxes, radios, ranges and file inputs are excluded by type.         */
+:root {
+  --field-bg: #161818;
+  --field-glow:
+    0 0 0 1px rgba(32, 184, 205, 0.45),
+    0 0 28px 4px rgba(32, 184, 205, 0.22),
+    0 0 72px 16px rgba(32, 184, 205, 0.12);
+  --field-glow-focus:
+    0 0 0 1px rgba(32, 184, 205, 0.7),
+    0 0 36px 6px rgba(32, 184, 205, 0.3),
+    0 0 88px 20px rgba(32, 184, 205, 0.16);
+}
+
+.s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
+.s87-app input:not([type]),
+.s87-app textarea,
+.s87-app .s87-field {
+  background-color: var(--field-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--field-glow) !important;
+  color: var(--ink);
+  transition: box-shadow 0.25s ease;
+}
+
+/* Multi-line fields keep square-ish corners; a pill reads wrong once it wraps. */
+.s87-app textarea { border-radius: 18px; }
+
+.s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']):focus,
+.s87-app input:not([type]):focus,
+.s87-app textarea:focus,
+.s87-app .s87-field:focus-within {
+  box-shadow: var(--field-glow-focus) !important;
+  outline: none;
+}
+
+/* A wrapper carrying the treatment owns the glow; the control inside stays
+   plain so the two do not stack into a double ring. */
+.s87-app .s87-field input,
+.s87-app .s87-field textarea {
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+}
