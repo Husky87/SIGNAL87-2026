@@ -20,15 +20,9 @@ app.use(express.json({ limit: '50mb' }));
 // ==========================================
 
 // Health Check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    app: 'Signal87 AI',
-    timestamp: new Date().toISOString(),
-    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
-    openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
-    multiProviderFallbackEnabled: true
-  });
+app.get('/api/health', async (req, res) => {
+  const { default: h } = await import('./api/health');
+  return h(req as any, res as any);
 });
 
 // Transactional Welcome Email Endpoint
