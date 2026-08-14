@@ -243,7 +243,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   initialQuery,
   onInitialQueryConsumed
 }) => {
-  const [mode, setMode] = useState<'quick' | 'deep' | 'analyze'>('quick');
   const [inputQuery, setInputQuery] = useState('');
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -501,13 +500,21 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   };
 
-  const handleSendQuery = async (queryText?: string, explicitMode?: 'quick' | 'deep') => {
+  /**
+   * `research` picks the heavyweight multi-document synthesis instead of the
+   * assistant. It is an argument rather than component state on purpose: this
+   * used to be a sticky `mode` that only the preset chips could set and nothing
+   * ever reset, so choosing "Draft Executive Report" once sent every later
+   * message — including "what is the date on this?" — to the deep research
+   * engine, with no way back and nothing on screen saying so.
+   */
+  const handleSendQuery = async (queryText?: string, research = false) => {
     const userMsgText = queryText || inputQuery;
     if (!userMsgText.trim() || loading) return;
 
     if (!queryText) setInputQuery('');
 
-    const targetMode = explicitMode || mode;
+    const targetMode = research ? 'deep' : 'quick';
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -549,14 +556,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           documents: fullTextDocumentPayload,
           ingestedFilesData,
           attachedFiles
-        };
-      } else if (targetMode === 'analyze') {
-        endpoint = '/api/analyze';
-        bodyPayload = {
-          query: userMsgText,
-          documents: fullTextDocumentPayload,
-          analysisType: 'auto',
-          includeReasoningSteps: true
         };
       } else {
         const priorTurns = [...chatHistory, userMsg]
@@ -601,40 +600,10 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       const data = await res.json();
       const actualLatency = Date.now() - startTime;
 
-      // Handle /api/analyze response format
       let responseText = '';
       let reasoningSteps = data.reasoningSteps || [];
-      let deliverableTypeOverride = '';
 
-      if (targetMode === 'analyze') {
-        responseText = data.answer || 'Analysis complete.';
-        reasoningSteps = data.reasoningSteps || [];
-        deliverableTypeOverride = data.analysisType || 'qa';
-
-        // Add confidence indicator for analyze mode
-        if (data.confidence) {
-          responseText = `**Confidence Level:** ${data.confidence.toUpperCase()}\n\n${responseText}`;
-        }
-
-        // Append quantitative data summary if available
-        if (data.quantitativeData) {
-          const qData = data.quantitativeData;
-          if (Object.keys(qData.metrics).length > 0 || qData.trends.length > 0 || qData.calculations.length > 0) {
-            responseText += `\n\n### Extracted Data\n`;
-            if (Object.keys(qData.metrics).length > 0) {
-              responseText += `**Metrics:** ${Object.values(qData.metrics).join(', ')}\n`;
-            }
-            if (qData.trends.length > 0) {
-              responseText += `**Trends:** ${qData.trends.join(', ')}\n`;
-            }
-            if (qData.calculations.length > 0) {
-              responseText += `**Calculations:** ${qData.calculations.slice(0, 3).join(', ')}\n`;
-            }
-          }
-        }
-      } else {
-        responseText = data.text || 'Analysis synthesis complete.';
-      }
+      responseText = data.text || 'Analysis synthesis complete.';
 
       let excelExportData = null;
 
@@ -654,7 +623,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         responseText += `\n\n*System Note: Excel export data "${excelExportData.filename}" is available for download.*`;
       }
 
-      const routedDeliverableType = deliverableTypeOverride || determineDeliverableType(userMsgText, responseText, targetMode === 'deep');
+      const routedDeliverableType = determineDeliverableType(userMsgText, responseText, targetMode === 'deep');
 
       const aiMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
@@ -681,7 +650,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           latencyMs: actualLatency
         },
         reasoningSteps: reasoningSteps,
-        isDeepResearch: targetMode === 'deep' || targetMode === 'analyze'
+        isDeepResearch: targetMode === 'deep'
       };
 
       setChatHistory((prev) => [...prev, aiMsg]);
@@ -786,43 +755,36 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       id: 'draft',
       label: '📝 Draft Executive Report',
       prompt: 'Draft a comprehensive publication-grade executive brief synthesizing all active documents.',
-      mode: 'deep' as const
     },
     {
       id: 'compare',
       label: '⚖️ Compare Key Documents',
       prompt: 'Perform a side-by-side legal clause comparison across all active documents and flag key conflicts and risk escalation triggers.',
-      mode: 'quick' as const
     },
     {
       id: 'extract',
       label: '📊 Extract Financial Metrics',
       prompt: 'Extract all financial milestones, indemnification caps, and budget metrics into a clear Markdown table.',
-      mode: 'analyze' as const
     },
     {
       id: 'audit',
       label: '🔍 Audit Compliance & Deadlines',
       prompt: 'Audit all compliance timelines, retroactive notice windows, and penalty triggers across active agreements.',
-      mode: 'analyze' as const
     },
     {
       id: 'quantitative',
       label: '📈 Quantitative Analysis',
       prompt: 'Analyze all numerical data, calculations, percentages, trends, and metrics in the documents. Provide concrete numbers and statistical insights.',
-      mode: 'analyze' as const
     },
     {
       id: 'reasoning',
       label: '🧠 Logical Reasoning & Causality',
       prompt: 'Explain the causal relationships, logical chains, and underlying mechanisms in these documents. What causes what and why?',
-      mode: 'analyze' as const
     },
     {
       id: 'qa',
       label: '❓ Ask a Question',
       prompt: 'Ask me anything about these documents and I will provide direct, evidence-based answers with reasoning steps.',
-      mode: 'analyze' as const
     }
   ];
 
@@ -932,6 +894,25 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[#F3F3EE] placeholder:text-white/30 focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[#20B8CD]"
             rows={1}
           />
+
+          {/* Two send actions rather than a mode. The expensive multi-document
+              run is always a deliberate press, so nothing can silently redirect
+              an ordinary question into it. */}
+          <button
+            type="button"
+            onClick={() => handleSendQuery(undefined, true)}
+            disabled={!inputQuery.trim() || loading}
+            aria-label="Research across documents"
+            title="Research across your documents — slower, writes a full brief"
+            className={`flex-shrink-0 h-11 sm:h-9 px-3 flex items-center gap-1.5 rounded-full border transition-colors cursor-pointer text-[12.5px] font-medium ${
+              inputQuery.trim() && !loading
+                ? 'border-white/15 text-white/70 hover:text-[#F3F3EE] hover:border-white/30'
+                : 'border-white/5 text-white/20 cursor-not-allowed'
+            }`}
+          >
+            <Layers size={15} />
+            <span className="hidden sm:inline">Research</span>
+          </button>
 
           <button
             type="button"
@@ -1098,7 +1079,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                           key={chip.id}
                           onClick={() => {
                             setInputQuery(chip.prompt);
-                            setMode(chip.mode);
                             setShowActionsDropdown(false);
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-white/5 text-[13px] text-white/60 hover:text-[#F3F3EE] border-b border-white/5 last:border-b-0 cursor-pointer"
