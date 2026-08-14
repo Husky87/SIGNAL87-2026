@@ -49,6 +49,7 @@ import {
   saveSavedItemToFirestore,
   deleteSavedItemFromFirestore
 } from './lib/firestoreService';
+import { adoptLegacyWorkspace } from './lib/workspaceMigration';
 
 function readUserJson<T>(uid: string, key: string, fallback: T): T {
   try {
@@ -69,13 +70,23 @@ function writeUserJson(uid: string, key: string, value: unknown) {
   }
 }
 
+/**
+ * Rejects records that explicitly belong to somebody else.
+ *
+ * Every caller reads from a source that is already scoped to one account — a
+ * `signal87_*_{uid}` localStorage key, or a `users/{uid}/...` Firestore path —
+ * so this is a second guard, not the isolation boundary itself. It therefore
+ * accepts records carrying no ownership at all: returning false for those threw
+ * away anything written before the fields existed, and any item created locally
+ * before it had been stamped.
+ */
 function belongsToUser<T extends { userId?: string; owner?: string }>(
   item: T,
   user: { uid: string; email?: string | null }
 ): boolean {
   if (item.userId) return item.userId === user.uid;
   if (item.owner && user.email) return item.owner === user.email;
-  return false;
+  return true;
 }
 
 /* iOS shrinks the visual viewport when the keyboard opens but leaves the
@@ -427,6 +438,7 @@ export default function App() {
     }
 
     const uid = currentUser.uid;
+    adoptLegacyWorkspace(uid);
     const mine = <T extends { userId?: string; owner?: string }>(items: T[]) =>
       items.filter((item) => belongsToUser(item, currentUser));
 
@@ -481,7 +493,11 @@ export default function App() {
   }, [currentUser, sessions.length]);
 
   // Handlers for Saved notebook
-  const handleSaveSavedItem = (item: SavedItem) => {
+  const handleSaveSavedItem = (rawItem: SavedItem) => {
+    // Stamp the owner, as uploads already do. Without this every note and saved
+    // answer failed the belongsToUser check the moment it was created and
+    // disappeared from Saved immediately.
+    const item: SavedItem = { ...rawItem, userId: currentUser?.uid };
     setSavedItems((prev) => {
       const idx = prev.findIndex((s) => s.id === item.id);
       if (idx > -1) {
@@ -637,8 +653,12 @@ export default function App() {
       { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
       { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
     ]);
+    // Only this app's keys. localStorage.clear() wiped the entire origin,
+    // including storage belonging to nothing to do with the workspace.
     try {
-      localStorage.clear();
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('signal87_')) localStorage.removeItem(key);
+      }
       sessionStorage.clear();
     } catch (e) {
       console.warn('Storage wipe notice:', e);

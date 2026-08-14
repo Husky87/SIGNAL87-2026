@@ -176,6 +176,8 @@ export interface OrgStats {
 
 export interface SavedNote {
   id: string;
+  /** Owning account. Stamped on save so the item survives the per-user filter. */
+  userId?: string;
   type: 'note';
   title: string;
   body: string;
@@ -186,6 +188,8 @@ export interface SavedNote {
 
 export interface SavedAnswer {
   id: string;
+  /** Owning account. Stamped on save so the item survives the per-user filter. */
+  userId?: string;
   type: 'answer';
   text: string;
   citations?: Citation[];
