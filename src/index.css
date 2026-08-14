@@ -232,13 +232,22 @@
 .s87-app .shadow-xs,  .s87-app .shadow-2xs { box-shadow: none !important; }
 
 /* ── Field treatment ──────────────────────────────────────────────────────
-   One definition for every text field in the app, matching the composer:
-   a dark pill with a turquoise glow that brightens on focus. Defined here
-   rather than per-component so the look cannot drift — it was previously
-   duplicated as string literals in two files and absent everywhere else.
-   Checkboxes, radios, ranges and file inputs are excluded by type.         */
+   One definition for every text field in the app. Defined here rather than
+   per-component so the look cannot drift — it was previously duplicated as
+   string literals in two files and absent everywhere else.
+
+   Ordinary fields rest on a quiet ring and bloom on focus, so a form with
+   several of them shows where the cursor actually is. The composer keeps the
+   full glow at rest: it is the hero element, alone on its screen, and is not
+   competing with anything.
+
+   Checkboxes, radios, ranges and file inputs are excluded by type.          */
 :root {
   --field-bg: #161818;
+  /* At rest: the turquoise edge, no bloom. */
+  --field-ring:
+    0 0 0 1px rgba(32, 184, 205, 0.3),
+    0 0 12px 0 rgba(32, 184, 205, 0.07);
   --field-glow:
     0 0 0 1px rgba(32, 184, 205, 0.45),
     0 0 28px 4px rgba(32, 184, 205, 0.22),
@@ -251,7 +260,19 @@
 
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
 .s87-app input:not([type]),
-.s87-app textarea,
+.s87-app textarea {
+  background-color: var(--field-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--field-ring) !important;
+  color: var(--ink);
+  transition: box-shadow 0.25s ease;
+}
+
+/* Multi-line fields keep square-ish corners; a pill reads wrong once it wraps. */
+.s87-app textarea { border-radius: 18px; }
+
+/* The composer carries the full glow whether or not it is focused. */
 .s87-app .s87-field {
   background-color: var(--field-bg);
   border: 0;
@@ -260,9 +281,6 @@
   color: var(--ink);
   transition: box-shadow 0.25s ease;
 }
-
-/* Multi-line fields keep square-ish corners; a pill reads wrong once it wraps. */
-.s87-app textarea { border-radius: 18px; }
 
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']):focus,
 .s87-app input:not([type]):focus,
