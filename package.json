@@ -9,7 +9,11 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:payload": "tsx tests/payload.test.ts",
+    "test:read": "node tests/run-reading.mjs",
+    "test:answer": "tsx tests/answering.e2e.ts",
+    "test": "npm run test:payload && npm run test:read && npm run test:answer"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
