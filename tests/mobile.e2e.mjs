@@ -89,6 +89,21 @@ try {
   });
   check('taps register without the double-tap-zoom delay', btnTouch === 'manipulation', String(btnTouch));
 
+  // --- a tap must be acknowledged ---
+  const press = await page.evaluate(() => {
+    const b = document.querySelector('button');
+    if (!b) return null;
+    const rules = [...document.styleSheets].flatMap((sheet) => {
+      try { return [...sheet.cssRules]; } catch { return []; }
+    });
+    const hasPressed = rules.some(
+      (r) => r.conditionText === '(hover: none)' &&
+        [...(r.cssRules || [])].some((inner) => /:active/.test(inner.selectorText || '') && /opacity/.test(inner.style?.cssText || ''))
+    );
+    return { hasPressed, transition: getComputedStyle(b).transitionProperty };
+  });
+  check('tapping a control gives a pressed state, since hover cannot fire on touch', press?.hasPressed === true, JSON.stringify(press));
+
   // --- nothing runs off the side ---
   const overflow = await page.evaluate(() => ({
     doc: document.documentElement.scrollWidth,

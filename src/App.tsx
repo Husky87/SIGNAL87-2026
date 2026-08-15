@@ -43,6 +43,7 @@ import {
   deleteSavedItemFromFirestore
 } from './lib/firestoreService';
 import { adoptLegacyWorkspace } from './lib/workspaceMigration';
+import { useBackDismiss } from './lib/useBackDismiss';
 
 function readUserJson<T>(uid: string, key: string, fallback: T): T {
   try {
@@ -248,6 +249,13 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
   const [showMobileModelMenu, setShowMobileModelMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // The back gesture closes whatever is on top, rather than leaving the app.
+  // Registered outermost-first so nesting unwinds in the order things opened.
+  useBackDismiss(mobileMenuOpen, () => setMobileMenuOpen(false));
+  useBackDismiss(isUploadOpen, () => setIsUploadOpen(false));
+  useBackDismiss(!!selectedDocForDetail, () => setSelectedDocForDetail(null));
+  useBackDismiss(showMobileModelMenu, () => setShowMobileModelMenu(false));
 
   const getModelLabel = (model: string) => {
     if (model === 'gemini-2.5-pro') return 'Signal87 Deep';

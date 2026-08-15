@@ -153,6 +153,43 @@
   }
 }
 
+/* Touch feedback.
+   The interface carries ~230 hover states and almost no pressed states. A mouse
+   pointer gets continuous feedback from hover; a finger gets none of it, and
+   hover cannot fire before a tap. So on touch devices a tap landed with no
+   acknowledgement at all until the next screen appeared — which, on a slow
+   request, reads as a dead button and gets tapped again.
+
+   A press now dims and settles by a hair, the way a native control does. It is
+   deliberately instant on the way down and eased on the way back, because
+   feedback that fades in is not felt as a response to the touch. */
+@media (hover: none) {
+  button:active,
+  a:active,
+  [role='button']:active,
+  [role='menuitem']:active,
+  [role='option']:active {
+    opacity: 0.62;
+    transform: scale(0.985);
+    transition: none;
+  }
+
+  button,
+  a,
+  [role='button'],
+  [role='menuitem'],
+  [role='option'] {
+    transition: opacity 140ms ease-out, transform 140ms ease-out;
+  }
+
+  /* Anything genuinely unavailable should not appear to respond. */
+  button:disabled:active,
+  [aria-disabled='true']:active {
+    opacity: inherit;
+    transform: none;
+  }
+}
+
 /* Respect the system setting. Long answers stream in with transitions on
    nearly every surface, which is exactly what this setting is asking to stop. */
 @media (prefers-reduced-motion: reduce) {
