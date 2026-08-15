@@ -78,6 +78,94 @@
   button { min-height: 44px; }
 }
 
+/* ==========================================================================
+   Touch behaviour
+   Everything below exists because the defaults are browser defaults, and on a
+   phone each one reads as "this is a web page" rather than "this is an app".
+   ========================================================================== */
+@layer base {
+  html {
+    /* iOS enlarges text on rotation to landscape unless told not to. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    /* The grey flash Safari paints over every tapped element. No native app
+       does this; it is the single most recognisable browser tell. */
+    -webkit-tap-highlight-color: transparent;
+    /* Stops the rubber-band drag of the whole page behind the UI. */
+    overscroll-behavior-y: none;
+  }
+
+  /* Chrome/Safari wait ~300ms after a tap to see if a double-tap-to-zoom is
+     coming. Declaring intent removes the wait, which is most of what makes
+     native taps feel instant. */
+  button,
+  a,
+  [role='button'],
+  [role='menuitem'],
+  input,
+  textarea,
+  select,
+  label {
+    touch-action: manipulation;
+  }
+
+  /* Long-pressing anything interactive should not offer to copy it or raise
+     the iOS share sheet for a link. Text content stays selectable. */
+  button,
+  a,
+  [role='button'],
+  [role='menuitem'] {
+    -webkit-touch-callout: none;
+  }
+
+  /* Contract text, answers and citations are the point of the product, so they
+     must stay selectable even though the controls around them are not. */
+  p, h1, h2, h3, h4, h5, h6, li, td, th, code, pre, blockquote {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Safari zooms the viewport whenever a focused field's text is below 16px, and
+   does not zoom back out when the field blurs — the layout is left scaled and
+   scrolled sideways. Sizes below 16px are fine for reading; they are not fine
+   for typing, so every field is floored on touch devices only, leaving the
+   pointer-based layout exactly as designed. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Momentum scrolling, and containment so a scrolled-to-the-end list does not
+   drag the page behind it. */
+@layer base {
+  [class*='overflow-y-auto'],
+  [class*='overflow-auto'],
+  [class*='overflow-y-scroll'] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Respect the system setting. Long answers stream in with transitions on
+   nearly every surface, which is exactly what this setting is asking to stop. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* =========================================================================
    GENERATED — Clear palette overrides for legacy "Chambers" color classes.
    Scanned from every .tsx under src/. Do not hand-edit stale entries here;

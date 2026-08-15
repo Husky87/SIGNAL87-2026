@@ -52,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onSelectTab('team')}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <Users size={14} className="text-slate-500" />
                   <span>Team</span>
@@ -61,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={onOpenBlog}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <BookOpen size={14} className="text-slate-500" />
                   <span>Blog & Insights</span>
@@ -70,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={onOpenMedia}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <Tv size={14} className="text-slate-500" />
                   <span>Media & Press</span>
@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onSelectTab('privacy')}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-emerald-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-emerald-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <Shield size={14} className="text-emerald-600" />
                   <span>Privacy Policy</span>
@@ -97,7 +97,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onSelectTab('terms')}
-                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[38px] flex items-center gap-2"
+                  className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <BookOpen size={14} className="text-slate-500" />
                   <span>Terms of Service</span>

@@ -10,6 +10,23 @@
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+    <!-- Installed-app identity. Without a manifest and a real PNG touch icon,
+         adding this to a home screen produced a screenshot thumbnail and opened
+         in a browser tab with its chrome intact. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+    <meta name="application-name" content="Signal87" />
+    <meta name="apple-mobile-web-app-title" content="Signal87" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Translucent so the app's own background runs under the clock and
+         battery, rather than iOS painting an opaque white strip above it. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1E2020" />
+    <meta name="color-scheme" content="dark" />
+    <!-- Phone numbers and dates in contract text are not links. -->
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
+
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Signal87 AI" />

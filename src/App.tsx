@@ -912,7 +912,14 @@ export default function App() {
       {/* Main Workspace Area */}
       <div ref={mainScrollRef} className="flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-hidden">
         {/* Persistent Mobile Top Header (Authentic Google Drive Pill Search Bar) */}
-        <header className="flex md:hidden bg-[var(--paper)] px-4 pt-3.5 pb-2.5 items-center flex-shrink-0 z-30 relative">
+        {/* Installed on a home screen the app runs under the status bar, so the
+            top inset has to be paid here or the search field sits beneath the
+            clock. max() keeps the normal padding in a browser tab, where the
+            inset is zero. */}
+        <header
+          className="flex md:hidden bg-[var(--paper)] px-4 pb-2.5 items-center flex-shrink-0 z-30 relative"
+          style={{ paddingTop: 'max(0.875rem, env(safe-area-inset-top))' }}
+        >
           <div className="w-full flex items-center gap-2 bg-[var(--card)] px-3 py-1.5 border border-[var(--rule)] rounded-full transition-">
             {/* Hamburger button */}
             <button

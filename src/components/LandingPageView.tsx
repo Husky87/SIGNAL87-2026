@@ -37,7 +37,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex items-center gap-2 min-h-0 p-0 bg-transparent border-0 text-left cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+          className="flex items-center gap-2 min-h-[44px] px-1 -mx-1 bg-transparent border-0 text-left cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
           title="Signal87"
         >
           <Signal87Logo size={18} />
@@ -49,7 +49,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <button
           type="button"
           onClick={onOpenEmailAuth}
-          className="min-h-0 h-8 px-2 text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors cursor-pointer"
+          className="min-h-[44px] px-3 text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors cursor-pointer"
         >
           Log in
         </button>

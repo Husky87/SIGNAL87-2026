@@ -47,7 +47,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+          className="absolute top-4 right-4 min-w-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
         >
           <X size={18} />
         </button>
