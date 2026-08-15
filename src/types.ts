@@ -123,26 +123,6 @@ export interface KnowledgeLink {
   strength: number;
 }
 
-export interface ReportTemplate {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  iconName: string;
-}
-
-export interface GeneratedReport {
-  id: string;
-  title: string;
-  templateId: string;
-  content: string;
-  generatedAt: string;
-  author: string;
-  sourcesCount: number;
-  status: 'Draft' | 'Final' | 'Exported';
-  tags: string[];
-}
-
 export interface ComparisonResult {
   documentIds: string[];
   summary: string;

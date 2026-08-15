@@ -10,7 +10,6 @@ export const LEGACY_WORKSPACE_KEYS = [
   'documents',
   'folders',
   'saved_items',
-  'reports',
   'attached_files'
 ];
 

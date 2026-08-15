@@ -42,7 +42,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { User } from '../lib/firebase';
-import { DocumentItem, ChatMessage, Citation, GeneratedReport } from '../types';
+import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, determineDeliverableType } from './ActionRouterComponents';
@@ -57,7 +57,6 @@ export interface ResearchAssistantViewProps {
   onChangeModel: (model: string) => void;
   onOpenUpload?: () => void;
   onUploadSuccess?: (doc: DocumentItem, parsedFile?: ParsedFileResult) => void;
-  onSaveReport?: (rep: GeneratedReport) => void;
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   activeSessionId?: string | null;
@@ -231,7 +230,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   onChangeModel,
   onOpenUpload,
   onUploadSuccess,
-  onSaveReport,
   chatHistory,
   setChatHistory,
   currentUser,
@@ -369,7 +367,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     setSelectedDocIds((prev) => Array.from(new Set([...prev, doc.id])));
   };
 
-  const [savedReportIds, setSavedReportIds] = useState<Set<string>>(new Set());
 
   // Split Screen Canvas State
   const [splitViewOpen, setSplitViewOpen] = useState(false);
@@ -714,26 +711,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedMsgId(id);
     setTimeout(() => setCopiedMsgId(null), 2000);
-  };
-
-  const handleSaveToReports = (id: string, title: string, content: string) => {
-    const newReport: GeneratedReport = {
-      id: `rep-${Date.now()}`,
-      title: title || `AI Workspace Report - ${new Date().toLocaleDateString()}`,
-      templateId: 'custom-workspace',
-      content: content,
-      generatedAt: new Date().toISOString(),
-      author: 'ceo@signal87.ai',
-      sourcesCount: selectedDocIds.length,
-      status: 'Final',
-      tags: ['AI Workspace', 'Deliverable Brief']
-    };
-
-    if (onSaveReport) {
-      onSaveReport(newReport);
-    }
-
-    setSavedReportIds((prev) => new Set(prev).add(id));
   };
 
   const handleExportPDF = (title: string, content: string) => {
@@ -1143,10 +1120,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                                   msg={msg}
                                   userPrompt={previousUserMsg}
                                   copiedMsgId={copiedMsgId}
-                                  savedReportIds={savedReportIds}
                                   onCopy={handleCopy}
                                   onExportPDF={handleExportPDF}
-                                  onSaveReport={(id, title, content) => handleSaveToReports(id, title, content)}
                                   onInspectInCanvas={(item) => {
                                     setActiveArtifact({
                                       id: item.id,

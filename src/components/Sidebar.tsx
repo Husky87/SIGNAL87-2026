@@ -28,13 +28,9 @@ import { Signal87Logo } from './Signal87Logo';
 export type NavTab =
   | 'documents'
   | 'research'
-  | 'traces'
   | 'admin'
   | 'dashboard'
-  | 'projects'
   | 'compare'
-  | 'reports'
-  | 'searches'
   | 'team'
   | 'organization'
   | 'saved'
@@ -148,7 +144,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'saved', label: 'Saved', icon: Bookmark },
-    { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'team', label: 'Team', icon: Users },
     { id: 'admin', label: 'Settings', icon: Settings },
   ];
@@ -209,7 +204,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       !isUpload &&
       ((item.id === 'research' && currentTab === 'research') ||
         (item.id === 'saved' && currentTab === 'saved') ||
-        (item.id === 'reports' && currentTab === 'reports') ||
         (item.id === 'team' && currentTab === 'team') ||
         (item.id === 'admin' &&
           (currentTab === 'admin' || currentTab === 'organization')));

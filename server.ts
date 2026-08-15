@@ -70,12 +70,6 @@ app.post("/api/compare", async (req, res) => {
   return h(req as any, res as any);
 });
 
-// AI Report Generator Endpoint with Fallback
-app.post("/api/reports/generate", async (req, res) => {
-  const { default: h } = await import("./api/reports/generate");
-  return h(req as any, res as any);
-});
-
 // AI Document Upload & Auto-Processing Endpoint with Fallback
 app.post("/api/documents/process", async (req, res) => {
   const { default: h } = await import("./api/documents/process");

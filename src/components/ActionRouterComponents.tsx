@@ -486,7 +486,6 @@ export const GeminiMarkdownRenderer: React.FC<{
 
 // Legacy exports kept for backwards compatibility
 export const StandardQAOutput = GeminiMarkdownRenderer;
-export const ReportCardOutput = GeminiMarkdownRenderer;
 export const DataTableOutput = GeminiMarkdownRenderer;
 export function determineDeliverableType(
   _prompt?: string,
@@ -503,10 +502,8 @@ export const ActionRouterCard: React.FC<{
   msg: ChatMessage;
   userPrompt?: string;
   copiedMsgId: string | null;
-  savedReportIds?: Set<string>;
   onCopy: (id: string, text: string) => void;
   onExportPDF: (title: string, text: string) => void;
-  onSaveReport?: (id: string, title: string, content: string) => void;
   onInspectInCanvas?: (msg: ChatMessage) => void;
   onSelectDocument?: (doc: any) => void;
   documents?: any[];

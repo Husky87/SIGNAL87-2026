@@ -6,17 +6,13 @@ import { DocumentUploadModal } from './components/DocumentUploadModal';
 import { DocumentDetailModal } from './components/DocumentDetailModal';
 import { ResearchAssistantView } from './components/ResearchAssistantView';
 import { MultiDocCompareView } from './components/MultiDocCompareView';
-import { ReportsView } from './components/ReportsView';
 import { OrganizationView } from './components/OrganizationView';
-import { TracesView } from './components/TracesView';
 import { AdminView } from './components/AdminView';
-import { SavedSearchesView } from './components/SavedSearchesView';
 import { TeamView } from './components/TeamView';
 import { Footer } from './components/Footer';
 import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
-import { QuickAIAgentWidget } from './components/QuickAIAgentWidget';
 import { LandingPageView } from './components/LandingPageView';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -30,21 +26,18 @@ import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { SavedView } from './components/SavedView';
 import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider, getRedirectResult, signInWithGoogleRedirect } from './lib/firebase';
-import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical } from 'lucide-react';
+import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp } from 'lucide-react';
 
 import {
-  INITIAL_REPORT_TEMPLATES,
   INITIAL_AUDIT_LOGS,
   INITIAL_ORG_STATS
 } from './data/mockData';
 
-import { DocumentItem, FolderItem, GeneratedReport, ChatMessage, SavedItem, SavedAnswer } from './types';
+import { DocumentItem, FolderItem, ChatMessage, SavedItem, SavedAnswer } from './types';
 import {
   fetchDocumentsFromFirestore,
   saveDocumentToFirestore,
   deleteDocumentFromFirestore,
-  fetchReportsFromFirestore,
-  saveReportToFirestore,
   fetchSavedItemsFromFirestore,
   saveSavedItemToFirestore,
   deleteSavedItemFromFirestore
@@ -141,7 +134,6 @@ export default function App() {
 
   const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>([]);
 
-  const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [workspaceReady, setWorkspaceReady] = useState(false);
 
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
@@ -240,12 +232,6 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, folderId } : d))
     );
   };
-
-  // Persist reports to localStorage
-  useEffect(() => {
-    if (!currentUser || !workspaceReady) return;
-    writeUserJson(currentUser.uid, 'reports', reports);
-  }, [reports, currentUser, workspaceReady]);
 
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -429,7 +415,6 @@ export default function App() {
       setWorkspaceReady(false);
       setDocuments([]);
       setSavedItems([]);
-      setReports([]);
       setAttachedFiles([]);
       setSessions([]);
       setActiveSessionId(null);
@@ -444,7 +429,6 @@ export default function App() {
 
     setDocuments(mine(readUserJson<DocumentItem[]>(uid, 'documents', [])));
     setSavedItems(mine(readUserJson<SavedItem[]>(uid, 'saved_items', [])));
-    setReports(readUserJson<GeneratedReport[]>(uid, 'reports', []));
     setAttachedFiles(readUserJson(uid, 'attached_files', []));
     const userFolders = readUserJson<FolderItem[]>(uid, 'folders', []);
     setFolders(userFolders.length > 0 ? userFolders : defaultFolders);
@@ -461,11 +445,6 @@ export default function App() {
       const remoteDocs = await fetchDocumentsFromFirestore();
       if (!cancelled) {
         setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
-      }
-
-      const remoteReports = await fetchReportsFromFirestore();
-      if (!cancelled) {
-        setReports(remoteReports);
       }
 
       const remoteSaved = await fetchSavedItemsFromFirestore();
@@ -619,11 +598,6 @@ export default function App() {
     if (doc) saveDocumentToFirestore({ ...doc, permissions });
   };
 
-  const handleSaveReport = (newRep: GeneratedReport) => {
-    setReports((prev) => [newRep, ...prev]);
-    saveReportToFirestore(newRep); // Persist to Firestore
-  };
-
   // Carry the library's selection into the compare view — it holds its own
   // selection state, so without this the chosen documents were dropped and the
   // user landed on an empty comparison screen.
@@ -647,7 +621,6 @@ export default function App() {
     setChatHistory([]);
     setPendingCompareIds([]);
     setNewNoteRequestId(0);
-    setReports([]);
     setFolders([
       { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
       { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
@@ -734,6 +707,21 @@ export default function App() {
     setPendingHomeQuery(trimmed);
   };
 
+  /**
+   * Sends whatever is in the mobile search box to the assistant.
+   *
+   * That box only ever filtered file names, so asking it a real question — the
+   * obvious thing to do with a search field on a phone — returned an empty list
+   * and no way forward. It now hands the text to the same pathway the home
+   * screen uses, which starts a session and answers it against the library.
+   */
+  const handleAskFromSearch = () => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    handleAskFromHome(trimmed);
+    setSearchQuery('');
+  };
+
   const handleOpenSessionFromHome = (id: string) => {
     setActiveSessionId(id);
     setCurrentTab('research');
@@ -795,18 +783,12 @@ export default function App() {
         return 'Signal87 AI';
       case 'documents':
         return 'Documents';
-      case 'projects':
-        return 'Projects';
       case 'admin':
         return 'Settings & Admin';
       case 'dashboard':
         return 'Dashboard';
       case 'compare':
         return 'Comparison';
-      case 'reports':
-        return 'AI Reports';
-      case 'searches':
-        return 'Saved Searches';
       case 'team':
         return 'Team';
       case 'organization':
@@ -941,29 +923,52 @@ export default function App() {
               <Menu size={20} />
             </button>
 
-            {/* Input Search - Search documents */}
-            <div className="flex-1 flex items-center">
+            {/* Search, or ask.
+                Typing filters the library as before. Submitting — the phone
+                keyboard's Search key, or the arrow — sends the text to the
+                assistant and answers it, so a question typed here does not dead
+                end in an empty file list. */}
+            <form
+              className="flex-1 flex items-center min-w-0"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAskFromSearch();
+              }}
+            >
               <input
                 type="text"
-                placeholder="Search documents"
+                enterKeyHint="search"
+                placeholder="Search or ask a question"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  if (currentTab !== 'documents' && currentTab !== 'searches') {
+                  if (currentTab !== 'documents') {
                     setCurrentTab('documents');
                   }
                 }}
                 className="w-full min-w-0 bg-transparent border-0 text-base text-[var(--ink)] placeholder-[var(--ink-2)] focus:outline-none py-1"
               />
               {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="p-1 text-[var(--slate)] hover:text-[var(--ink)] cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
+                <>
+                  <button
+                    type="submit"
+                    aria-label="Ask this question"
+                    title="Ask this question"
+                    className="p-1.5 text-[var(--accent)] hover:text-[var(--accent-ink)] cursor-pointer"
+                  >
+                    <ArrowUp size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearchQuery('')}
+                    className="p-1 text-[var(--slate)] hover:text-[var(--ink)] cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </>
               )}
-            </div>
+            </form>
 
             {/* Model Indicator/Selector Button - hidden below 640px to save header width; model switching moves into the More menu there */}
             <button
@@ -1093,7 +1098,6 @@ export default function App() {
               onChangeModel={setSelectedModel}
               onOpenUpload={() => setIsUploadOpen(true)}
               onUploadSuccess={handleUploadSuccess}
-              onSaveReport={handleSaveReport}
               chatHistory={chatHistory}
               setChatHistory={setChatHistory}
               activeSessionId={activeSessionId}
@@ -1108,33 +1112,10 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'traces' && (
-            <TracesView onSelectTrace={() => setCurrentTab('research')} />
-          )}
-
           {currentTab === 'compare' && (
             <div className="flex-1 min-h-0 overflow-y-auto">
               <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} />
             </div>
-          )}
-
-          {currentTab === 'reports' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <ReportsView
-                templates={INITIAL_REPORT_TEMPLATES}
-                reports={reports}
-                documents={myDocuments}
-                onSaveReport={handleSaveReport}
-              />
-            </div>
-          )}
-
-          {currentTab === 'searches' && (
-            <SavedSearchesView
-              documents={myDocuments}
-              initialQuery={searchQuery}
-              onSelectDocument={setSelectedDocForDetail}
-            />
           )}
 
           {currentTab === 'saved' && (

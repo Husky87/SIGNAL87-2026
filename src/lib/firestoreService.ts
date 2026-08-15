@@ -13,7 +13,7 @@ import {
   limit,
   getDocFromServer
 } from 'firebase/firestore';
-import { DocumentItem, Project, GeneratedReport, ChatMessage, SavedItem } from '../types';
+import { DocumentItem, Project, ChatMessage, SavedItem } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -97,7 +97,6 @@ export async function testFirestoreConnection() {
 
 const DOCS_COLLECTION = 'documents';
 const PROJECTS_COLLECTION = 'projects';
-const REPORTS_COLLECTION = 'reports';
 const CHAT_COLLECTION = 'chat_messages';
 const SAVED_ITEMS_COLLECTION = 'saved_items';
 
@@ -187,38 +186,6 @@ export async function saveProjectToFirestore(project: Project): Promise<void> {
       documentIds: project.documentIds || [],
       status: project.status,
       createdAt: project.createdAt
-    }, { merge: true });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, docPath);
-  }
-}
-
-export async function fetchReportsFromFirestore(): Promise<GeneratedReport[]> {
-  if (!currentUid()) return [];
-  try {
-    const querySnapshot = await getDocs(userCollection(REPORTS_COLLECTION));
-    const reportsList: GeneratedReport[] = [];
-    querySnapshot.forEach((docSnap) => {
-      reportsList.push({ id: docSnap.id, ...docSnap.data() } as GeneratedReport);
-    });
-    return reportsList;
-  } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, userPath(REPORTS_COLLECTION));
-    return [];
-  }
-}
-
-export async function saveReportToFirestore(report: GeneratedReport): Promise<void> {
-  const docPath = userPath(REPORTS_COLLECTION, report.id);
-  try {
-    if (!currentUid()) return;
-    await setDoc(userDocRef(REPORTS_COLLECTION, report.id), {
-      title: report.title,
-      templateId: report.templateId,
-      content: report.content,
-      author: report.author,
-      generatedAt: report.generatedAt,
-      userId: currentUid()
     }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
