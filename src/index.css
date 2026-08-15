@@ -423,3 +423,11 @@
   border-radius: 0;
   box-shadow: none !important;
 }
+
+/* Placeholder shimmer. A slow, low-contrast sweep — the point is to say "still
+   arriving", not to draw the eye to something that is about to be replaced. */
+@keyframes s87-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

@@ -136,6 +136,15 @@ export default function App() {
   const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; dataUrl?: string }[]>([]);
 
   const [workspaceReady, setWorkspaceReady] = useState(false);
+  /**
+   * True while the library is still arriving from Firestore.
+   *
+   * Without it the file list rendered its empty state — "No files yet" — during
+   * every cold start, then replaced it with the files a moment later. Telling
+   * someone their documents are gone and then taking it back is worse than
+   * showing nothing.
+   */
+  const [documentsLoading, setDocumentsLoading] = useState(true);
 
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
   const [stats, setStats] = useState(INITIAL_ORG_STATS);
@@ -346,11 +355,11 @@ export default function App() {
     document.title = 'Signal87 AI';
   }, [currentTab]);
 
-  // Scroll Position Reset on Route/Tab Navigation (Start at Top)
+  // Reset the window's own scroll on tab change. Views keep their internal
+  // scroll position themselves (useScrollMemory) — this used to also zero
+  // mainScrollRef, which both defeated that and did nothing useful, since the
+  // element it points at is overflow-hidden and never scrolls.
   useEffect(() => {
-    if (mainScrollRef.current) {
-      mainScrollRef.current.scrollTop = 0;
-    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentTab]);
 
@@ -449,15 +458,22 @@ export default function App() {
     setWorkspaceReady(true);
 
     let cancelled = false;
+    setDocumentsLoading(true);
     async function syncFirestoreData() {
-      const remoteDocs = await fetchDocumentsFromFirestore();
-      if (!cancelled) {
-        setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
-      }
+      try {
+        const remoteDocs = await fetchDocumentsFromFirestore();
+        if (!cancelled) {
+          setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
+        }
 
-      const remoteSaved = await fetchSavedItemsFromFirestore();
-      if (!cancelled) {
-        setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
+        const remoteSaved = await fetchSavedItemsFromFirestore();
+        if (!cancelled) {
+          setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
+        }
+      } finally {
+        // Also on failure. Leaving this true would leave the library showing
+        // placeholder rows forever rather than saying it is empty.
+        if (!cancelled) setDocumentsLoading(false);
       }
     }
 
@@ -1076,6 +1092,7 @@ export default function App() {
             <div className="flex-1 flex flex-col min-h-0">
               <DocumentLibraryView
                 documents={myDocuments}
+                loading={documentsLoading && myDocuments.length === 0}
                 folders={folders}
                 filesView={filesView}
                 initialSearch={searchQuery}

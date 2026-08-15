@@ -80,12 +80,19 @@
       }
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Inter, served from this origin. Previously two preconnects and a
+         stylesheet request to Google before a single glyph could be drawn; on a
+         phone that is a round trip to a third party on every cold start, and one
+         a restrictive network can simply refuse. Preloaded so the font is in
+         flight alongside the stylesheet rather than discovered after it. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/inter-var-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+    <link rel="stylesheet" href="/fonts/inter.css" />
   </head>
   <body>
     <div id="root"></div>

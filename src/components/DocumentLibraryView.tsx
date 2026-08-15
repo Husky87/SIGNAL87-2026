@@ -31,6 +31,8 @@ import {
   MinusSquare
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
+import { useScrollMemory } from '../lib/useScrollMemory';
+import { DocumentGridSkeleton, DocumentListSkeleton, LoadingAnnouncement } from './DocumentSkeleton';
 import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
@@ -39,6 +41,8 @@ interface DocumentLibraryViewProps {
   documents: DocumentItem[];
   folders?: FolderItem[];
   filesView?: FilesView;
+  /** True while the library is still arriving. Shows placeholders, not "empty". */
+  loading?: boolean;
   onSelectDocument: (doc: DocumentItem) => void;
   onOpenUpload: (folderId?: string) => void;
   onCompareSelected?: (docs: DocumentItem[]) => void;
@@ -87,6 +91,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   documents,
   folders = [],
   filesView = 'workspace',
+  loading = false,
   onSelectDocument,
   onOpenUpload,
   onCompareSelected,
@@ -137,6 +142,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Two separate marks: the anchor a shift-range measures from, and the cursor the
   // arrow keys move. Conflating them makes shift+arrow collapse onto one item.
+  const scrollRef = useScrollMemory<HTMLDivElement>(`files:${filesView}:${activeFolderId ?? 'root'}`);
   const [rangeAnchorId, setRangeAnchorId] = useState<string | null>(null);
   const [cursorId, setCursorId] = useState<string | null>(null);
   /**
@@ -1017,7 +1023,12 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)] min-h-full w-full max-w-full overflow-x-hidden">
+      {/* Keyed per list, so Starred, Trash and each folder each keep their own
+          place rather than sharing one position between them. */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)] min-h-full w-full max-w-full overflow-x-hidden"
+      >
         <div className="max-w-[1100px] mx-auto px-5 md:px-10 py-8 space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1723,8 +1734,17 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             </div>
           )}
 
+          {/* Loading. Checked before the empty state, which otherwise announced
+              an empty library on every cold start and then took it back. */}
+          {loading && (
+            <>
+              <LoadingAnnouncement label="Loading your files" />
+              {viewMode === 'grid' ? <DocumentGridSkeleton /> : <DocumentListSkeleton />}
+            </>
+          )}
+
           {/* Empty state */}
-          {filteredDocs.length === 0 && (
+          {!loading && filteredDocs.length === 0 && (
             <div className="py-16 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-[var(--raised)] text-[var(--ink-2)] flex items-center justify-center mx-auto">
                 <FolderOpen size={22} />

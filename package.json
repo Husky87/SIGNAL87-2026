@@ -13,12 +13,14 @@
     "test:payload": "tsx tests/payload.test.ts",
     "test:read": "node tests/run-reading.mjs",
     "test:answer": "tsx tests/answering.e2e.ts",
-    "test": "npm run test:payload && npm run test:read && npm run test:answer && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back",
+    "test": "npm run test:payload && npm run test:read && npm run test:answer && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back && npm run test:polish",
     "test:newmenu": "node tests/newmenu.e2e.mjs",
     "test:quickanswer": "node tests/quickanswer.e2e.mjs",
     "icons": "node tests/make-icons.mjs",
     "test:mobile": "node tests/mobile.e2e.mjs",
-    "test:back": "node tests/backdismiss.e2e.mjs"
+    "test:back": "node tests/backdismiss.e2e.mjs",
+    "fonts": "node tests/make-fonts.mjs",
+    "test:polish": "node tests/polish.e2e.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
