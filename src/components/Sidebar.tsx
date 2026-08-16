@@ -17,8 +17,6 @@ import {
   Share2,
   Trash2,
   LogOut,
-  FileText,
-  Users,
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { getTrialStatus } from '../lib/trial';
@@ -144,7 +142,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'saved', label: 'Saved', icon: Bookmark },
-    { id: 'team', label: 'Team', icon: Users },
     { id: 'admin', label: 'Settings', icon: Settings },
   ];
 
@@ -204,7 +201,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       !isUpload &&
       ((item.id === 'research' && currentTab === 'research') ||
         (item.id === 'saved' && currentTab === 'saved') ||
-        (item.id === 'team' && currentTab === 'team') ||
         (item.id === 'admin' &&
           (currentTab === 'admin' || currentTab === 'organization')));
 
