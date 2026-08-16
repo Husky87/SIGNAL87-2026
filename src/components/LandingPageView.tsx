@@ -4,7 +4,7 @@ import { Footer } from './Footer';
 import { NavTab } from './Sidebar';
 
 interface LandingPageViewProps {
-  onOpenEmailAuth: () => void;
+  onOpenEmailAuth: (mode?: 'signup' | 'signin') => void;
   onOpenPrivacy: () => void;
   onOpenBlog: () => void;
   onOpenMedia: () => void;
@@ -46,13 +46,22 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={onOpenEmailAuth}
-          className="min-h-[44px] px-3 text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors cursor-pointer"
-        >
-          Log in
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenEmailAuth('signin')}
+            className="min-h-[44px] px-3.5 text-[13px] font-medium text-white/55 hover:text-white transition-colors cursor-pointer"
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenEmailAuth('signup')}
+            className="min-h-[40px] px-4 bg-[#20B8CD] hover:opacity-90 text-[#0F1010] text-[13px] font-semibold rounded-full cursor-pointer transition-opacity"
+          >
+            Sign up
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-5 sm:px-8 min-h-[100dvh] w-full max-w-full">

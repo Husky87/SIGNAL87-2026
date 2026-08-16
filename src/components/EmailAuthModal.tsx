@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, Loader2 } from 'lucide-react';
 
 interface EmailAuthModalProps {
@@ -7,6 +7,7 @@ interface EmailAuthModalProps {
   onSignUp: (email: string, password: string) => Promise<void>;
   onSignIn: (email: string, password: string) => Promise<void>;
   onGoogleSignIn?: () => void;
+  initialMode?: 'signup' | 'signin';
 }
 
 export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
@@ -14,13 +15,21 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
   onClose,
   onSignUp,
   onSignIn,
-  onGoogleSignIn
+  onGoogleSignIn,
+  initialMode = 'signup'
 }) => {
-  const [mode, setMode] = useState<'signup' | 'signin'>('signup');
+  const [mode, setMode] = useState<'signup' | 'signin'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError(null);
+    }
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
