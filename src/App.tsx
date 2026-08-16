@@ -24,6 +24,7 @@ import { getTrialStatus } from './lib/trial';
 import { isAdminEmail } from './lib/admins';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
+import { ScrollArea } from './components/ScrollArea';
 import { SavedView } from './components/SavedView';
 import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider, getRedirectResult, signInWithGoogleRedirect } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp } from 'lucide-react';
@@ -1078,14 +1079,14 @@ export default function App() {
         {/* Tab Views */}
         <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {currentTab === 'dashboard' && (
-            <div className="flex-1 overflow-y-auto">
+            <ScrollArea id="tab:dashboard" className="flex-1 overflow-y-auto">
               <DashboardView
                 currentUser={currentUser}
                 recentSessions={sessions}
                 onAskQuestion={handleAskFromHome}
                 onOpenSession={handleOpenSessionFromHome}
               />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'documents' && (
@@ -1145,9 +1146,9 @@ export default function App() {
           )}
 
           {currentTab === 'compare' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:compare" className="flex-1 min-h-0 overflow-y-auto">
               <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'saved' && (
@@ -1164,38 +1165,38 @@ export default function App() {
           )}
 
           {currentTab === 'team' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:team" className="flex-1 min-h-0 overflow-y-auto">
               <TeamView />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'organization' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:organization" className="flex-1 min-h-0 overflow-y-auto">
               <OrganizationView stats={stats} />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'admin' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:admin" className="flex-1 min-h-0 overflow-y-auto">
               <AdminView
                 stats={stats}
                 selectedModel={selectedModel}
                 onChangeModel={setSelectedModel}
                 onSignOut={handleSignOut}
               />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'privacy' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:privacy" className="flex-1 min-h-0 overflow-y-auto">
               <PrivacyPolicy />
-            </div>
+            </ScrollArea>
           )}
 
           {currentTab === 'terms' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <ScrollArea id="tab:terms" className="flex-1 min-h-0 overflow-y-auto">
               <TermsOfService />
-            </div>
+            </ScrollArea>
           )}
         </main>
 

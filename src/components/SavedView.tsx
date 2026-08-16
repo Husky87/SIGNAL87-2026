@@ -10,6 +10,7 @@ import {
   X
 } from 'lucide-react';
 import { SavedItem, SavedNote, SavedAnswer, DocumentItem } from '../types';
+import { ScrollArea } from './ScrollArea';
 import { GeminiMarkdownRenderer } from './ActionRouterComponents';
 
 export interface SavedViewProps {
@@ -369,7 +370,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
           </div>
 
           {/* List Scroll Container */}
-          <div className="flex-1 overflow-y-auto px-4">
+          <ScrollArea id="saved:list" className="flex-1 overflow-y-auto px-4">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => {
                 const isNote = item.type === 'note';
@@ -434,7 +435,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
                 </button>
               </div>
             )}
-          </div>
+          </ScrollArea>
         </div>
       )}
     </div>

@@ -86,6 +86,19 @@ try {
   check('loading is checked before the empty state', /\{loading && \(/.test(library) && /\{!loading && filteredDocs\.length === 0 && \(/.test(library));
 
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+
+  // --- scroll memory reaches every scrolling view, not just Files ---
+  for (const tab of ['dashboard', 'compare', 'team', 'organization', 'admin', 'privacy', 'terms']) {
+    check(`the ${tab} tab remembers its place`, app.includes(`<ScrollArea id="tab:${tab}"`), 'not wrapped');
+  }
+  check('no tab scroller was left unwrapped', !/\{currentTab === '[a-z]+' && \(\s*\n\s*<div className="[^"]*overflow-y-auto/.test(app));
+
+  const saved = readFileSync(new URL('../src/components/SavedView.tsx', import.meta.url), 'utf8');
+  check('the saved list remembers its place', /<ScrollArea id="saved:list"/.test(saved));
+  check('the note editor deliberately does not, so a new note opens at its top', !/ScrollArea id="saved:editor"/.test(saved));
+
+  const library2 = readFileSync(new URL('../src/components/DocumentLibraryView.tsx', import.meta.url), 'utf8');
+  check('each file list keeps its own place, not one shared position', /useScrollMemory<HTMLDivElement>\(`files:\$\{filesView\}:\$\{activeFolderId \?\? 'root'\}`\)/.test(library2));
   check('loading is cleared even if the fetch throws', /\} finally \{[\s\S]*?setDocumentsLoading\(false\)/.test(app));
   check('placeholders only show when there is nothing to show yet', /loading=\{documentsLoading && myDocuments\.length === 0\}/.test(app));
   check('the tab-change scroll reset no longer fights the memory', !/mainScrollRef\.current\.scrollTop = 0/.test(app));
