@@ -406,8 +406,19 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Handle OAuth redirect result
+  // Finish a Google redirect only when we actually started one. Calling
+  // getRedirectResult on every landing-page visit throws (missing resolver
+  // state, leftover auth event) and used to open the error modal unprompted.
   useEffect(() => {
+    let pending = false;
+    try {
+      pending = sessionStorage.getItem('s87_auth_redirect') === '1';
+      sessionStorage.removeItem('s87_auth_redirect');
+    } catch {
+      pending = false;
+    }
+    if (!pending) return;
+
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
@@ -416,13 +427,19 @@ export default function App() {
         }
       })
       .catch((error: any) => {
-        console.error('Redirect result error:', error);
-        if (error.code !== 'auth/no-redirect-result') {
-          setAuthError({
-            code: error.code || 'auth/redirect-error',
-            message: error.message || 'OAuth redirect failed'
-          });
+        const code = error?.code || '';
+        if (
+          code === 'auth/no-redirect-result' ||
+          code === 'auth/argument-error' ||
+          /missing initial state|no auth event/i.test(error?.message || '')
+        ) {
+          return;
         }
+        console.error('Redirect result error:', error);
+        setAuthError({
+          code: code || 'auth/unknown-error',
+          message: error?.message || 'OAuth redirect failed'
+        });
       });
   }, []);
 

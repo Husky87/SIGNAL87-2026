@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   inMemoryPersistence,
+  browserPopupRedirectResolver,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -40,7 +41,8 @@ function createAuth() {
         browserLocalPersistence,
         browserSessionPersistence,
         inMemoryPersistence
-      ]
+      ],
+      popupRedirectResolver: browserPopupRedirectResolver
     });
   } catch {
     // Already initialised (hot reload, or another import got here first).
@@ -61,6 +63,11 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGoogleRedirect = async () => {
+  try {
+    sessionStorage.setItem('s87_auth_redirect', '1');
+  } catch {
+    /* private window */
+  }
   return signInWithRedirect(auth, googleProvider);
 };
 
