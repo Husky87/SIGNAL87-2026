@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  FileText, Upload, MessageSquare, Settings, Moon, Sun, 
-  ChevronRight, Play, Copy, Download, Bookmark, Share2, Plus, Search, Trash2, Folder, Star, ShieldAlert
-} from 'lucide-react';
+import { FileText, Upload, MessageSquare, Moon, Sun, ChevronRight, Play, Plus } from 'lucide-react';
 
 export default function Signal87App() {
   const [darkMode, setDarkMode] = useState(true);
@@ -13,7 +10,7 @@ export default function Signal87App() {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([
     { role: 'user', text: 'tell me about mount horeb' },
-    { role: 'assistant', text: 'The document "Mount_Horeb_Capital_Strategy(1).pdf" has been successfully parsed using robust fallback extraction. It outlines the strategic capital roadmap for the Mt. Horeb property development, focusing on infrastructure permits, retaining wall engineering, and capital allocation.', citations: ['CIT-01', 'CIT-02'] }
+    { role: 'assistant', text: 'The document "Mount_Horeb_Capital_Strategy(1).pdf" has been successfully parsed using robust fallback extraction.', citations: ['CIT-01', 'CIT-02'] }
   ]);
 
   const handleRunAnalysis = () => {
@@ -34,15 +31,13 @@ export default function Signal87App() {
     setTimeout(() => {
       setMessages(prev => [
         ...prev, 
-        { role: 'assistant', text: `Here is the analysis regarding "${newMsg}" based on your active documents. All text streams were parsed cleanly without environment conflicts.`, citations: ['CIT-01'] }
+        { role: 'assistant', text: `Here is the analysis regarding "${newMsg}" based on your active documents.`, citations: ['CIT-01'] }
       ]);
     }, 1000);
   };
 
   return (
     <div className={darkMode ? 'dark bg-slate-950 text-slate-100 min-h-screen font-sans flex' : 'bg-slate-50 text-slate-900 min-h-screen font-sans flex'}>
-      
-      {/* Sidebar */}
       <aside className={`w-64 border-r flex flex-col justify-between p-4 transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div>
           <div className="flex items-center justify-between mb-6 px-2">
@@ -90,10 +85,7 @@ export default function Signal87App() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        
-        {/* Top Header */}
         <header className={`h-16 border-b flex items-center justify-between px-6 transition-colors ${darkMode ? 'bg-slate-900/50 border-slate-800 backdrop-blur' : 'bg-white/80 border-slate-200 backdrop-blur'}`}>
           <div className="flex items-center space-x-3">
             <span className="text-xs uppercase tracking-wider font-semibold text-cyan-500 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
@@ -106,7 +98,6 @@ export default function Signal87App() {
           </div>
         </header>
 
-        {/* Dynamic Viewport */}
         <div className="flex-1 overflow-y-auto p-8">
           {activeTab === 'compare' ? (
             <div className="max-w-5xl mx-auto space-y-6">
@@ -117,7 +108,6 @@ export default function Signal87App() {
                 </p>
               </div>
 
-              {/* Document Selector */}
               <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-cyan-500">Select Documents to Compare</h3>
@@ -160,27 +150,26 @@ export default function Signal87App() {
                 </div>
               </div>
 
-              {/* Analysis Results / Synthesis */}
               <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-cyan-500 mb-3">Executive Comparative Synthesis</h3>
                 {analyzing ? (
                   <div className="py-12 flex flex-col items-center justify-center space-y-3">
                     <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-slate-400">Parsing document buffers safely without Promise errors...</p>
+                    <p className="text-sm text-slate-400">Parsing document buffers safely...</p>
                   </div>
                 ) : analysisDone ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'}`}>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>Shared Similarities & Clauses</h4>
-                      <p className="text-sm text-slate-300">Both documents successfully reference the Mt. Horeb capital allocation and legal framework parameters without parsing obstructions.</p>
+                      <h4 className="font-semibold text-sm mb-2 text-emerald-400">Shared Similarities & Clauses</h4>
+                      <p className="text-sm text-slate-300">Both documents successfully reference the Mt. Horeb capital allocation and legal framework parameters.</p>
                     </div>
                     <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'}`}>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center text-amber-400"><span className="w-2 h-2 rounded-full bg-amber-400 mr-2"></span>Key Differences & Divergences</h4>
+                      <h4 className="font-semibold text-sm mb-2 text-amber-400">Key Differences & Divergences</h4>
                       <p className="text-sm text-slate-300">Loan proposal targets immediate term liquidity, whereas the capital strategy focuses on long-term structural milestones.</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400">Select documents above and click run comparative analysis to initialize safe parsing.</p>
+                  <p className="text-sm text-slate-400">Select documents above and click run comparative analysis.</p>
                 )}
               </div>
             </div>
@@ -203,7 +192,6 @@ export default function Signal87App() {
                 ))}
               </div>
 
-              {/* Chat Input Bar */}
               <form onSubmit={handleSendMessage} className={`p-2 rounded-2xl border flex items-center space-x-2 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow'}`}>
                 <input 
                   type="text" 
