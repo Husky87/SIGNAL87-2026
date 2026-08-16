@@ -7,6 +7,10 @@
   },
   "rewrites": [
     {
+      "source": "/__/auth/:path*",
+      "destination": "https://gen-lang-client-0608802366.firebaseapp.com/__/auth/:path*"
+    },
+    {
       "source": "/privacy",
       "destination": "/privacy.html"
     },

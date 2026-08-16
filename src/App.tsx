@@ -26,7 +26,7 @@ import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { ScrollArea } from './components/ScrollArea';
 import { SavedView } from './components/SavedView';
-import { auth, onAuthStateChanged, User, signInWithPopup, signUpWithEmail, signInWithEmail, googleProvider, getRedirectResult, signInWithGoogleRedirect } from './lib/firebase';
+import { auth, onAuthStateChanged, User, signUpWithEmail, signInWithEmail, getRedirectResult, signInWithGoogle, signInWithGoogleRedirect } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp } from 'lucide-react';
 
 import {
@@ -772,19 +772,24 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     try {
       setAuthError(null);
-      const res = await signInWithPopup(auth, googleProvider);
+      const res = await signInWithGoogle();
       if (res && res.user) {
         setCurrentUser(res.user);
+        setIsEmailAuthOpen(false);
       }
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
+      const code = err?.code || '';
+      if (
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/popup-blocked'
+      ) {
+        return;
+      }
       setAuthError({
-        // Don't invent a Firebase error code. An error with no code is not a
-        // configuration problem — a blocked storage backend surfaces here as a
-        // plain Error, and labelling it auth/configuration-issue sent everyone
-        // looking at the Firebase console instead of the browser.
-        code: err.code || 'auth/unknown-error',
-        message: err.message || 'Google Sign-In was not completed.'
+        code: code || 'auth/unknown-error',
+        message: err?.message || 'Google Sign-In was not completed.'
       });
     }
   };
@@ -875,7 +880,7 @@ export default function App() {
           onClose={() => setIsEmailAuthOpen(false)}
           onSignUp={handleEmailSignUp}
           onSignIn={handleEmailSignIn}
-          onGoogleSignIn={() => { setIsEmailAuthOpen(false); handleGoogleSignIn(); }}
+          onGoogleSignIn={handleGoogleSignIn}
         />
 
         <PrivacyModal

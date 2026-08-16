@@ -21,7 +21,16 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, que
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+function resolveAuthDomain() {
+  if (typeof window === 'undefined') return firebaseConfig.authDomain;
+  const host = window.location.hostname;
+  if (host === 'signal87.ai' || host === 'www.signal87.ai') return host;
+  return firebaseConfig.authDomain;
+}
+
+const app = !getApps().length
+  ? initializeApp({ ...firebaseConfig, authDomain: resolveAuthDomain() })
+  : getApp();
 
 /**
  * Auth defaults to IndexedDB for persistence, which private browsing and
@@ -58,17 +67,50 @@ export const auth = createAuth();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export const signInWithGoogle = async () => {
-  return signInWithPopup(auth, googleProvider);
-};
-
-export const signInWithGoogleRedirect = async () => {
+function markRedirectPending() {
   try {
     sessionStorage.setItem('s87_auth_redirect', '1');
   } catch {
     /* private window */
   }
-  return signInWithRedirect(auth, googleProvider);
+}
+
+function prefersRedirectSignIn() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Android/i.test(ua);
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isSafari || isIOS;
+}
+
+function isPopupFailure(error: unknown) {
+  const code = (error as { code?: string } | null)?.code || '';
+  return (
+    code === 'auth/popup-blocked' ||
+    code === 'auth/popup-closed-by-user' ||
+    code === 'auth/cancelled-popup-request'
+  );
+}
+
+export const signInWithGoogleRedirect = async () => {
+  markRedirectPending();
+  return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
+};
+
+// Keep the click as a direct user gesture. Closing another UI first makes
+// Safari treat the popup as blocked and dump the user back on the landing page.
+export const signInWithGoogle = async () => {
+  if (prefersRedirectSignIn()) {
+    return signInWithGoogleRedirect();
+  }
+  try {
+    return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+  } catch (error) {
+    if (isPopupFailure(error)) {
+      return signInWithGoogleRedirect();
+    }
+    throw error;
+  }
 };
 
 export const signUpWithEmail = async (email: string, password: string) => {
