@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
 :root{
-  --bg:#1E2020;          /* page — offblack, not pure black */
-  --surface:#252828;     /* composer, raised rows, dock */
-  --surface-2:#2B2F2F;   /* hover */
-  --ink:#F3F3EE;         /* primary text — warm off-white */
-  --ink-2:#B9BDBD;       /* body text */
-  --muted:#8D9191;       /* metadata, placeholders, inactive icons */
-  --rule:#343838;        /* borders */
-  --rule-2:#2C3030;      /* hairlines */
-  --teal:#20B8CD;        /* the only accent — brighter than light mode */
-  --teal-soft:#12292E;   /* accent fill */
-  --teal-ink:#0F1010;    /* text on a turquoise fill — never white */
-  --ok:#5CB98A;
-  --warn:#D98A4A;
+  --bg:#FAFAF8;           /* page — warm off-white, not stark white */
+  --surface:#FFFFFF;      /* composer, raised rows, dock */
+  --surface-2:#F2F1EC;    /* hover */
+  --ink:#1B1B18;          /* primary text — near-black, warm-tinted */
+  --ink-2:#55534C;        /* body text */
+  --muted:#8B897F;        /* metadata, placeholders, inactive icons */
+  --rule:#E4E2DB;         /* borders */
+  --rule-2:#EFEDE7;       /* hairlines */
+  --teal:#0E7C8C;         /* the only accent — deepened for AA contrast on white */
+  --teal-soft:#E4F3F5;    /* accent fill */
+  /* text on a filled surface (--ink or --teal fills, both dark here) — never
+     dark; this is the inverse of --teal-ink's dark-mode value, not a typo. */
+  --teal-ink:#FFFFFF;
+  --ok:#2E9563;
+  --warn:#B3690F;
   --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   /* Back-compat aliases: the app's components already consume this variable
@@ -374,19 +376,20 @@
 
    Checkboxes, radios, ranges and file inputs are excluded by type.          */
 :root {
-  --field-bg: #161818;
-  /* At rest: the turquoise edge, no bloom. */
+  --field-bg: #FFFFFF;
+  /* At rest: a quiet neutral edge with soft depth, not a colored glow —
+     light surfaces read the accent as a focus cue, not a resting halo. */
   --field-ring:
-    0 0 0 1px rgba(32, 184, 205, 0.3),
-    0 0 12px 0 rgba(32, 184, 205, 0.07);
+    0 0 0 1px rgba(27, 27, 24, 0.1),
+    0 1px 2px 0 rgba(27, 27, 24, 0.04);
   --field-glow:
-    0 0 0 1px rgba(32, 184, 205, 0.45),
-    0 0 28px 4px rgba(32, 184, 205, 0.22),
-    0 0 72px 16px rgba(32, 184, 205, 0.12);
+    0 0 0 1px rgba(27, 27, 24, 0.1),
+    0 1px 3px 0 rgba(27, 27, 24, 0.06),
+    0 4px 16px 0 rgba(27, 27, 24, 0.05);
   --field-glow-focus:
-    0 0 0 1px rgba(32, 184, 205, 0.7),
-    0 0 36px 6px rgba(32, 184, 205, 0.3),
-    0 0 88px 20px rgba(32, 184, 205, 0.16);
+    0 0 0 1px rgba(14, 124, 140, 0.45),
+    0 1px 3px 0 rgba(27, 27, 24, 0.06),
+    0 4px 16px 0 rgba(14, 124, 140, 0.1);
 }
 
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
@@ -428,6 +431,36 @@
   background-color: transparent;
   border-radius: 0;
   box-shadow: none !important;
+}
+
+/* Locked-dark field treatment for the two composers that live on permanently
+   dark, self-contained surfaces (LandingPageView's hero search,
+   ResearchAssistantView's chat composer) — both keep their own hardcoded
+   palette (#0F1010/#F3F3EE/#161818) independent of the --field-* tokens
+   above, which now resolve light. Reusing .s87-field there put a white pill
+   on a black page with a white-on-white placeholder; this variant is the
+   same treatment pinned to the dark palette those two components already use
+   everywhere else, instead of following the light/dark token swap. */
+.s87-app .s87-field-dark {
+  background-color: #161818;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+  color: #F3F3EE;
+  transition: box-shadow 0.25s ease;
+}
+
+.s87-app .s87-field-dark:focus-within {
+  box-shadow: 0 0 0 1px rgba(32, 184, 205, 0.5), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+  outline: none;
+}
+
+.s87-app .s87-field-dark input,
+.s87-app .s87-field-dark textarea {
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+  color: #F3F3EE;
 }
 
 /* Placeholder shimmer. A slow, low-contrast sweep — the point is to say "still

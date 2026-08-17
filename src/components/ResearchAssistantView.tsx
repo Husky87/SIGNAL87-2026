@@ -828,7 +828,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           }}
         />
         <div
-          className="s87-field relative pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 min-h-[52px] sm:min-h-[48px]"
+          className="s87-field-dark relative pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 min-h-[52px] sm:min-h-[48px]"
         >
           <div className="relative flex-shrink-0">
             <button

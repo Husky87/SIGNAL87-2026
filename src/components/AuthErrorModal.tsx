@@ -66,7 +66,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
         </div>
 
         {/* Diagnostic Details Box */}
-        <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 space-y-3 text-xs leading-relaxed">
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs leading-relaxed">
           {isUnauthorizedDomain ? (
             <>
               <div className="flex items-start gap-2 text-amber-300 font-semibold">

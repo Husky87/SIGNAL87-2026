@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowUp, Calendar, FileText, Columns, DollarSign, Clock } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowUp, Calendar, FileText, Columns, DollarSign, Clock, Plus, Paperclip } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { ChatSessionSummary } from './Sidebar';
 
@@ -8,6 +8,7 @@ interface DashboardViewProps {
   recentSessions: ChatSessionSummary[];
   onAskQuestion: (question: string) => void;
   onOpenSession: (id: string) => void;
+  onOpenUpload: () => void;
 }
 
 const SUGGESTIONS = [
@@ -21,15 +22,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   currentUser,
   recentSessions,
   onAskQuestion,
-  onOpenSession
+  onOpenSession,
+  onOpenUpload
 }) => {
   const [query, setQuery] = useState('');
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
     if (!query.trim()) return;
     onAskQuestion(query);
     setQuery('');
   };
+
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAttachMenu]);
 
   const firstName = currentUser?.displayName?.split(' ')[0];
   const recent = recentSessions
@@ -53,7 +68,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* One-line composer */}
-        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[26px] p-1.5 flex items-center gap-2">
+        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[26px] p-1.5 flex items-center gap-2 relative">
+          <div className="relative flex-shrink-0" ref={attachMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowAttachMenu((prev) => !prev)}
+              aria-label="Add attachment"
+              aria-expanded={showAttachMenu}
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[var(--raised)] transition-colors cursor-pointer"
+            >
+              <Plus size={18} />
+            </button>
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface)] border border-[var(--rule)] rounded-2xl shadow-lg py-1.5 z-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenUpload();
+                    setShowAttachMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] text-[14px] text-[var(--ink)] hover:bg-[var(--raised)] transition-colors cursor-pointer text-left"
+                >
+                  <Paperclip size={15} className="text-[var(--ink-2)] flex-shrink-0" />
+                  <span>Upload documents</span>
+                </button>
+              </div>
+            )}
+          </div>
           <input
             type="text"
             value={query}

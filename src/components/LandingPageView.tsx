@@ -87,7 +87,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             />
 
             <div
-              className="s87-field relative flex items-center gap-3 pl-4 sm:pl-5 pr-3 min-h-[52px] sm:min-h-[56px] text-left" 
+              className="s87-field-dark relative flex items-center gap-3 pl-4 sm:pl-5 pr-3 min-h-[52px] sm:min-h-[56px] text-left"
             >
               <span
                 className="flex-shrink-0 text-[15px] sm:text-base font-medium text-[#20B8CD] select-none"

@@ -1115,6 +1115,7 @@ export default function App() {
                 recentSessions={sessions}
                 onAskQuestion={handleAskFromHome}
                 onOpenSession={handleOpenSessionFromHome}
+                onOpenUpload={() => setIsUploadOpen(true)}
               />
             </ScrollArea>
           )}

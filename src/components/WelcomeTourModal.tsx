@@ -49,7 +49,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </p>
             </div>
 
-            <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-4 space-y-2.5 text-xs text-slate-300">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center gap-2 font-bold text-white">
                 <CheckCircle2 size={16} className="text-emerald-400" />
                 <span>Transactional Welcome Brief Dispatched</span>
