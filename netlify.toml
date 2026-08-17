@@ -1,0 +1,31 @@
+[build]
+  command = "vite build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Firebase's own OAuth handler, proxied so redirect-based sign-in works from
+# this origin instead of bouncing through the raw firebaseapp.com domain.
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://gen-lang-client-0608802366.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+
+# SPA fallback. Must stay last — everything above is more specific.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
