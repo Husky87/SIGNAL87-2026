@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 .netlify/
+.firebase/
 coverage/
 .DS_Store
 *.log
