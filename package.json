@@ -20,6 +20,7 @@
     "test:mobile": "node tests/mobile.e2e.mjs",
     "test:back": "node tests/backdismiss.e2e.mjs",
     "fonts": "node tests/make-fonts.mjs",
+    "fonts:display": "node tests/make-display-font.mjs",
     "test:polish": "node tests/polish.e2e.mjs"
   },
   "dependencies": {
