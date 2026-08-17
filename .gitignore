@@ -10,3 +10,4 @@ coverage/
 
 # Text captured by the reading suite for the answering suite to consume.
 tests/.parsed.json
+.secrets/
