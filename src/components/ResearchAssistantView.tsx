@@ -873,7 +873,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
           <span
             className="flex-shrink-0 text-[15px] font-medium text-[#20B8CD] select-none"
-            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
             aria-hidden="true"
           >
             &gt;_

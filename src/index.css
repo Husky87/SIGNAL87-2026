@@ -74,6 +74,12 @@
     font-family: var(--f) !important;
   }
 
+  /* Same guarantee for inline styles, which the class rule above can't reach —
+     catches any literal monospace font stack set via style={{ fontFamily }}. */
+  [style*="monospace" i] {
+    font-family: var(--f) !important;
+  }
+
   /* Simple reset for button min-height */
   button { min-height: 44px; }
 }

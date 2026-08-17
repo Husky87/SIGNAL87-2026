@@ -91,7 +91,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             >
               <span
                 className="flex-shrink-0 text-[15px] sm:text-base font-medium text-[#20B8CD] select-none"
-                style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
                 aria-hidden="true"
               >
                 &gt;_
