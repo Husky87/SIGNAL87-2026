@@ -15,9 +15,6 @@
   --ok:#5CB98A;
   --warn:#D98A4A;
   --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  /* Headline serif — page/section titles only. Body copy, nav and UI chrome
-     stay on --f (Inter); this is the one deliberate exception. */
-  --display:'Playfair Display',Georgia,'Times New Roman',serif;
 
   /* Back-compat aliases: the app's components already consume this variable
      system (var(--paper), var(--accent), etc). Pointing the old names at the
@@ -33,7 +30,7 @@
   --verify: var(--ok);
   --verify-bg: var(--teal-soft);
   --alert: var(--warn);
-  --serif: var(--display);
+  --serif: var(--f);
   --sans: var(--f);
   --mono: var(--f);
 }
@@ -65,13 +62,6 @@
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     letter-spacing: -0.036em;
-  }
-
-  /* Editorial headline treatment for page/section titles — the one place in
-     the app that departs from the single-typeface rule everywhere else. */
-  h1 {
-    font-family: var(--serif);
-    letter-spacing: -0.01em;
   }
 
   input, textarea, select, button {
