@@ -1,213 +1,109 @@
 import React, { useState } from 'react';
-import { FileText, Upload, MessageSquare, Moon, Sun, ChevronRight, Play, Plus } from 'lucide-react';
+import { Sparkles, ArrowRight, FileText, Upload, Settings } from 'lucide-react';
 
-export default function Signal87App() {
-  const [darkMode, setDarkMode] = useState(true);
-  const [activeTab, setActiveTab] = useState<'compare' | 'chat'>('compare');
-  const [selectedDocs, setSelectedDocs] = useState<string[]>(['EIN-MHCG Inc.pdf', 'Mount_Horeb_Capital_Strategy(1).pdf']);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisDone, setAnalysisDone] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState([
-    { role: 'user', text: 'tell me about mount horeb' },
-    { role: 'assistant', text: 'The document "Mount_Horeb_Capital_Strategy(1).pdf" has been successfully parsed using robust fallback extraction.', citations: ['CIT-01', 'CIT-02'] }
-  ]);
+export default function Signal87Home() {
+  const [query, setQuery] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRunAnalysis = () => {
-    setAnalyzing(true);
-    setAnalysisDone(false);
-    setTimeout(() => {
-      setAnalyzing(false);
-      setAnalysisDone(true);
-    }, 1200);
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
-    const newMsg = chatInput;
-    setMessages(prev => [...prev, { role: 'user', text: newMsg }]);
-    setChatInput('');
+    if (!query.trim()) return;
+    setLoading(true);
+    setSubmitted(true);
     setTimeout(() => {
-      setMessages(prev => [
-        ...prev, 
-        { role: 'assistant', text: `Here is the analysis regarding "${newMsg}" based on your active documents.`, citations: ['CIT-01'] }
-      ]);
+      setResponse(`Analysis for: "${query}". Document processed securely against active knowledge base.`);
+      setLoading(false);
     }, 1000);
   };
 
+  const handlePresetClick = (text: string) => {
+    setQuery(text);
+  };
+
   return (
-    <div className={darkMode ? 'dark bg-slate-950 text-slate-100 min-h-screen font-sans flex' : 'bg-slate-50 text-slate-900 min-h-screen font-sans flex'}>
-      <aside className={`w-64 border-r flex flex-col justify-between p-4 transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div>
-          <div className="flex items-center justify-between mb-6 px-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center font-bold text-slate-950 shadow-md">S87</div>
-              <span className="font-semibold text-lg tracking-tight">Signal87 AI</span>
+    <div className="bg-[#0b0f12] text-slate-100 min-h-screen font-sans flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950">
+      {/* Top Navigation */}
+      <header className="w-full px-8 py-6 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-500 to-teal-400 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.5)]">
+            <Sparkles size={10} className="text-slate-950" />
+          </div>
+          <span className="font-medium tracking-tight text-slate-200">Signal87</span>
+        </div>
+        <div className="flex items-center space-x-6 text-sm text-slate-400">
+          <a href="#docs" className="hover:text-slate-200 transition-colors">Docs</a>
+          <a href="#api" className="hover:text-slate-200 transition-colors">API</a>
+          <a href="#login" className="text-slate-200 font-medium hover:text-cyan-400 transition-colors">Log in</a>
+        </div>
+      </header>
+
+      {/* Main Hero / Search Area */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 -mt-16">
+        <div className="w-full max-w-2xl mx-auto text-center space-y-8">
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white">
+            Ask anything about your documents
+          </h1>
+
+          <form onSubmit={handleSearch} className="relative w-full group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-teal-500/30 rounded-full blur-md opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <div className="relative flex items-center bg-[#12181f] border border-slate-800 rounded-full px-6 py-4 shadow-2xl">
+              <span className="text-cyan-400 font-mono text-sm mr-3">&gt;_</span>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your documents..."
+                className="w-full bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 text-base"
+              />
+              <button type="submit" className="text-slate-400 hover:text-cyan-400 transition-colors ml-2">
+                <ArrowRight size={18} />
+              </button>
             </div>
-            <button 
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              title="Toggle Theme"
-            >
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          </div>
+          </form>
 
-          <button className="w-full flex items-center justify-center space-x-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium py-2.5 px-4 rounded-xl shadow-sm transition-all mb-6">
-            <Plus size={18} />
-            <span>New Session</span>
-          </button>
-
-          <nav className="space-y-1">
-            <button 
-              onClick={() => setActiveTab('compare')}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'compare' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : darkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
-            >
-              <FileText size={18} />
-              <span>Multi-Doc Compare</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('chat')}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : darkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
-            >
-              <MessageSquare size={18} />
-              <span>Signal87 Deep Ask</span>
-            </button>
-          </nav>
-        </div>
-
-        <div className={`pt-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-          <div className="flex items-center justify-between px-2 text-xs text-slate-400">
-            <span>Cody, WY HQ</span>
-            <span className="inline-flex items-center text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>API ACTIVE</span>
-          </div>
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className={`h-16 border-b flex items-center justify-between px-6 transition-colors ${darkMode ? 'bg-slate-900/50 border-slate-800 backdrop-blur' : 'bg-white/80 border-slate-200 backdrop-blur'}`}>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs uppercase tracking-wider font-semibold text-cyan-500 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
-              {activeTab === 'compare' ? 'Comparative Matrix Engine' : 'Long-Context Reasoning'}
-            </span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium">Michael Benezra</span>
-            <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white text-sm">MB</div>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-8">
-          {activeTab === 'compare' ? (
-            <div className="max-w-5xl mx-auto space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight mb-1">Multi-Document Comparison Matrix</h1>
-                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Compare contracts, bills, or financial filings simultaneously using Signal87 long-context reasoning.
-                </p>
-              </div>
-
-              <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-cyan-500">Select Documents to Compare</h3>
-                  <span className="text-xs text-slate-400">{selectedDocs.length} selected</span>
+          {submitted ? (
+            <div className="mt-8 p-6 bg-[#12181f] border border-slate-800/80 rounded-2xl text-left shadow-xl animate-fadeIn">
+              <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-2">Signal87 Reasoning Engine</div>
+              {loading ? (
+                <div className="flex items-center space-x-3 py-4 text-slate-400 text-sm">
+                  <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Synthesizing document context...</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {['110_Harvard_Street_Loan_Proposal-1.pdf', 'EIN-MHCG Inc.pdf', 'Mount_Horeb_Capital_Strategy(1).pdf', 'Elition Allen Biography.docx'].map((doc, idx) => {
-                    const isSelected = selectedDocs.includes(doc);
-                    return (
-                      <div 
-                        key={idx}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedDocs(selectedDocs.filter(d => d !== doc));
-                          } else {
-                            setSelectedDocs([...selectedDocs, doc]);
-                          }
-                        }}
-                        className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${isSelected ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400' : darkMode ? 'border-slate-800 bg-slate-800/50 hover:border-slate-700' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
-                      >
-                        <div className="flex items-center space-x-3 truncate">
-                          <FileText size={18} className="text-cyan-500 shrink-0" />
-                          <span className="text-sm font-medium truncate">{doc}</span>
-                        </div>
-                        <input type="checkbox" checked={isSelected} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500" />
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <div className="mt-5 flex justify-end">
-                  <button 
-                    onClick={handleRunAnalysis}
-                    disabled={analyzing || selectedDocs.length < 2}
-                    className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold px-5 py-2.5 rounded-xl shadow transition-all disabled:opacity-50"
-                  >
-                    <Play size={16} />
-                    <span>{analyzing ? 'Processing Analysis...' : `Run Comparative Analysis (${selectedDocs.length} Docs)`}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-cyan-500 mb-3">Executive Comparative Synthesis</h3>
-                {analyzing ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-slate-400">Parsing document buffers safely...</p>
-                  </div>
-                ) : analysisDone ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'}`}>
-                      <h4 className="font-semibold text-sm mb-2 text-emerald-400">Shared Similarities & Clauses</h4>
-                      <p className="text-sm text-slate-300">Both documents successfully reference the Mt. Horeb capital allocation and legal framework parameters.</p>
-                    </div>
-                    <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'}`}>
-                      <h4 className="font-semibold text-sm mb-2 text-amber-400">Key Differences & Divergences</h4>
-                      <p className="text-sm text-slate-300">Loan proposal targets immediate term liquidity, whereas the capital strategy focuses on long-term structural milestones.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-400">Select documents above and click run comparative analysis.</p>
-                )}
-              </div>
+              ) : (
+                <p className="text-sm text-slate-300 leading-relaxed">{response}</p>
+              )}
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto flex flex-col h-full space-y-4">
-              <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                {messages.map((m, i) => (
-                  <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-2xl p-4 rounded-2xl text-sm ${m.role === 'user' ? 'bg-cyan-500 text-slate-950 font-medium' : darkMode ? 'bg-slate-900 border border-slate-800 text-slate-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
-                      <p>{m.text}</p>
-                      {m.citations && (
-                        <div className="mt-3 pt-3 border-t border-slate-800/50 flex space-x-2">
-                          {m.citations.map((c, ci) => (
-                            <span key={ci} className="text-xs bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20 font-mono">{c}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <form onSubmit={handleSendMessage} className={`p-2 rounded-2xl border flex items-center space-x-2 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow'}`}>
-                <input 
-                  type="text" 
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask anything about your files or strategy..."
-                  className="flex-1 bg-transparent border-none outline-none px-3 text-sm"
-                />
-                <button type="submit" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 p-2.5 rounded-xl font-medium transition-all">
-                  <ChevronRight size={18} />
-                </button>
-              </form>
+            <div className="flex flex-col items-center space-y-3 text-sm text-slate-500">
+              <button 
+                onClick={() => handlePresetClick("Summarize the latest contract")}
+                className="hover:text-slate-300 transition-colors"
+              >
+                Summarize the latest contract
+              </button>
+              <button 
+                onClick={() => handlePresetClick("What are the key risks mentioned?")}
+                className="hover:text-slate-300 transition-colors"
+              >
+                What are the key risks mentioned?
+              </button>
+              <button 
+                onClick={() => handlePresetClick("Compare clauses across versions")}
+                className="hover:text-slate-300 transition-colors"
+              >
+                Compare clauses across versions
+              </button>
             </div>
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="w-full px-8 py-6 text-center text-xs text-slate-600">
+        Signal87 AI • Cody, Wyoming
+      </footer>
     </div>
   );
 }
