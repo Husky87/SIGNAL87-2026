@@ -165,8 +165,8 @@ export const Header: React.FC<HeaderProps> = ({
  }`}
               >
                 <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
-                  <Bot size={13} className="text-purple-400" /> Signal87 Deep Engine
-                  <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 rounded font-mono font-bold">Deep Reasoning</span>
+                  <Bot size={13} className="text-purple-600" /> Signal87 Deep Engine
+                  <span className="text-[9px] bg-purple-500/10 text-purple-700 border border-purple-500/30 px-1 rounded font-mono font-bold">Deep Reasoning</span>
                 </span>
                 <span className="text-[11px] text-[var(--slate)]">Deep multi-document legal synthesis</span>
               </button>
@@ -218,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 className="w-full px-4 py-2.5 text-left text-xs text-[var(--ink)] hover:bg-[var(--raised)] flex items-center gap-2.5 font-semibold cursor-pointer"
               >
-                <GitFork size={16} className="text-indigo-400" />
+                <GitFork size={16} className="text-indigo-600" />
                 <span>Compare Contracts</span>
               </button>
             </div>

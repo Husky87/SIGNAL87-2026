@@ -383,7 +383,7 @@ export const TeamView: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
             <div className="p-5 bg-[#131314] border border-[#37393b] rounded-2xl space-y-2">
-              <CheckCircle2 size={22} className="text-emerald-400" />
+              <CheckCircle2 size={22} className="text-[var(--ok)]" />
               <h3 className="font-bold text-[#e3e3e3] text-sm">Verifiable Grounding</h3>
               <p className="text-xs text-[#c4c7c5] leading-relaxed">
                 Every insight, summary, and comparison links directly to verbatim source clauses with page and line citations.
@@ -449,8 +449,8 @@ export const TeamView: React.FC = () => {
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
  m.status === 'Completed'
- ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'
- : 'bg-amber-950/80 text-amber-300 border border-amber-800 animate-pulse'
+ ? 'bg-[var(--ok)]/10 text-[var(--ok)] border border-[var(--ok)]/30'
+ : 'bg-[var(--warn)]/10 text-[var(--warn)] border border-[var(--warn)]/30 animate-pulse'
  }`}
                       >
                         <CheckCircle2 size={11} /> {m.status}

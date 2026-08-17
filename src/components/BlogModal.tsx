@@ -83,7 +83,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
 
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
-          <div className="p-2.5 bg-slate-950 text-white rounded-2xl flex items-center justify-center">
+          <div className="p-2.5 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center">
             <BookOpen size={24} className="text-[#7dd3fc]" />
           </div>
           <div>

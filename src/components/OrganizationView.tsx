@@ -43,7 +43,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
 
               <div className="p-4 bg-[#131314] border border-[#37393b] rounded-xl space-y-1">
                 <span className="text-[10px] text-[#c4c7c5] font-semibold uppercase">Security Tier</span>
-                <div className="text-xs font-bold text-emerald-400 pt-1">Enterprise High</div>
+                <div className="text-xs font-bold text-[var(--ok)] pt-1">Enterprise High</div>
               </div>
             </div>
           </div>
@@ -76,7 +76,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
         <div className="space-y-6">
           <div className="bg-[#1e1f20] text-[#e3e3e3] p-6 rounded-2xl border border-[#37393b] space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2">
-              <Shield size={18} className="text-emerald-400" /> Your workspace stays private
+              <Shield size={18} className="text-[var(--ok)]" /> Your workspace stays private
             </h3>
             <p className="text-xs text-[#c4c7c5] leading-relaxed">
               Every document, conversation, and report stays inside your own organization. No other company using Signal87 can ever see or reach your data.

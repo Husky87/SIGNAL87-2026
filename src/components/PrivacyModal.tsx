@@ -23,7 +23,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) =
 
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
-          <div className="p-2.5 bg-slate-950 text-white rounded-2xl flex items-center justify-center">
+          <div className="p-2.5 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center">
             <Shield size={24} className="text-[#7dd3fc]" />
           </div>
           <div>
@@ -99,7 +99,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) =
           <span className="font-medium">Effective Date: July 2026</span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
+            className="px-5 py-2 bg-[var(--ink)] hover:opacity-90 text-[var(--teal-ink)] font-bold rounded-xl transition-colors cursor-pointer"
           >
             Acknowledge & Close
           </button>

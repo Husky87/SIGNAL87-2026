@@ -114,7 +114,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('note')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900 group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 group-active:scale-95 transition-transform">
                   <StickyNote size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
@@ -134,7 +134,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('upload')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900 group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-active:scale-95 transition-transform">
                   <Upload size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>

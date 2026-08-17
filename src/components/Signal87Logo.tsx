@@ -45,7 +45,7 @@ export const Signal87Logo: React.FC<Signal87LogoProps> = ({
 
       {showText && (
         <span className={`tracking-tight flex items-center gap-1 ${textClassName}`}>
-          <span className="font-semibold text-slate-800 dark:text-neutral-200">Signal87</span>
+          <span className="font-semibold text-slate-800">Signal87</span>
         </span>
       )}
     </div>

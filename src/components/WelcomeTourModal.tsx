@@ -33,12 +33,12 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
         {/* Step 1 Content */}
         {step === 1 ? (
           <div className="p-6 sm:p-8 space-y-6">
-            <div className="w-14 h-14 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center text-sky-400">
+            <div className="w-14 h-14 bg-[var(--teal-soft)] border border-[var(--teal)]/20 rounded-2xl flex items-center justify-center text-[var(--teal)]">
               <Signal87Logo size={32} />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[11px] font-mono font-bold uppercase text-sky-400 tracking-wider bg-sky-950/80 px-2.5 py-1 rounded-full border border-sky-800/80">
+              <span className="text-[11px] font-mono font-bold uppercase text-[var(--teal)] tracking-wider bg-[var(--teal-soft)] px-2.5 py-1 rounded-full border border-[var(--teal)]/20">
                 Welcome to Signal87 AI
               </span>
               <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-snug">
@@ -51,7 +51,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
 
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center gap-2 font-bold text-white">
-                <CheckCircle2 size={16} className="text-emerald-400" />
+                <CheckCircle2 size={16} className="text-[var(--ok)]" />
                 <span>Transactional Welcome Brief Dispatched</span>
               </div>
               <p className="text-[11px] text-slate-400 pl-6 leading-relaxed">
@@ -68,7 +68,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </button>
               <button
                 onClick={() => setStep(2)}
-                className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                className="px-5 py-2.5 bg-[var(--teal)] hover:opacity-90 text-[var(--teal-ink)] font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>Next: Core Capabilities</span>
                 <ArrowRight size={14} />
@@ -106,7 +106,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </div>
 
               <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-start gap-3">
-                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg flex-shrink-0">
+                <div className="p-2 bg-[var(--ok)]/15 text-[var(--ok)] rounded-lg flex-shrink-0">
                   <GitFork size={18} />
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export const WelcomeTourModal: React.FC<WelcomeTourModalProps> = ({
               </button>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-gradient-to-r from-sky-400 to-emerald-400 hover:opacity-95 text-slate-950 font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                className="px-6 py-2.5 bg-[var(--teal)] hover:opacity-90 text-[var(--teal-ink)] font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>Start Exploring Workspace</span>
                 <CheckCircle2 size={16} />

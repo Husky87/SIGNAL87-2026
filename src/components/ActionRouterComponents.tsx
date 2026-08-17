@@ -103,7 +103,7 @@ export const parseInlineStyles = (
                 }
               }
             }}
-            className="text-[var(--accent)] hover:text-teal-600 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
+            className="text-[var(--accent)] hover:opacity-80 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
             title={cite.paragraphRef ? `View: ${cite.docTitle} (${cite.paragraphRef})` : `View: ${cite.docTitle}`}
           >
             {part}
@@ -288,11 +288,11 @@ export const GeminiMarkdownRenderer: React.FC<{
           return (
             <div key={idx} className="my-4 p-4 bg-[var(--card)] border border-[var(--rule)] rounded-[4px] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[3px] bg-teal-500/10 border border-teal-500/30 text-teal-400 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-[3px] bg-[var(--teal)]/10 border border-[var(--teal)]/30 text-[var(--teal)] flex items-center justify-center flex-shrink-0">
                   <FileSpreadsheet size={18} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-mono font-bold text-teal-400 uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
+                  <div className="text-[10px] font-mono font-bold text-[var(--teal)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                     EXCEL DATASET GENERATED
                   </div>
                   <div className="text-sm font-semibold text-[var(--ink)]" style={{ fontFamily: 'var(--serif)' }}>
@@ -591,7 +591,7 @@ export const ActionRouterCard: React.FC<{
           title="Copy response"
         >
           {copiedMsgId === msg.id ? (
-            <Check size={13} className="text-teal-400" />
+            <Check size={13} className="text-[var(--teal)]" />
           ) : (
             <Copy size={13} />
           )}
@@ -607,7 +607,7 @@ export const ActionRouterCard: React.FC<{
                 }
                 setIsEditingExcel(!isEditingExcel);
               }}
-              className={`px-2.5 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] ${isEditingExcel ? 'text-teal-400' : 'text-[var(--ink-2)]'} hover:text-teal-400 border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5`}
+              className={`px-2.5 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] ${isEditingExcel ? 'text-[var(--teal)]' : 'text-[var(--ink-2)]'} hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5`}
               title={isEditingExcel ? "Save Changes" : "Edit in Browser"}
             >
               {isEditingExcel ? <Save size={13} /> : <Edit2 size={13} />}
@@ -615,7 +615,7 @@ export const ActionRouterCard: React.FC<{
             </button>
             <button
               onClick={handleDownloadExcel}
-              className="px-2.5 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-teal-400 border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-[var(--card)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
               title="Download Excel"
             >
               <FileSpreadsheet size={13} />
