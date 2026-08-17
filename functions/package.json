@@ -1,0 +1,23 @@
+{
+  "name": "signal87-functions",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-functions": "^6.1.0",
+    "firebase-admin": "^13.0.0",
+    "@google/genai": "^2.4.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
+  }
+}
