@@ -1,20 +1,23 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root{
-  --bg:#1E2020;          /* page — offblack, not pure black */
-  --surface:#252828;     /* composer, raised rows, dock */
-  --surface-2:#2B2F2F;   /* hover */
-  --ink:#F3F3EE;         /* primary text — warm off-white */
-  --ink-2:#B9BDBD;       /* body text */
-  --muted:#8D9191;       /* metadata, placeholders, inactive icons */
-  --rule:#343838;        /* borders */
-  --rule-2:#2C3030;      /* hairlines */
-  --teal:#20B8CD;        /* the only accent — brighter than light mode */
-  --teal-soft:#12292E;   /* accent fill */
-  --teal-ink:#0F1010;    /* text on a turquoise fill — never white */
-  --ok:#5CB98A;
-  --warn:#D98A4A;
-  --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* Optimus theme (v0-optimus-delta.vercel.app) — light, warm-neutral,
+     near-monochrome. Black is the accent; there is no vivid brand hue. */
+  --bg:#FAFAF9;          /* page — warm off-white */
+  --surface:#FFFFFF;     /* composer, cards, raised rows, dock */
+  --surface-2:#F3F2EE;   /* hover / subtle raised */
+  --ink:#080503;         /* primary text — near-black */
+  --ink-2:#5E534A;       /* body text — warm grey */
+  --muted:#8A8178;       /* metadata, placeholders, inactive icons */
+  --rule:#DAD7D0;        /* borders */
+  --rule-2:#ECEBE7;      /* hairlines */
+  --teal:#080503;        /* the single accent — Optimus near-black primary */
+  --teal-soft:#ECEBE7;   /* accent fill — warm beige */
+  --teal-ink:#FAFAF9;    /* text on the near-black accent — light, never dark */
+  --ok:#3F7D5A;
+  --warn:#B26B2E;
+  --f:'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   /* Back-compat aliases: the app's components already consume this variable
      system (var(--paper), var(--accent), etc). Pointing the old names at the
@@ -30,9 +33,9 @@
   --verify: var(--ok);
   --verify-bg: var(--teal-soft);
   --alert: var(--warn);
-  --serif: var(--f);
+  --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --sans: var(--f);
-  --mono: var(--f);
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
@@ -60,8 +63,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    letter-spacing: -0.036em;
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   input, textarea, select, button {
@@ -71,7 +75,7 @@
   /* One typeface: neutralize any leftover font-mono utility usage from the
      previous system instead of hunting every call site. */
   .font-mono {
-    font-family: var(--f) !important;
+    font-family: var(--mono) !important;
   }
 
   /* Simple reset for button min-height */
@@ -348,10 +352,10 @@
 .s87-app .bg-\[\#F0B429\].text-\[\#131C25\] { color: var(--teal-ink) !important; }
 
 /* Radii: land old utilities in the Clear scale. */
-.s87-app .rounded-2xl { border-radius: 12px; }
-.s87-app .rounded-3xl { border-radius: 16px; }
-.s87-app .rounded-xl  { border-radius: 11px; }
-.s87-app .rounded-lg  { border-radius: 9px; }
+.s87-app .rounded-2xl { border-radius: 10px; }
+.s87-app .rounded-3xl { border-radius: 14px; }
+.s87-app .rounded-xl  { border-radius: 8px; }
+.s87-app .rounded-lg  { border-radius: 6px; }
 .s87-app .shadow-2xl, .s87-app .shadow-xl, .s87-app .shadow-lg,
 .s87-app .shadow-md,  .s87-app .shadow-sm, .s87-app .shadow,
 .s87-app .shadow-xs,  .s87-app .shadow-2xs { box-shadow: none !important; }
@@ -368,19 +372,15 @@
 
    Checkboxes, radios, ranges and file inputs are excluded by type.          */
 :root {
-  --field-bg: #161818;
-  /* At rest: the turquoise edge, no bloom. */
+  --field-bg: #FFFFFF;
+  /* Optimus fields are clean and bordered — a thin rule, no glow. */
   --field-ring:
-    0 0 0 1px rgba(32, 184, 205, 0.3),
-    0 0 12px 0 rgba(32, 184, 205, 0.07);
+    0 0 0 1px var(--rule);
   --field-glow:
-    0 0 0 1px rgba(32, 184, 205, 0.45),
-    0 0 28px 4px rgba(32, 184, 205, 0.22),
-    0 0 72px 16px rgba(32, 184, 205, 0.12);
+    0 0 0 1px var(--rule);
   --field-glow-focus:
-    0 0 0 1px rgba(32, 184, 205, 0.7),
-    0 0 36px 6px rgba(32, 184, 205, 0.3),
-    0 0 88px 20px rgba(32, 184, 205, 0.16);
+    0 0 0 1.5px var(--ink),
+    0 1px 2px 0 rgba(8, 5, 3, 0.06);
 }
 
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
@@ -388,20 +388,20 @@
 .s87-app textarea {
   background-color: var(--field-bg);
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   box-shadow: var(--field-ring) !important;
   color: var(--ink);
   transition: box-shadow 0.25s ease;
 }
 
 /* Multi-line fields keep square-ish corners; a pill reads wrong once it wraps. */
-.s87-app textarea { border-radius: 18px; }
+.s87-app textarea { border-radius: 8px; }
 
-/* The composer carries the full glow whether or not it is focused. */
+/* The composer carries the resting treatment whether or not it is focused. */
 .s87-app .s87-field {
   background-color: var(--field-bg);
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   box-shadow: var(--field-glow) !important;
   color: var(--ink);
   transition: box-shadow 0.25s ease;
@@ -431,3 +431,58 @@
     transform: translateX(100%);
   }
 }
+
+/* =========================================================================
+   OPTIMUS THEME — overrides for the newer components (LandingPageView,
+   ResearchAssistantView) that hardcode the "Clear" dark literals and
+   white/x overlays instead of the token classes. Mapped here so the whole
+   app re-themes from this one file: dark canvases become the light page, the
+   single turquoise accent becomes the near-black Optimus primary, and the
+   overlay whites (built for a dark canvas) become matching dark overlays on
+   the light one.
+   ========================================================================= */
+
+/* Dark canvas → light page/surfaces */
+.s87-app .bg-\[\#0F1010\],
+.s87-app .bg-\[\#111212\] { background-color: var(--bg) !important; }
+.s87-app .bg-\[\#0F1010\]\/92 { background-color: color-mix(in srgb, var(--bg) 92%, transparent) !important; }
+.s87-app .bg-\[\#161818\] { background-color: var(--surface-2) !important; }
+
+/* Light-on-dark text → near-black ink */
+.s87-app .text-\[\#F3F3EE\] { color: var(--ink) !important; }
+.s87-app .hover\:text-\[\#F3F3EE\]:hover { color: var(--ink) !important; }
+
+/* The single turquoise accent → Optimus near-black primary */
+.s87-app .bg-\[\#20B8CD\] { background-color: var(--teal) !important; }
+.s87-app .text-\[\#20B8CD\] { color: var(--teal) !important; }
+.s87-app .caret-\[\#20B8CD\] { caret-color: var(--teal) !important; }
+.s87-app .border-\[\#20B8CD\]\/40 { border-color: color-mix(in srgb, var(--teal) 40%, transparent) !important; }
+/* Text sitting on the accent fill must stay light */
+.s87-app .text-\[\#0F1010\] { color: var(--teal-ink) !important; }
+
+/* Overlay whites (designed for a dark canvas) → matching dark overlays */
+.s87-app .bg-white\/5 { background-color: rgba(8, 5, 3, 0.05) !important; }
+.s87-app .hover\:bg-white\/5:hover { background-color: rgba(8, 5, 3, 0.06) !important; }
+.s87-app .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(8, 5, 3, 0.08) !important; }
+
+.s87-app .border-white\/5  { border-color: rgba(8, 5, 3, 0.08) !important; }
+.s87-app .border-white\/10 { border-color: rgba(8, 5, 3, 0.10) !important; }
+.s87-app .border-white\/15 { border-color: rgba(8, 5, 3, 0.12) !important; }
+.s87-app .hover\:border-white\/30:hover { border-color: rgba(8, 5, 3, 0.24) !important; }
+
+.s87-app .text-white\/15 { color: rgba(8, 5, 3, 0.35) !important; }
+.s87-app .text-white\/20 { color: rgba(8, 5, 3, 0.40) !important; }
+.s87-app .text-white\/25 { color: rgba(8, 5, 3, 0.42) !important; }
+.s87-app .text-white\/30 { color: rgba(8, 5, 3, 0.45) !important; }
+.s87-app .text-white\/35 { color: rgba(8, 5, 3, 0.50) !important; }
+.s87-app .text-white\/40 { color: rgba(8, 5, 3, 0.52) !important; }
+.s87-app .text-white\/45 { color: rgba(8, 5, 3, 0.55) !important; }
+.s87-app .text-white\/50 { color: rgba(8, 5, 3, 0.60) !important; }
+.s87-app .text-white\/55 { color: rgba(8, 5, 3, 0.62) !important; }
+.s87-app .text-white\/60 { color: rgba(8, 5, 3, 0.66) !important; }
+.s87-app .text-white\/70 { color: rgba(8, 5, 3, 0.72) !important; }
+.s87-app .text-white\/80 { color: rgba(8, 5, 3, 0.82) !important; }
+.s87-app .hover\:text-white\/70:hover { color: rgba(8, 5, 3, 0.72) !important; }
+.s87-app .hover\:text-white\/80:hover { color: rgba(8, 5, 3, 0.82) !important; }
+.s87-app .placeholder-white\/30::placeholder,
+.s87-app .placeholder\:text-white\/30::placeholder { color: rgba(8, 5, 3, 0.40) !important; }
