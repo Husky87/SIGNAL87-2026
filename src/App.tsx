@@ -115,9 +115,6 @@ function useVisualViewportHeight(): number | null {
 export default function App() {
   const visualHeight = useVisualViewportHeight();
   const [currentTab, setCurrentTab] = useState<NavTab>('research');
-  useEffect(() => {
-    if (currentTab === 'team') setCurrentTab('research');
-  }, [currentTab]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -279,7 +276,6 @@ export default function App() {
   const [isBlogOpen, setIsBlogOpen] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
   const [isEmailAuthOpen, setIsEmailAuthOpen] = useState(false);
-  const [emailAuthMode, setEmailAuthMode] = useState<'signup' | 'signin'>('signup');
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
@@ -853,10 +849,7 @@ export default function App() {
     return (
       <>
         <LandingPageView
-          onOpenEmailAuth={(mode = 'signup') => {
-            setEmailAuthMode(mode);
-            setIsEmailAuthOpen(true);
-          }}
+          onOpenEmailAuth={() => setIsEmailAuthOpen(true)}
           onOpenPrivacy={() => setIsPrivacyOpen(true)}
           onOpenBlog={() => setIsBlogOpen(true)}
           onOpenMedia={() => setIsMediaOpen(true)}
@@ -884,7 +877,6 @@ export default function App() {
 
         <EmailAuthModal
           isOpen={isEmailAuthOpen}
-          initialMode={emailAuthMode}
           onClose={() => setIsEmailAuthOpen(false)}
           onSignUp={handleEmailSignUp}
           onSignIn={handleEmailSignIn}
