@@ -20,7 +20,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[13px] text-[var(--muted)]">
+        <div className="flex items-center gap-1.5 text-[13px] text-[#c4c7c5]">
           <Award size={15} /> Enterprise plan · Unlimited storage
         </div>
       </div>
@@ -48,26 +48,26 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({ stats }) => 
             </div>
           </div>
 
-          <div>
-            <h2 className="text-[11px] font-medium text-[var(--muted)] uppercase pb-2" style={{ letterSpacing: '0.09em' }}>
+          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6">
+            <h2 className="text-[11px] font-medium text-[#c4c7c5] uppercase pb-2" style={{ letterSpacing: '0.09em' }}>
               Sign-in options
             </h2>
 
             <div>
-              <div className="py-3.5 border-b border-[var(--rule-2)] flex items-center justify-between text-[13.5px]">
+              <div className="py-3.5 border-b border-[#37393b] flex items-center justify-between text-[13.5px]">
                 <div>
-                  <h4 className="text-[var(--ink)]">Google Workspace</h4>
-                  <span className="text-[12px] text-[var(--muted)]">Domain: @signal87.ai</span>
+                  <h4 className="text-[#e3e3e3]">Google Workspace</h4>
+                  <span className="text-[12px] text-[#c4c7c5]">Domain: @signal87.ai</span>
                 </div>
-                <span className="text-[12px] text-[var(--muted)]">Connected</span>
+                <span className="text-[12px] text-[#c4c7c5]">Connected</span>
               </div>
 
-              <div className="py-3.5 border-b border-[var(--rule-2)] last:border-b-0 flex items-center justify-between text-[13.5px]">
+              <div className="py-3.5 last:border-b-0 flex items-center justify-between text-[13.5px]">
                 <div>
-                  <h4 className="text-[var(--ink)]">Microsoft Azure AD</h4>
-                  <span className="text-[12px] text-[var(--muted)]">Single sign-on</span>
+                  <h4 className="text-[#e3e3e3]">Microsoft Azure AD</h4>
+                  <span className="text-[12px] text-[#c4c7c5]">Single sign-on</span>
                 </div>
-                <span className="text-[12px] text-[var(--muted)]">Connected</span>
+                <span className="text-[12px] text-[#c4c7c5]">Connected</span>
               </div>
             </div>
           </div>

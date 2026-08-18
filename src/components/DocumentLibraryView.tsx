@@ -434,6 +434,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     setCursorId(docId);
   };
 
+  /** A plain click opens the file; shift/cmd/ctrl-click still multi-selects. */
+  const handleRowClick = (e: React.MouseEvent, doc: DocumentItem) => {
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+      handleItemClick(e, doc.id);
+    } else {
+      onSelectDocument(doc);
+    }
+  };
+
   /** Toggles one item without disturbing the rest — what a checkbox should do. */
   const toggleOne = (docId: string) => {
     setDetailsVisible(false);
@@ -1551,8 +1560,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={(e) => handleItemClick(e, doc.id)}
-                      onDoubleClick={() => onSelectDocument(doc)}
+                      onClick={(e) => handleRowClick(e, doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
                       data-doc-id={doc.id}
                       tabIndex={0}
@@ -1651,8 +1659,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       draggable={filesView !== 'trash'}
                       onDragStart={(e) => handleDocDragStart(e, doc.id)}
                       onDragEnd={handleDocDragEnd}
-                      onClick={(e) => handleItemClick(e, doc.id)}
-                      onDoubleClick={() => onSelectDocument(doc)}
+                      onClick={(e) => handleRowClick(e, doc)}
                       onContextMenu={(e) => openContextMenu(e, 'doc', doc.id)}
                       data-doc-id={doc.id}
                       tabIndex={0}

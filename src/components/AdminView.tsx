@@ -159,7 +159,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm">Signal87 Standard Engine</span>
-                  <span className="text-[12px] text-[var(--muted)]">Fast, low latency</span>
+                  <span className="text-[12px] text-[#c4c7c5]">Fast, low latency</span>
                 </div>
                 <p className="text-xs text-[#c4c7c5] leading-relaxed">
                   Optimized for instant OCR text extraction, document classification, auto-summarization, and standard Q&A.
@@ -178,7 +178,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm flex items-center gap-1">
                     Signal87 Deep Engine <Sparkles size={14} className="text-amber-400" />
                   </span>
-                  <span className="text-[12px] text-[var(--muted)]">Deep reasoning</span>
+                  <span className="text-[12px] text-[#c4c7c5]">Deep reasoning</span>
                 </div>
                 <p className="text-xs text-[#c4c7c5] leading-relaxed">
                   High-capacity long-context model for complex multi-document comparative analysis, legal drafting, and policy research.
@@ -221,10 +221,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <span className="text-[#c4c7c5] font-mono text-[11px]">{u.email}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[13px] text-[var(--ink-2)]">
+                    <span className="text-[13px] text-[#c4c7c5]">
                       {u.role}
                     </span>
-                    <span className="text-[12px] text-[var(--muted)]">
+                    <span className="text-[12px] text-[#c4c7c5]">
                       {u.status}
                     </span>
                   </div>
