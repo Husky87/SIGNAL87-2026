@@ -1689,7 +1689,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                               : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
                           }`}
                         >
-                          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                          {isSelected ? <CheckSquare size={19} /> : <Square size={19} />}
                         </button>
                         {(() => {
                           const { Icon, color } = getTypeMeta(doc.type);

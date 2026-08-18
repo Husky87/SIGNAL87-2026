@@ -820,11 +820,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
       <div className="relative">
         <div
-          className="pointer-events-none absolute -inset-3 sm:-inset-4 rounded-[32px]"
+          className="pointer-events-none absolute -inset-5 sm:-inset-6 rounded-[36px]"
           style={{
             background:
-              'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
-            filter: 'blur(10px)'
+              'radial-gradient(ellipse at center, rgba(32,184,205,0.45) 0%, rgba(32,184,205,0.18) 45%, transparent 75%)',
+            filter: 'blur(14px)'
           }}
         />
         <div
