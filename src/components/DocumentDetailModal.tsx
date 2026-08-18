@@ -17,6 +17,7 @@ import {
   BookOpen,
   StickyNote
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
 import { getDocumentPdfUrl, hasRenderablePdf } from '../lib/pdfGenerator';
@@ -37,13 +38,31 @@ const splitPipeRow = (line: string): string[] =>
     .map((cell) => cell.trim());
 
 /**
- * The extracted-text preview for xlsx/csv is plain text, not structured data —
- * upload only sends the parsed grid to the backend for AI analysis, it never
- * comes back. Re-parsing the same markdown-table / HEADER-ROW text the
- * extractor already produced is what lets the viewer render an actual table
- * instead of dumping "| a | b |" pipes at the reader.
+ * Pads every row (including the header row) out to the widest row in the
+ * grid, positionally. Building headers from cell *names* instead — the way
+ * the upload-time text preview does — collapses distinct blank-header
+ * columns together (spreadsheet libraries name them all "__EMPTY",
+ * "__EMPTY_1", ...) and drops columns a given row happened not to populate.
+ * Position is the only address a spreadsheet cell actually has.
  */
-const parseSpreadsheetPreview = (doc: DocumentItem): ParsedSheet[] | null => {
+const gridToSheet = (name: string, grid: unknown[][]): ParsedSheet => {
+  const colCount = grid.reduce((max, row) => Math.max(max, row.length), 0);
+  const cell = (row: unknown[] | undefined, i: number) => {
+    const v = row?.[i];
+    return v === undefined || v === null ? '' : String(v).trim();
+  };
+  const headers = Array.from({ length: colCount }, (_, i) => cell(grid[0], i));
+  const rows = grid.slice(1).map((row) => Array.from({ length: colCount }, (_, i) => cell(row, i)));
+  return { name, headers, rows };
+};
+
+/**
+ * Fallback for documents whose original file was never stored (only the
+ * upload-time extracted text survived) — reconstructs a table from that
+ * text. Lossier than reading the real file: headers are cell names rather
+ * than positions, so repeated blank headers collapse into one column.
+ */
+const parseSpreadsheetPreviewText = (doc: DocumentItem): ParsedSheet[] | null => {
   const text = doc.contentPreview || '';
   if (!text.trim()) return null;
 
@@ -56,9 +75,8 @@ const parseSpreadsheetPreview = (doc: DocumentItem): ParsedSheet[] | null => {
       const body = blocks[i + 1] || '';
       const lines = body.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
       if (lines.length === 0) continue;
-      const headers = splitPipeRow(lines[0]);
-      const rows = lines.slice(2).map(splitPipeRow); // lines[1] is the --- separator row
-      if (rows.length > 0 || headers.length > 0) sheets.push({ name, headers, rows });
+      const grid = [lines[0], ...lines.slice(2)].map(splitPipeRow); // lines[1] is the --- separator row
+      if (grid.length > 0) sheets.push(gridToSheet(name, grid));
     }
     return sheets.length > 0 ? sheets : null;
   }
@@ -67,15 +85,68 @@ const parseSpreadsheetPreview = (doc: DocumentItem): ParsedSheet[] | null => {
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
     const headerLine = lines.find((l) => l.startsWith('HEADER:'));
     if (!headerLine) return null;
-    const headers = headerLine.slice('HEADER:'.length).trim().split(',').map((c) => c.trim());
-    const rows = lines
-      .filter((l) => /^ROW \d+:/.test(l))
-      .map((l) => l.replace(/^ROW \d+:/, '').trim().split(',').map((c) => c.trim()));
-    return [{ name: doc.title, headers, rows }];
+    const grid = [
+      headerLine.slice('HEADER:'.length).trim().split(','),
+      ...lines.filter((l) => /^ROW \d+:/.test(l)).map((l) => l.replace(/^ROW \d+:/, '').trim().split(','))
+    ];
+    return [gridToSheet(doc.title, grid)];
   }
 
   return null;
 };
+
+/**
+ * Prefers reading the actual stored file over the lossy text reconstruction
+ * above — same libraries the upload-time parser used, so the table matches
+ * the source spreadsheet's real columns instead of its extracted text.
+ */
+function useSpreadsheetSheets(doc: DocumentItem | null): { sheets: ParsedSheet[] | null; loading: boolean } {
+  const [state, setState] = useState<{ sheets: ParsedSheet[] | null; loading: boolean }>({ sheets: null, loading: false });
+
+  useEffect(() => {
+    if (!doc || (doc.type !== 'xlsx' && doc.type !== 'csv')) {
+      setState({ sheets: null, loading: false });
+      return;
+    }
+
+    if (!doc.fileUrl) {
+      setState({ sheets: parseSpreadsheetPreviewText(doc), loading: false });
+      return;
+    }
+
+    let cancelled = false;
+    setState({ sheets: null, loading: true });
+
+    (async () => {
+      try {
+        const res = await fetch(doc.fileUrl!);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        if (doc.type === 'csv') {
+          const text = await res.text();
+          const grid = text.replace(/\r/g, '').split('\n').filter((l) => l.length > 0).map((l) => l.split(','));
+          if (!cancelled) setState({ sheets: grid.length > 0 ? [gridToSheet(doc.title, grid)] : null, loading: false });
+          return;
+        }
+
+        const buffer = await res.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheets = workbook.SheetNames.map((name) =>
+          gridToSheet(name, XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name], { header: 1 }))
+        );
+        if (!cancelled) setState({ sheets: sheets.length > 0 ? sheets : null, loading: false });
+      } catch {
+        if (!cancelled) setState({ sheets: parseSpreadsheetPreviewText(doc), loading: false });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [doc]);
+
+  return state;
+}
 
 const SpreadsheetPreview: React.FC<{ sheets: ParsedSheet[] }> = ({ sheets }) => (
   <div className="w-full max-w-5xl space-y-6">
@@ -142,10 +213,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   // Only PDFs with a real file can be rendered. Everything else shows its
   // extracted text, labelled as such, rather than a manufactured stand-in.
   const canRenderPdf = useMemo(() => (doc ? hasRenderablePdf(doc) : false), [doc]);
-  const parsedSheets = useMemo(
-    () => (doc && (doc.type === 'xlsx' || doc.type === 'csv') ? parseSpreadsheetPreview(doc) : null),
-    [doc]
-  );
+  const { sheets: parsedSheets, loading: sheetsLoading } = useSpreadsheetSheets(doc);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -398,7 +466,9 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
         {/* Reading surface */}
         <div className="flex-1 overflow-y-auto bg-[var(--bg)] px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start">
-          {activeTab === 'pdf' && !canRenderPdf && parsedSheets ? (
+          {activeTab === 'pdf' && sheetsLoading ? (
+            <div className="text-[13.5px] text-[var(--muted)] pt-10">Loading spreadsheet…</div>
+          ) : activeTab === 'pdf' && !canRenderPdf && parsedSheets ? (
             <SpreadsheetPreview sheets={parsedSheets} />
           ) : activeTab === 'pdf' && !canRenderPdf ? (
             <div className="w-full max-w-3xl space-y-4">
