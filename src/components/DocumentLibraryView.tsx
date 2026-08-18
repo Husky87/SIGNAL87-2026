@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   X,
@@ -187,6 +188,8 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [editingFolderName, setEditingFolderName] = useState('');
   const [moveMenuDocId, setMoveMenuDocId] = useState<string | null>(null);
   const [selectionMoveOpen, setSelectionMoveOpen] = useState(false);
+  const selectionMoveButtonRef = useRef<HTMLButtonElement>(null);
+  const [selectionMoveMenuPos, setSelectionMoveMenuPos] = useState<{ bottom: number; right: number } | null>(null);
 
   useEffect(() => {
     setActiveFolderId(initialFolderId);
@@ -1365,36 +1368,53 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               {filesView !== 'trash' && onMoveDocument && (
                 <div className="relative">
                   <button
-                    onClick={() => setSelectionMoveOpen((v) => !v)}
+                    ref={selectionMoveButtonRef}
+                    onClick={() => {
+                      if (!selectionMoveOpen && selectionMoveButtonRef.current) {
+                        const rect = selectionMoveButtonRef.current.getBoundingClientRect();
+                        setSelectionMoveMenuPos({
+                          bottom: window.innerHeight - rect.top + 8,
+                          right: window.innerWidth - rect.right
+                        });
+                      }
+                      setSelectionMoveOpen((v) => !v);
+                    }}
                     className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
                   >
                     <Folder size={14} /> Move <ChevronDown size={12} />
                   </button>
-                  {selectionMoveOpen && (
-                    <div className="absolute right-0 top-9 w-48 bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-1 z-30 text-[13px] max-h-48 overflow-y-auto">
-                      <button
-                        onClick={() => {
-                          runOnSelection((d) => onMoveDocument(d.id, undefined));
-                          setSelectionMoveOpen(false);
-                        }}
-                        className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer"
+                  {selectionMoveOpen && selectionMoveMenuPos && createPortal(
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setSelectionMoveOpen(false)} />
+                      <div
+                        className="fixed w-48 bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-1 z-50 text-[13px] max-h-48 overflow-y-auto shadow-lg"
+                        style={{ bottom: selectionMoveMenuPos.bottom, right: selectionMoveMenuPos.right }}
                       >
-                        No folder
-                      </button>
-                      {folderPaths.map(({ folder, depth }) => (
                         <button
-                          key={folder.id}
                           onClick={() => {
-                            runOnSelection((d) => onMoveDocument(d.id, folder.id));
+                            runOnSelection((d) => onMoveDocument(d.id, undefined));
                             setSelectionMoveOpen(false);
                           }}
-                          className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer truncate"
-                          style={{ paddingLeft: `${8 + depth * 12}px` }}
+                          className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer"
                         >
-                          {folder.name}
+                          No folder
                         </button>
-                      ))}
-                    </div>
+                        {folderPaths.map(({ folder, depth }) => (
+                          <button
+                            key={folder.id}
+                            onClick={() => {
+                              runOnSelection((d) => onMoveDocument(d.id, folder.id));
+                              setSelectionMoveOpen(false);
+                            }}
+                            className="w-full px-2 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] rounded cursor-pointer truncate"
+                            style={{ paddingLeft: `${8 + depth * 12}px` }}
+                          >
+                            {folder.name}
+                          </button>
+                        ))}
+                      </div>
+                    </>,
+                    document.body
                   )}
                 </div>
               )}
