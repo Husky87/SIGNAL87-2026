@@ -84,7 +84,11 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                       <span className="flex-1 min-w-0 text-[14px] text-[var(--ink)] truncate">{doc.title}</span>
                       <span
                         className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                          isAttached ? 'bg-[var(--teal)] border-[var(--teal)]' : 'border-[var(--rule)] group-hover:border-[var(--ink-2)]'
+                          isAttached
+                            ? 'bg-[var(--teal)] border-[var(--teal)]'
+                            : isSelected
+                            ? 'border-2 border-[var(--teal)]'
+                            : 'border-[var(--rule)] group-hover:border-[var(--ink-2)]'
                         }`}
                       >
                         {isAttached && <Check size={12} className="text-white" />}

@@ -120,9 +120,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     try {
       const stored = localStorage.getItem('signal87_files_view_mode');
-      return stored === 'grid' ? 'grid' : 'list';
+      return stored === 'list' ? 'list' : 'grid';
     } catch {
-      return 'list';
+      return 'grid';
     }
   });
   useEffect(() => {
