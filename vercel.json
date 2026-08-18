@@ -17,6 +17,10 @@
     {
       "source": "/terms",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/team",
+      "destination": "/team.html"
     }
   ]
 }

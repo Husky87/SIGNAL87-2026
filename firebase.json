@@ -29,6 +29,7 @@
       { "source": "/api/auth/welcome-email", "function": "authWelcomeEmail" },
       { "source": "/privacy", "destination": "/privacy.html" },
       { "source": "/terms", "destination": "/terms.html" },
+      { "source": "/team", "destination": "/team.html" },
       { "source": "**", "destination": "/index.html" }
     ]
   }

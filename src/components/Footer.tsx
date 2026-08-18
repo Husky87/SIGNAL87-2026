@@ -50,13 +50,13 @@ export const Footer: React.FC<FooterProps> = ({
             </span>
             <ul className="space-y-1 text-xs">
               <li>
-                <button
-                  onClick={() => onSelectTab('team')}
+                <a
+                  href="/team"
                   className="w-full text-left py-1.5 px-2 -mx-2 text-slate-900 font-bold hover:text-[var(--teal)] hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
                 >
                   <Users size={14} className="text-slate-500" />
                   <span>Team</span>
-                </button>
+                </a>
               </li>
               <li>
                 <button

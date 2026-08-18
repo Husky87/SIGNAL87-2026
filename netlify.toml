@@ -24,6 +24,11 @@
   to = "/terms.html"
   status = 200
 
+[[redirects]]
+  from = "/team"
+  to = "/team.html"
+  status = 200
+
 # SPA fallback. Must stay last — everything above is more specific.
 [[redirects]]
   from = "/*"
