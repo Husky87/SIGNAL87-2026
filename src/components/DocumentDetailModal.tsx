@@ -21,6 +21,103 @@ import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
 import { getDocumentPdfUrl, hasRenderablePdf } from '../lib/pdfGenerator';
 
+interface ParsedSheet {
+  name: string;
+  headers: string[];
+  rows: string[][];
+}
+
+/** Splits a "| a | b |" markdown row into trimmed cells. */
+const splitPipeRow = (line: string): string[] =>
+  line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+
+/**
+ * The extracted-text preview for xlsx/csv is plain text, not structured data —
+ * upload only sends the parsed grid to the backend for AI analysis, it never
+ * comes back. Re-parsing the same markdown-table / HEADER-ROW text the
+ * extractor already produced is what lets the viewer render an actual table
+ * instead of dumping "| a | b |" pipes at the reader.
+ */
+const parseSpreadsheetPreview = (doc: DocumentItem): ParsedSheet[] | null => {
+  const text = doc.contentPreview || '';
+  if (!text.trim()) return null;
+
+  if (doc.type === 'xlsx') {
+    const sheets: ParsedSheet[] = [];
+    const blocks = text.split(/^--- Sheet: (.+) ---$/m);
+    // split() on a capturing group alternates [preamble, name, body, name, body, ...]
+    for (let i = 1; i < blocks.length; i += 2) {
+      const name = blocks[i].trim();
+      const body = blocks[i + 1] || '';
+      const lines = body.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
+      if (lines.length === 0) continue;
+      const headers = splitPipeRow(lines[0]);
+      const rows = lines.slice(2).map(splitPipeRow); // lines[1] is the --- separator row
+      if (rows.length > 0 || headers.length > 0) sheets.push({ name, headers, rows });
+    }
+    return sheets.length > 0 ? sheets : null;
+  }
+
+  if (doc.type === 'csv') {
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const headerLine = lines.find((l) => l.startsWith('HEADER:'));
+    if (!headerLine) return null;
+    const headers = headerLine.slice('HEADER:'.length).trim().split(',').map((c) => c.trim());
+    const rows = lines
+      .filter((l) => /^ROW \d+:/.test(l))
+      .map((l) => l.replace(/^ROW \d+:/, '').trim().split(',').map((c) => c.trim()));
+    return [{ name: doc.title, headers, rows }];
+  }
+
+  return null;
+};
+
+const SpreadsheetPreview: React.FC<{ sheets: ParsedSheet[] }> = ({ sheets }) => (
+  <div className="w-full max-w-5xl space-y-6">
+    {sheets.map((sheet, idx) => (
+      <div key={idx} className="space-y-2">
+        {sheets.length > 1 && (
+          <h3 className="text-[13px] font-medium text-[var(--ink)]">{sheet.name}</h3>
+        )}
+        <div className="border border-[var(--rule)] rounded-xl overflow-auto max-h-[70vh]">
+          <table className="w-full text-left text-[12.5px] border-collapse">
+            {sheet.headers.length > 0 && (
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-[var(--raised)]">
+                  {sheet.headers.map((h, i) => (
+                    <th
+                      key={i}
+                      className="px-3 py-2 font-semibold text-[var(--ink)] border-b border-[var(--rule)] whitespace-nowrap"
+                    >
+                      {h || `Column ${i + 1}`}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {sheet.rows.map((row, r) => (
+                <tr key={r} className="odd:bg-[var(--surface)] even:bg-[var(--bg)]">
+                  {row.map((cell, c) => (
+                    <td key={c} className="px-3 py-1.5 text-[var(--ink-2)] border-b border-[var(--rule-2)] whitespace-nowrap">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 interface DocumentDetailModalProps {
   document: DocumentItem | null;
   onClose: () => void;
@@ -45,6 +142,10 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   // Only PDFs with a real file can be rendered. Everything else shows its
   // extracted text, labelled as such, rather than a manufactured stand-in.
   const canRenderPdf = useMemo(() => (doc ? hasRenderablePdf(doc) : false), [doc]);
+  const parsedSheets = useMemo(
+    () => (doc && (doc.type === 'xlsx' || doc.type === 'csv') ? parseSpreadsheetPreview(doc) : null),
+    [doc]
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -297,7 +398,9 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
         {/* Reading surface */}
         <div className="flex-1 overflow-y-auto bg-[var(--bg)] px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start">
-          {activeTab === 'pdf' && !canRenderPdf ? (
+          {activeTab === 'pdf' && !canRenderPdf && parsedSheets ? (
+            <SpreadsheetPreview sheets={parsedSheets} />
+          ) : activeTab === 'pdf' && !canRenderPdf ? (
             <div className="w-full max-w-3xl space-y-4">
               <div className="flex items-start gap-2.5 p-3.5 rounded-xl border border-[var(--rule)] bg-[var(--surface)] text-[13px]">
                 <FileText size={16} className="flex-shrink-0 mt-0.5 text-[var(--muted)]" />
