@@ -29,12 +29,14 @@ import {
   Info,
   CheckSquare,
   Square,
-  MinusSquare
+  MinusSquare,
+  PenSquare
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
 import { useScrollMemory } from '../lib/useScrollMemory';
 import { DocumentGridSkeleton, DocumentListSkeleton, LoadingAnnouncement } from './DocumentSkeleton';
 import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
+import { hasRenderablePdf } from '../lib/pdfGenerator';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
@@ -59,6 +61,8 @@ interface DocumentLibraryViewProps {
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
   onMoveDocument?: (docId: string, folderId: string | undefined) => void;
+  /** Opens the manual PDF editor. Offered only for renderable PDFs. */
+  onEditPdf?: (doc: DocumentItem) => void;
   onFilesDropped?: (files: File[]) => void;
   initialFolderId?: string | null;
   onFolderChange?: (id: string | null) => void;
@@ -108,6 +112,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onRenameFolder,
   onDeleteFolder,
   onMoveDocument,
+  onEditPdf,
   onFilesDropped,
   initialFolderId = null,
   onFolderChange,
@@ -855,6 +860,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer"
           >
             <Eye size={13} /> Open
+          </button>
+        )}
+
+        {!isTrash && onEditPdf && hasRenderablePdf(doc) && (
+          <button
+            onClick={() => { onEditPdf(doc); closeAllMenus(); }}
+            className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
+          >
+            <PenSquare size={13} /> Edit PDF
           </button>
         )}
 

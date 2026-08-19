@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
 import { DocumentLibraryView } from './components/DocumentLibraryView';
@@ -45,6 +45,16 @@ import {
 } from './lib/firestoreService';
 import { adoptLegacyWorkspace } from './lib/workspaceMigration';
 import { useBackDismiss } from './lib/useBackDismiss';
+
+/**
+ * The PDF editor is the app's only consumer of pdf-lib, which is ~570 kB of
+ * the production bundle. Loading it on demand keeps that weight off every
+ * session that never opens the editor; the chunk is fetched the first time a
+ * document is actually opened for editing.
+ */
+const PdfEditorModal = lazy(() =>
+  import('./components/PdfEditorModal').then((module) => ({ default: module.PdfEditorModal }))
+);
 
 function readUserJson<T>(uid: string, key: string, fallback: T): T {
   try {
@@ -247,6 +257,7 @@ export default function App() {
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedDocForDetail, setSelectedDocForDetail] = useState<DocumentItem | null>(null);
+  const [editingPdfDoc, setEditingPdfDoc] = useState<DocumentItem | null>(null);
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
@@ -1139,6 +1150,7 @@ export default function App() {
                 onRenameFolder={handleRenameFolder}
                 onDeleteFolder={handleDeleteFolder}
                 onMoveDocument={handleMoveDocument}
+                onEditPdf={setEditingPdfDoc}
                 onFilesDropped={handleFilesDropped}
                 initialFolderId={selectedFolderId}
                 onFolderChange={setSelectedFolderId}
@@ -1274,7 +1286,17 @@ export default function App() {
           setPrelinkedDocId(docId);
           setCurrentTab('saved');
         }}
+        onEditPdf={(document) => {
+          setSelectedDocForDetail(null);
+          setEditingPdfDoc(document);
+        }}
       />
+
+      {editingPdfDoc && (
+        <Suspense fallback={null}>
+          <PdfEditorModal document={editingPdfDoc} onClose={() => setEditingPdfDoc(null)} />
+        </Suspense>
+      )}
 
       <PrivacyModal
         isOpen={isPrivacyOpen}

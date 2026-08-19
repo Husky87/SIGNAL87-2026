@@ -15,7 +15,8 @@ import {
   ZoomOut,
   Printer,
   BookOpen,
-  StickyNote
+  StickyNote,
+  PenSquare
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { DocumentItem } from '../types';
@@ -194,13 +195,16 @@ interface DocumentDetailModalProps {
   onClose: () => void;
   onOpenCompare: (doc: DocumentItem) => void;
   onAddNote?: (docId: string) => void;
+  /** Opens the manual PDF editor. Offered only for renderable PDFs. */
+  onEditPdf?: (doc: DocumentItem) => void;
 }
 
 export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   document: doc,
   onClose,
   onOpenCompare,
-  onAddNote
+  onAddNote,
+  onEditPdf
 }) => {
   const [activeTab, setActiveTab] = useState<'pdf' | 'analysis'>('pdf');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -332,6 +336,17 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
               <Sparkles size={16} />
               <span className="text-[10px] leading-none font-medium">AI Analysis</span>
             </button>
+            {onEditPdf && canRenderPdf && (
+              <button
+                onClick={() => onEditPdf(doc)}
+                className={menuButtonClass}
+                title="Edit — reorder, rotate or delete pages, and fill form fields"
+                aria-label="Edit"
+              >
+                <PenSquare size={16} />
+                <span className="text-[10px] leading-none font-medium">Edit</span>
+              </button>
+            )}
             <button
               onClick={() => { if (onAddNote) { onAddNote(doc.id); onClose(); } }}
               className={menuButtonClass}
@@ -442,11 +457,16 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                   >
                     Embedded
                   </button>
+                  {/* This whole toolbar is rendered only while activeTab is
+                      'pdf', so this pill can never be the active one. It was
+                      written as a ternary on activeTab === 'analysis', which
+                      is unreachable here; the inactive styling it always
+                      resolved to is now stated directly. Making the pill able
+                      to show as active is a behavioural change and is left
+                      alone deliberately. */}
                   <button
                     onClick={() => setActiveTab('analysis')}
-                    className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
-                      activeTab === 'analysis' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
-                    }`}
+                    className="px-2 py-1 text-[12px] rounded transition-colors cursor-pointer text-[var(--muted)] hover:text-[var(--ink)]"
                     title="View page reader mode"
                   >
                     Page reader
