@@ -4,6 +4,72 @@ import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
 import { buildChatMessages } from '../src/lib/chatPayload.js';
 
+/**
+ * Strips a trailing ```citation_manifest fenced block from the model's answer.
+ * The model's [1]/[2]/[3] markers in prose carry no information about which
+ * real document they refer to on their own — the manifest is how it reports
+ * that back, using the exact "DOCUMENT N" / "INGESTED ACTIVE FILE N" labels
+ * it was given in the prompt context. Kept identical to
+ * functions/src/index.ts's copy — see that file for the deploy target this
+ * mirrors.
+ */
+function extractCitationManifest(text: string): { cleanedText: string; entries: Array<{ source?: string }> } {
+  const match = text.match(/```citation_manifest\s*([\s\S]*?)```/i);
+  if (!match || match.index === undefined) return { cleanedText: text, entries: [] };
+
+  const cleanedText = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
+
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    return { cleanedText, entries: Array.isArray(parsed) ? parsed : [] };
+  } catch {
+    return { cleanedText, entries: [] };
+  }
+}
+
+/**
+ * Resolves each manifest entry back to a real document the request actually
+ * supplied as context. A label that doesn't resolve — hallucinated, or
+ * pointing past the end of the list — is dropped rather than guessed at.
+ */
+function resolveCitations(
+  entries: Array<{ source?: string }>,
+  readableDocs: any[],
+  readableAttached: any[]
+): Array<{ docId: string; docTitle: string; snippet?: string }> {
+  const seen = new Set<string>();
+  const citations: Array<{ docId: string; docTitle: string; snippet?: string }> = [];
+
+  for (const entry of entries) {
+    const source = String(entry?.source || '').trim();
+    const docMatch = source.match(/^DOCUMENT\s+(\d+)$/i);
+    const attachedMatch = source.match(/^INGESTED ACTIVE FILE\s+(\d+)$/i);
+
+    let doc: { id?: string; title: string; summary?: string } | null = null;
+    if (docMatch) {
+      doc = readableDocs[parseInt(docMatch[1], 10) - 1] || null;
+    } else if (attachedMatch) {
+      const f = readableAttached[parseInt(attachedMatch[1], 10) - 1];
+      if (f) doc = { id: f.fileName, title: f.fileName, summary: f.summaryInfo };
+    }
+
+    if (!doc) continue;
+    const key = doc.id || doc.title;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    citations.push({
+      docId: doc.id || doc.title,
+      docTitle: doc.title,
+      ...(doc.summary ? { snippet: String(doc.summary).substring(0, 120) + '...' } : {})
+    });
+
+    if (citations.length >= 5) break;
+  }
+
+  return citations;
+}
+
 // Server-side Gemini initialization
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -91,6 +157,7 @@ If the question asks for cause, mechanism, or explanation:
 - Data Presentation: Render structured data in Markdown tables where appropriate.
 - Code/Paths: Wrap UI elements or settings paths in inline code formatting (e.g., \`Settings > Integrations > API Keys\`).
 - Citations: DO NOT output full document names, file names, or snippets in the middle of your response. Instead, use short inline numeric bracket citations at the exact point of reference (e.g., [1], [2], or [3]). All full document details, sources, and reference snippets must be kept strictly at the end of your answer.
+- Citation manifest: After your answer, on its own line, output a fenced code block labeled exactly \`\`\`citation_manifest containing a JSON array that maps every bracket number you used to the exact document label it came from — the literal "DOCUMENT N" or "INGESTED ACTIVE FILE N" label given to you in the context above, never a made-up or paraphrased title. Example: \`\`\`citation_manifest\n[{"marker": 1, "source": "DOCUMENT 2"}, {"marker": 2, "source": "INGESTED ACTIVE FILE 1"}]\n\`\`\`. If you did not cite anything, output an empty array \`[]\`. Only list a source here if you actually drew from it to answer — never list a document just because it was available.
 - Identifiers: NEVER output internal document IDs, database keys, or system metadata (e.g., "doc-1786393760868-ji34c"). Refer to documents only by their plain title.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -284,25 +351,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const latencyMs = Date.now() - startTime;
 
-    // Cite whichever documents actually informed this answer: files attached
-    // to this message take priority over the separately-selected repository
-    // set, since those are what the model was actually asked about.
-    const citationSource = (readableAttached.length > 0)
-      ? readableAttached.map((f: any) => ({ id: f.fileName, title: f.fileName, summary: f.summaryInfo }))
-      : readableDocs;
-    // Names the documents the model was given, which is all that can honestly be
-    // claimed here. It previously also emitted a paragraph reference and a
-    // confidence score, both generated with Math.random() — "Sec. 1, Para 3" at
-    // "96%" pointed at nothing and measured nothing, under a heading reading
-    // VERIFICATION TRACE. Location and confidence are omitted unless known.
-    const citations = citationSource.slice(0, 3).map((doc: any) => ({
-      docId: doc.id,
-      docTitle: doc.title,
-      ...(doc.summary ? { snippet: doc.summary.substring(0, 120) + '...' } : {})
-    }));
+    // Cite only what the model actually reported drawing from, verified against
+    // the real documents it was given — not an arbitrary slice of whatever was
+    // in scope. A citation that can't be resolved to a real document (a
+    // hallucinated or paraphrased label) is dropped rather than guessed at.
+    const { cleanedText, entries } = extractCitationManifest(aiResult.text || '');
+    const citations = resolveCitations(entries, readableDocs, readableAttached);
 
     return res.json({
-      text: aiResult.text,
+      text: cleanedText,
       provider: aiResult.provider,
       fallbackTriggered: aiResult.fallbackTriggered,
       citations,
@@ -312,7 +369,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           `Parsed ${documents?.length || 0} document contexts and ${ingestedFilesData?.length || 0} active attachments`,
           `Executed synthesis using ${aiResult.modelUsed} (${aiResult.provider.toUpperCase()})`,
           ...(aiResult.fallbackTriggered ? [`Fallback triggered from Gemini to OpenAI (${aiResult.fallbackReason})`] : []),
-          'Verified citation accuracy and compliance rules'
+          citations.length > 0
+            ? `Matched ${citations.length} cited source${citations.length === 1 ? '' : 's'} to workspace documents`
+            : 'No cited sources could be confirmed against workspace documents'
         ],
         modelsUsed: [aiResult.modelUsed],
         provider: aiResult.provider,
