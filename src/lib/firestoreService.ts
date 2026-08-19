@@ -11,9 +11,11 @@ import {
   query,
   orderBy,
   limit,
+  getDoc,
   getDocFromServer
 } from 'firebase/firestore';
 import { DocumentItem, Project, ChatMessage, SavedItem } from '../types';
+import { PdfEditOverlay } from './pdfEditTypes';
 
 export enum OperationType {
   CREATE = 'create',
@@ -99,6 +101,7 @@ const DOCS_COLLECTION = 'documents';
 const PROJECTS_COLLECTION = 'projects';
 const CHAT_COLLECTION = 'chat_messages';
 const SAVED_ITEMS_COLLECTION = 'saved_items';
+const PDF_EDITS_COLLECTION = 'pdf_edits';
 
 export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
   if (!currentUid()) return [];
@@ -289,6 +292,84 @@ export async function deleteSavedItemFromFirestore(id: string): Promise<void> {
   try {
     if (!currentUid()) return;
     await deleteDoc(userDocRef(SAVED_ITEMS_COLLECTION, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, docPath);
+  }
+}
+
+/* ── Pending PDF edits ─────────────────────────────────────────────────────
+   One document per edited PDF, at users/{uid}/pdf_edits/{docId}. The stored
+   value is the pending-edit overlay: page order, rotations, the deleted-page
+   set and form values. It is plain JSON and describes *intent* — the original
+   bytes in Storage are never touched, and the overlay is applied to them only
+   when the user exports.
+
+   No security-rules change is needed: users/{userId}/{document=**} already
+   restricts the whole subtree to its owner.                                */
+
+/**
+ * The raw stored overlay, or null when there is none.
+ *
+ * Deliberately untyped at this boundary. Validating it needs the PDF's real
+ * page count — which this layer has no way to know — so the caller passes the
+ * value through normalizeOverlay() once the document has been opened.
+ */
+export async function fetchPdfEditOverlayFromFirestore(docId: string): Promise<unknown | null> {
+  if (!currentUid()) return null;
+  try {
+    const snapshot = await getDoc(userDocRef(PDF_EDITS_COLLECTION, docId));
+    return snapshot.exists() ? snapshot.data() : null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, userPath(PDF_EDITS_COLLECTION, docId));
+    return null;
+  }
+}
+
+export async function savePdfEditOverlayToFirestore(overlay: PdfEditOverlay): Promise<void> {
+  const docPath = userPath(PDF_EDITS_COLLECTION, overlay.docId);
+  try {
+    const uid = currentUid();
+    if (!uid) return;
+    // Written field by field rather than by spreading the overlay: Firestore
+    // rejects undefined, and every value below is a defined primitive, an
+    // array of primitives, or an array of flat maps — all of which it stores.
+    await setDoc(
+      userDocRef(PDF_EDITS_COLLECTION, overlay.docId),
+      {
+        docId: overlay.docId,
+        schemaVersion: overlay.schemaVersion,
+        pages: overlay.pages.map((page) => ({
+          id: page.id,
+          sourceId: page.sourceId,
+          sourceIndex: page.sourceIndex,
+          rotation: page.rotation
+        })),
+        deletedOriginalPages: overlay.deletedOriginalPages,
+        formValues: overlay.formValues,
+        sources: overlay.sources.map((source) => ({
+          id: source.id,
+          fileName: source.fileName,
+          pageCount: source.pageCount,
+          sizeBytes: source.sizeBytes,
+          addedAt: source.addedAt
+        })),
+        flattenOnExport: overlay.flattenOnExport,
+        updatedAt: overlay.updatedAt,
+        userId: uid
+      },
+      { merge: false }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+/** Discards the pending edits for a document, restoring the stored original. */
+export async function deletePdfEditOverlayFromFirestore(docId: string): Promise<void> {
+  const docPath = userPath(PDF_EDITS_COLLECTION, docId);
+  try {
+    if (!currentUid()) return;
+    await deleteDoc(userDocRef(PDF_EDITS_COLLECTION, docId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, docPath);
   }
