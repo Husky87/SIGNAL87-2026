@@ -892,7 +892,8 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsTermsOpen(false)}
-              className="fixed top-4 right-4 z-50 px-3 py-2 rounded-full bg-[#161818] text-[#F3F3EE] text-sm cursor-pointer"
+              className="fixed right-4 z-50 px-3 py-2 rounded-full bg-[#161818] text-[#F3F3EE] text-sm cursor-pointer"
+              style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
             >
               Close
             </button>

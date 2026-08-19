@@ -32,7 +32,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden overscroll-x-none bg-[#0F1010] text-[#F3F3EE] antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden overscroll-x-none bg-[#0F1010] text-[#F3F3EE] antialiased flex flex-col selection:bg-[var(--accent)] selection:text-[var(--teal-ink)] s87-app">
       <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 sm:px-8 pt-5">
         <button
           type="button"

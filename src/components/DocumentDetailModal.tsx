@@ -292,8 +292,14 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
       <div className="bg-[var(--surface)] rounded-none sm:rounded-2xl max-w-6xl w-full h-full sm:h-[94vh] overflow-hidden border-0 sm:border sm:border-[var(--rule)] flex flex-col text-[var(--ink)]">
 
-        {/* Top header */}
-        <div className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex items-center gap-3">
+        {/* Top header. On mobile this modal is edge-to-edge (rounded-none, h-full,
+            border-0 above), so the header sits under the notch/status bar unless
+            padded for it. On desktop the inset resolves to 0, so max() falls back
+            to the same 0.5rem the plain py-2 gave it — no visible change there. */}
+        <div
+          className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex items-center gap-3"
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+        >
           <div className="min-w-0 flex-1 px-1">
             <h2 className="text-[14.5px] font-medium text-[var(--ink)] truncate">{doc.title}</h2>
             <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[12px] text-[var(--muted)]">
@@ -566,8 +572,12 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
           )}
         </div>
 
-        {/* Bottom bar */}
-        <div className="p-3 bg-[var(--surface)] border-t border-[var(--rule)] flex items-center justify-between gap-3">
+        {/* Bottom bar — same edge-to-edge reasoning as the header above, for the
+            home-indicator inset instead of the notch. */}
+        <div
+          className="p-3 bg-[var(--surface)] border-t border-[var(--rule)] flex items-center justify-between gap-3"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
           <button
             onClick={onClose}
             className="flex-1 py-2.5 px-4 text-[var(--ink-2)] hover:text-[var(--ink)] font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center"

@@ -82,7 +82,7 @@ export const TeamView: React.FC = () => {
   ];
 
   return (
-    <main className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[#131314] text-[#e3e3e3] font-sans min-h-screen w-full max-w-full overflow-x-hidden">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[#131314] text-[#e3e3e3] font-sans min-h-[100dvh] w-full max-w-full overflow-x-hidden">
       {/* Inject JSON-LD Schema for SEO */}
       <script
         type="application/ld+json"

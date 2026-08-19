@@ -37,7 +37,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 bg-[#131314] text-[#e3e3e3] min-h-screen w-full max-w-full overflow-x-hidden">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 bg-[#131314] text-[#e3e3e3] min-h-[100dvh] w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#37393b]">
         <div>

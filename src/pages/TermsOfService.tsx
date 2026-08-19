@@ -2,7 +2,7 @@ import React from 'react';
 
 export const TermsOfService: React.FC = () => {
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '60px 20px', background: '#f9fafb', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '60px 20px', background: '#f9fafb', minHeight: '100dvh' }}>
       <div style={{ background: 'white', padding: '40px' }}>
         <header style={{ marginBottom: '40px', borderBottom: '2px solid #0891b2', paddingBottom: '20px' }}>
           <h1 style={{ fontSize: '2.5rem', color: '#0f172a', marginBottom: '10px' }}>Terms of Service</h1>

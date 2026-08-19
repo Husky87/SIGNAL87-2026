@@ -74,7 +74,7 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
   const activeDocs = documents.filter((d) => selectedIds.includes(d.id));
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[#131314] text-[#e3e3e3] min-h-screen w-full max-w-full overflow-x-hidden">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[#131314] text-[#e3e3e3] min-h-[100dvh] w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#37393b]">
         <div>
@@ -119,21 +119,21 @@ export const MultiDocCompareView: React.FC<MultiDocCompareViewProps> = ({
               <div
                 key={doc.id}
                 onClick={() => toggleSelect(doc.id)}
-                className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
+                className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between gap-2 min-w-0 ${
  isSelected
  ? 'border-[#1a73e8] bg-[#004a77]/30 font-semibold text-[#e3e3e3]'
  : 'border-[#37393b] bg-[#28292a] text-[#c4c7c5] hover:bg-[#37393b]'
  }`}
               >
-                <div className="flex items-center gap-2 truncate">
-                  <FileText size={16} className={isSelected ? 'text-[#7dd3fc]' : 'text-[#c4c7c5]'} />
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <FileText size={16} className={`flex-shrink-0 ${isSelected ? 'text-[#7dd3fc]' : 'text-[#c4c7c5]'}`} />
                   <span className="truncate text-[#e3e3e3]">{doc.title}</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={isSelected}
                   readOnly
-                  className="rounded text-[#1a73e8] focus:ring-[#1a73e8]"
+                  className="rounded text-[#1a73e8] focus:ring-[#1a73e8] flex-shrink-0"
                 />
               </div>
             );
