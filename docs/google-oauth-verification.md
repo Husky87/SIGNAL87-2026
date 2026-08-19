@@ -96,7 +96,7 @@ Google's review queue.
 - `index.html` — title, meta description, social tags, and structured data lead with
   "Signal87 AI" and describe the product. A `<noscript>` block carries the purpose and
   policy links, since the app renders client-side and the raw HTML was otherwise empty.
-- `public/privacy.html`, `public/terms.html`, `vercel.json` — policy pages served at the
+- `public/privacy.html`, `public/terms.html`, `firebase.json` — policy pages served at the
   clean paths `/privacy` and `/terms`.
 - `src/lib/firebase.ts` — sign-in requests identity only. The comment there warns against
   re-adding scopes.

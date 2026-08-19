@@ -149,7 +149,9 @@ export const MobileDock: React.FC<MobileDockProps> = ({
         aria-label="Mobile Navigation"
         className="md:hidden flex items-center justify-between flex-shrink-0 px-1 pt-2 pb-2.5 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full max-w-full overflow-x-hidden"
         style={{
-          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+          // Same "10px + inset" expression --dock-height (index.css) is built
+          // from, so the two can never drift apart.
+          paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
         }}
       >
         {tabs.map((tab) => {

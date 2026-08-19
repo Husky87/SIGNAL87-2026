@@ -1316,7 +1316,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           {selectedDocs.length > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="fixed left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
+              className="fixed left-1/2 -translate-x-1/2 bottom-[calc(var(--dock-height)_+_0.75rem)] md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
             >
               <button
                 onClick={clearSelection}

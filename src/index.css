@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* MobileDock's real rendered height, derived (not guessed) from its own
+   Tailwind classes in MobileDock.tsx so the two can never drift — the nav
+   itself sets its bottom padding from the same "10px + inset" expression
+   used here, and this repo's html has font-size:16px, so 1rem = 16px:
+     pt-2 top padding                         =  8px
+     border-t                                 =  1px
+     button py-1 (top+bottom, 0.25rem each)   =  8px
+     icon pill py-2 (top+bottom, 0.5rem each) = 16px
+     icon w-5/h-5                             = 20px
+     gap-1 between pill and label             =  4px
+     label: 11px font-size * 1.25 leading-tight = 13.75px
+     fixed breathing room below the safe area = 10px  (additive, not the
+       nav's old `max(10px, env(...))` — max() can't be expressed as a
+       sum, so the nav now adds this floor on top of the inset instead of
+       clamping to whichever is larger; the practical effect is a few
+       extra px of gap under the labels on notched phones, never less)
+   8 + 1 + 8 + 16 + 20 + 4 + 13.75 + 10 = 80.75px */
+:root {
+  --dock-height: calc(80.75px + env(safe-area-inset-bottom));
+}
+
 :root{
   --bg:#FAFAF8;           /* page — warm off-white, not stark white */
   --surface:#FFFFFF;      /* composer, raised rows, dock */
