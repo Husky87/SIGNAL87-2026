@@ -381,3 +381,34 @@ export function segmentsFromBreaks(breakAfterIndices: Iterable<number>, pageCoun
   if (start < pageCount) segments.push({ start, end: pageCount - 1 });
   return segments;
 }
+
+/**
+ * Parses a page-range expression like "1-3, 7, 9-12" into 0-based indices.
+ *
+ * Accepts what a person actually types: any mix of commas and whitespace as
+ * separators, reversed ranges, and out-of-range numbers (clamped away rather
+ * than rejected, so one typo does not discard the rest of the selection).
+ * Returns indices in ascending order with duplicates removed, or an empty
+ * array when nothing in the input names a real page.
+ */
+export function parsePageRange(input: string, pageCount: number): number[] {
+  const selected = new Set<number>();
+  for (const part of input.split(',')) {
+    const token = part.trim();
+    if (!token) continue;
+    const range = /^(\d+)\s*-\s*(\d+)$/.exec(token);
+    if (range) {
+      const from = Number(range[1]);
+      const to = Number(range[2]);
+      const start = Math.max(1, Math.min(from, to));
+      const end = Math.min(pageCount, Math.max(from, to));
+      for (let page = start; page <= end; page++) selected.add(page - 1);
+      continue;
+    }
+    if (/^\d+$/.test(token)) {
+      const page = Number(token);
+      if (page >= 1 && page <= pageCount) selected.add(page - 1);
+    }
+  }
+  return [...selected].sort((a, b) => a - b);
+}
