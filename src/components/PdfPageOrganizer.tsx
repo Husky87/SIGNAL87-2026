@@ -180,9 +180,17 @@ export const PdfPageOrganizer: React.FC<PdfPageOrganizerProps> = ({
                 </div>
 
                 <div className="px-2 py-1.5 flex items-center justify-between gap-1 text-[11px] text-[var(--muted)]">
+                  {/* Position, then where the page came from — but only when
+                      that differs from the position. Once pages have been
+                      reordered or duplicated, the position number alone says
+                      where a tile sits and nothing about which page it is. */}
                   <span className="truncate">
                     {index + 1}
-                    {label ? ` · ${label}` : ''}
+                    {label
+                      ? ` · ${label} p.${page.sourceIndex + 1}`
+                      : page.sourceIndex !== index
+                        ? ` · p.${page.sourceIndex + 1}`
+                        : ''}
                     {page.rotation !== 0 ? ` · ${page.rotation}°` : ''}
                   </span>
                 </div>

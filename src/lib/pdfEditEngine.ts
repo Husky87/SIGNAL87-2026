@@ -135,6 +135,23 @@ function hasXfaForm(doc: PDFDocument): boolean {
  * decodes to garbage rather than erroring when it is on, and a garbled export
  * is worse than a refusal.
  */
+/**
+ * Whether a thrown value is pdf-lib reporting an encrypted document.
+ *
+ * `instanceof EncryptedPDFError` alone is not enough. pdf-lib ships compiled
+ * with tslib's __extends downlevelling, and subclassing Error that way breaks
+ * the prototype chain — the check silently returns false for the very error it
+ * names. Without the fallbacks, every password-protected PDF was reported as
+ * merely unreadable instead of as protected.
+ */
+function isEncryptedError(error: unknown): boolean {
+  if (error instanceof EncryptedPDFError) return true;
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { name?: unknown; message?: unknown };
+  if (candidate.name === 'EncryptedPDFError') return true;
+  return typeof candidate.message === 'string' && /is encrypted/i.test(candidate.message);
+}
+
 async function loadForEditing(bytes: Uint8Array): Promise<{ ok: true; doc: PDFDocument } | { ok: false; blocker: PdfEditBlocker }> {
   if (!looksLikePdf(bytes)) {
     return { ok: false, blocker: { kind: 'corrupt', message: 'This file does not begin with a PDF header.' } };
@@ -144,7 +161,7 @@ async function loadForEditing(bytes: Uint8Array): Promise<{ ok: true; doc: PDFDo
     if (doc.isEncrypted) return { ok: false, blocker: { kind: 'encrypted' } };
     return { ok: true, doc };
   } catch (error) {
-    if (error instanceof EncryptedPDFError) return { ok: false, blocker: { kind: 'encrypted' } };
+    if (isEncryptedError(error)) return { ok: false, blocker: { kind: 'encrypted' } };
     return {
       ok: false,
       blocker: {
