@@ -19,10 +19,12 @@
     <meta name="apple-mobile-web-app-title" content="Signal87" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <!-- Translucent so the app's own background runs under the clock and
-         battery, rather than iOS painting an opaque strip above it. -->
+    <!-- "default" gives a light status bar with dark glyphs, which is what a
+         warm-paper app needs. The alternative, black-translucent, draws the
+         clock and battery in white — legible over the old near-black theme,
+         invisible over Chambers parchment. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="theme-color" content="#FAFAF8" />
+    <meta name="theme-color" content="#F4F1EA" />
     <meta name="color-scheme" content="light" />
     <!-- Phone numbers and dates in contract text are not links. -->
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
@@ -80,11 +82,23 @@
       }
     </script>
 
-    <!-- Inter, served from this origin. Previously two preconnects and a
-         stylesheet request to Google before a single glyph could be drawn; on a
-         phone that is a round trip to a third party on every cold start, and one
-         a restrictive network can simply refuse. Preloaded so the font is in
-         flight alongside the stylesheet rather than discovered after it. -->
+    <!-- Newsreader and Inter, served from this origin. Previously two
+         preconnects and a stylesheet request to Google before a single glyph
+         could be drawn; on a phone that is a round trip to a third party on
+         every cold start, and one a restrictive network can simply refuse.
+         Both are preloaded so they are in flight alongside their stylesheets
+         rather than discovered after them.
+
+         Newsreader is first: it sets every heading and document title, so it
+         is the face a reader notices missing. Regenerate both with
+         npm run fonts. -->
+    <link
+      rel="preload"
+      href="/fonts/newsreader-var-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link
       rel="preload"
       href="/fonts/inter-var-latin.woff2"
@@ -92,6 +106,7 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="stylesheet" href="/fonts/newsreader.css" />
     <link rel="stylesheet" href="/fonts/inter.css" />
   </head>
   <body>

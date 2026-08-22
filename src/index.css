@@ -22,40 +22,84 @@
 }
 
 :root{
-  --bg:#FAFAF8;           /* page — warm off-white, not stark white */
-  --surface:#FFFFFF;      /* composer, raised rows, dock */
-  --surface-2:#F2F1EC;    /* hover */
-  --ink:#1B1B18;          /* primary text — near-black, warm-tinted */
-  --ink-2:#55534C;        /* body text */
-  --muted:#8B897F;        /* metadata, placeholders, inactive icons */
-  --rule:#E4E2DB;         /* borders */
-  --rule-2:#EFEDE7;       /* hairlines */
-  --teal:#0E7C8C;         /* the only accent — deepened for AA contrast on white */
-  --teal-soft:#E4F3F5;    /* accent fill */
-  /* text on a filled surface (--ink or --teal fills, both dark here) — never
-     dark; this is the inverse of --teal-ink's dark-mode value, not a typo. */
-  --teal-ink:#FFFFFF;
-  --ok:#2E9563;
-  --warn:#B3690F;
-  --f:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* ==========================================================================
+     Chambers — warm paper, oxblood, Newsreader.
 
-  /* Back-compat aliases: the app's components already consume this variable
-     system (var(--paper), var(--accent), etc). Pointing the old names at the
-     Clear tokens re-themes the whole app without a repo-wide rename. */
+     Every value below is recovered from this file's own former override block,
+     which recorded the legacy Chambers class each Clear token replaced. None of
+     them are invented: #F4F1EA/#EFEBE1 were the paper grounds, #FBF9F4 the
+     raised surface, #E8E3D8 and #DDD6C8 the two border weights, #1C1917 /
+     #57534E / #8F8880 the three text weights, #6B231C and #8C2F27 the two
+     oxbloods, #F3E3DF the accent tint, #4A6741 the confirm green, and
+     #8A6414 / #FBEECB the caution pair.
+
+     Components reference these tokens rather than hex, so re-theming the app
+     means editing this block and nothing else.
+     ========================================================================== */
+  --bg:#F4F1EA;           /* page — warm parchment */
+  --surface:#FBF9F4;      /* cards, composer, dock — the lightest ground */
+  --surface-2:#EFEBE1;    /* hover and raised rows — the darkest of the three */
+  --ink:#1C1917;          /* primary text — warm near-black */
+  --ink-2:#57534E;        /* body text */
+  --muted:#8F8880;        /* metadata, placeholders, inactive icons */
+  --rule:#DDD6C8;         /* borders */
+  --rule-2:#E8E3D8;       /* hairlines — lighter than --rule */
+
+  /* Two oxbloods, as the original palette carried them: the deeper one fills,
+     the lighter one is legible as text on paper. */
+  --accent:#6B231C;         /* fills, active states */
+  --accent-ink:#8C2F27;     /* the accent used as text or an icon on paper */
+  --accent-soft:#F3E3DF;    /* accent tint */
+  --accent-contrast:#FBF9F4;/* text on an oxblood fill — never dark */
+
+  --ok:#4A6741;
+  --ok-soft:#E6EDE2;
+  --warn:#8A6414;
+  --warn-soft:#FBEECB;
+  /* Failure, distinct from the oxblood accent so an error never reads as a
+     brand flourish. Shares its hue with --cat-brick by design. */
+  --danger:#A33A2E;
+  --danger-soft:#F6E4E0;
+
+  /* Category accents for folder swatches and file-format badges. These are
+     identity colours, not chrome: they have to stay distinguishable from one
+     another, which is why they are not simply --accent. They are drawn from
+     the Chambers family so that a folder list or a file grid still reads as
+     part of this app rather than as Google Drive, whose blue/green/yellow/red/
+     purple/grey swatches these replace one for one. */
+  --cat-oxblood:#6B231C;
+  --cat-brick:#A33A2E;
+  --cat-forest:#4A6741;
+  --cat-ochre:#8A6414;
+  --cat-plum:#6E4B6E;
+  --cat-sepia:#6B5344;
+  --cat-stone:#8F8880;
+
+  /* Two surfaces are deliberately dark and stay that way: the landing hero and
+     the Ask composer. They are self-contained, full-bleed and were designed
+     against near-black, so they do not follow the paper ground. Their values
+     are tokens rather than hex literals so the theme still owns them. */
+  --ink-surface:#0F1010;    /* the dark ground itself */
+  --ink-surface-2:#111212;  /* panels on that ground */
+  --ink-surface-3:#161818;  /* raised rows, fields */
+  --on-ink:#F3F3EE;         /* text on any of the three */
+
+  /* Newsreader carries the headings; Inter carries the interface. Both are
+     self-hosted from /public/fonts — regenerate with npm run fonts. */
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --f: var(--sans);
+
+  /* Back-compat aliases. The app's older components consume these names; they
+     resolve to the Chambers tokens above so nothing had to be renamed twice. */
   --paper: var(--bg);
   --card: var(--surface);
   --raised: var(--surface-2);
   --slate: var(--muted);
-  --accent: var(--teal);
-  --accent-soft: var(--teal-soft);
-  --accent-ink: var(--teal);
-  --teal-deep: var(--teal);
   --verify: var(--ok);
-  --verify-bg: var(--teal-soft);
+  --verify-bg: var(--accent-soft);
   --alert: var(--warn);
-  --serif: var(--f);
-  --sans: var(--f);
-  --mono: var(--f);
+  --mono: var(--sans);
 }
 
 @layer base {
@@ -82,9 +126,13 @@
     overflow-x: hidden;
   }
 
+  /* Newsreader carries the headings; Inter carries the interface. The tight
+     tracking below was tuned for a grotesque and closes a serif up too far, so
+     it is relaxed to near-neutral here. */
   h1, h2, h3, h4, h5, h6 {
+    font-family: var(--serif);
     font-weight: 600;
-    letter-spacing: -0.036em;
+    letter-spacing: -0.012em;
   }
 
   input, textarea, select, button {
@@ -105,6 +153,22 @@
 
   /* Simple reset for button min-height */
   button { min-height: 44px; }
+
+  /* Native controls paint themselves with the operating system's accent, which
+     is a bright blue on most machines — the one piece of the old palette no
+     source scan can see, because it is never written down anywhere. */
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'],
+  progress {
+    accent-color: var(--accent);
+  }
+
+  /* The text selection highlight is the same story. */
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--ink);
+  }
 }
 
 /* ==========================================================================
@@ -232,151 +296,7 @@
   }
 }
 
-/* =========================================================================
-   GENERATED — Clear palette overrides for legacy "Chambers" color classes.
-   Scanned from every .tsx under src/. Do not hand-edit stale entries here;
-   regenerate instead if new legacy colors are introduced.
-   ========================================================================= */
-
-.s87-app .bg-\[\#004a77\] { background-color: var(--teal) !important; }
-.s87-app .bg-\[\#004a77\]\/30 { background-color: color-mix(in srgb, var(--teal) 30%, transparent) !important; }
-.s87-app .bg-\[\#004a77\]\/40 { background-color: color-mix(in srgb, var(--teal) 40%, transparent) !important; }
-.s87-app .bg-\[\#004a77\]\/50 { background-color: color-mix(in srgb, var(--teal) 50%, transparent) !important; }
-.s87-app .bg-\[\#0F6E66\] { background-color: var(--teal-deep) !important; }
-.s87-app .bg-\[\#131314\] { background-color: var(--bg) !important; }
-.s87-app .bg-\[\#131C25\] { background-color: var(--ink) !important; }
-.s87-app .bg-\[\#131C25\]\/70 { background-color: color-mix(in srgb, var(--ink) 70%, transparent) !important; }
-.s87-app .bg-\[\#131C25\]\/75 { background-color: color-mix(in srgb, var(--ink) 75%, transparent) !important; }
-.s87-app .bg-\[\#18191a\] { background-color: var(--raised) !important; }
-.s87-app .bg-\[\#1a73e8\] { background-color: var(--teal) !important; }
-.s87-app .bg-\[\#1a73e8\]\/20 { background-color: color-mix(in srgb, var(--teal) 20%, transparent) !important; }
-.s87-app .bg-\[\#1e1f20\] { background-color: var(--surface) !important; }
-.s87-app .bg-\[\#28292a\] { background-color: var(--raised) !important; }
-.s87-app .bg-\[\#37393b\] { background-color: var(--rule) !important; }
-.s87-app .bg-\[\#3D4B58\]\/10 { background-color: color-mix(in srgb, var(--ink-2) 10%, transparent) !important; }
-.s87-app .bg-\[\#D3D9DE\] { background-color: var(--rule) !important; }
-.s87-app .bg-\[\#E8F2F0\] { background-color: var(--teal-soft) !important; }
-.s87-app .bg-\[\#EBF3FC\] { background-color: var(--teal-soft) !important; }
-.s87-app .bg-\[\#EDEFF2\] { background-color: var(--rule-2) !important; }
-.s87-app .bg-\[\#F0B429\] { background-color: var(--teal) !important; }
-.s87-app .bg-\[\#F8F9FA\] { background-color: var(--bg) !important; }
-.s87-app .bg-\[\#FBEECB\] { background-color: var(--teal-soft) !important; }
-.s87-app .bg-\[\#FFFFFF\] { background-color: var(--surface) !important; }
-.s87-app .border-\[\#004a77\] { border-color: var(--teal) !important; }
-.s87-app .border-\[\#0F6E66\] { border-color: var(--teal-deep) !important; }
-.s87-app .border-\[\#131C25\] { border-color: var(--ink) !important; }
-.s87-app .border-\[\#131C25\]\/20 { border-color: color-mix(in srgb, var(--ink) 20%, transparent) !important; }
-.s87-app .border-\[\#1a73e8\] { border-color: var(--teal) !important; }
-.s87-app .border-\[\#1a73e8\]\/30 { border-color: color-mix(in srgb, var(--teal) 30%, transparent) !important; }
-.s87-app .border-\[\#1e1f20\] { border-color: var(--surface) !important; }
-.s87-app .border-\[\#28292a\] { border-color: var(--raised) !important; }
-.s87-app .border-\[\#37393b\] { border-color: var(--rule) !important; }
-.s87-app .border-\[\#BDE0DB\] { border-color: var(--teal-soft) !important; }
-.s87-app .border-\[\#D3D9DE\] { border-color: var(--rule) !important; }
-.s87-app .border-\[\#DDD6C8\] { border-color: var(--rule) !important; }
-.s87-app .border-\[\#EBD79B\] { border-color: var(--rule) !important; }
-.s87-app .divide-\[\#28292a\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--raised) !important; }
-.s87-app .divide-\[\#37393b\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--rule) !important; }
-.s87-app .focus\:border-\[\#1a73e8\]:focus { border-color: var(--teal) !important; }
-.s87-app .focus\:border-\[\#7dd3fc\]:focus { border-color: var(--teal) !important; }
-.s87-app .focus\:ring-\[\#1a73e8\]:focus { --tw-ring-color: var(--teal) !important; }
-.s87-app .from-\[\#0F6E66\] { --tw-gradient-from: var(--teal-deep) !important; }
-.s87-app .from-\[\#1a73e8\] { --tw-gradient-from: var(--teal) !important; }
-.s87-app .from-\[\#1e1f20\] { --tw-gradient-from: var(--surface) !important; }
-.s87-app .group:hover .group-hover\:bg-\[\#1a73e8\] { background-color: var(--teal) !important; }
-.s87-app .group:hover .group-hover\:text-\[\#7dd3fc\] { color: var(--teal) !important; }
-.s87-app .hover\:bg-\[\#1557b0\]:hover { background-color: var(--teal) !important; }
-.s87-app .hover\:bg-\[\#1e1f20\]:hover { background-color: var(--surface) !important; }
-.s87-app .hover\:bg-\[\#28292a\]:hover { background-color: var(--raised) !important; }
-.s87-app .hover\:bg-\[\#37393b\]:hover { background-color: var(--rule) !important; }
-.s87-app .hover\:bg-\[\#D3D9DE\]:hover { background-color: var(--rule) !important; }
-.s87-app .hover\:bg-\[\#EDEFF2\]:hover { background-color: var(--rule-2) !important; }
-.s87-app .hover\:bg-\[\#EDEFF2\]\/60:hover { background-color: color-mix(in srgb, var(--rule-2) 60%, transparent) !important; }
-.s87-app .hover\:border-\[\#131C25\]:hover { border-color: var(--ink) !important; }
-.s87-app .hover\:border-\[\#1a73e8\]:hover { border-color: var(--teal) !important; }
-.s87-app .hover\:border-\[\#37393b\]:hover { border-color: var(--rule) !important; }
-.s87-app .hover\:from-\[\#1557b0\]:hover { --tw-gradient-from: var(--teal) !important; }
-.s87-app .hover\:text-\[\#131C25\]:hover { color: var(--ink) !important; }
-.s87-app .hover\:text-\[\#e3e3e3\]:hover { color: var(--ink) !important; }
-.s87-app .hover\:text-\[\#F0B429\]:hover { color: var(--teal) !important; }
-.s87-app .placeholder-\[\#8e918f\]::placeholder { color: var(--muted) !important; }
-.s87-app .placeholder-\[\#9aa0a6\]::placeholder { color: var(--muted) !important; }
-.s87-app .placeholder-\[\#c4c7c5\]::placeholder { color: var(--ink-2) !important; }
-.s87-app .ring-\[\#1a73e8\] { --tw-ring-color: var(--teal) !important; }
-.s87-app .ring-\[\#1a73e8\]\/20 { --tw-ring-color: color-mix(in srgb, var(--teal) 20%, transparent) !important; }
-.s87-app .text-\[\#0F6E66\] { color: var(--teal-deep) !important; }
-.s87-app .text-\[\#131C25\] { color: var(--ink) !important; }
-.s87-app .text-\[\#1a73e8\] { color: var(--teal) !important; }
-.s87-app .text-\[\#37393b\] { color: var(--rule) !important; }
-.s87-app .text-\[\#3D4B58\] { color: var(--ink-2) !important; }
-.s87-app .text-\[\#6E7C89\] { color: var(--muted) !important; }
-.s87-app .text-\[\#78716C\] { color: var(--muted) !important; }
-.s87-app .text-\[\#7dd3fc\] { color: var(--teal) !important; }
-.s87-app .text-\[\#8A6414\] { color: var(--teal-deep) !important; }
-.s87-app .text-\[\#8C2F27\] { color: var(--teal) !important; }
-.s87-app .text-\[\#8e918f\] { color: var(--muted) !important; }
-.s87-app .text-\[\#9aa0a6\] { color: var(--muted) !important; }
-.s87-app .text-\[\#c4c7c5\] { color: var(--ink-2) !important; }
-.s87-app .text-\[\#e3e3e3\] { color: var(--ink) !important; }
-.s87-app .text-\[\#F0B429\] { color: var(--teal) !important; }
-.s87-app .text-\[\#FFFFFF\] { color: var(--surface) !important; }
-.s87-app .to-\[\#131314\] { --tw-gradient-to: var(--bg) !important; }
-.s87-app .to-\[\#F0B429\] { --tw-gradient-to: var(--teal) !important; }
-
-/* Legacy hex values that don't appear as literal .tsx utility classes today
-   (SavedView.tsx's old parchment palette, already restyled) — kept as a
-   defensive net in case they resurface. */
-.s87-app .bg-\[\#F4F1EA\], .s87-app .bg-\[\#EFEBE1\] { background-color: var(--bg) !important; }
-.s87-app .bg-\[\#FBF9F4\] { background-color: var(--surface) !important; }
-.s87-app .border-\[\#E8E3D8\] { border-color: var(--rule) !important; }
-.s87-app .text-\[\#1C1917\] { color: var(--ink) !important; }
-.s87-app .text-\[\#57534E\] { color: var(--ink-2) !important; }
-.s87-app .text-\[\#8F8880\] { color: var(--muted) !important; }
-.s87-app .bg-\[\#6B231C\] { background-color: var(--teal) !important; }
-.s87-app .bg-\[\#F3E3DF\] { background-color: var(--teal-soft) !important; }
-.s87-app .bg-\[\#4A6741\], .s87-app .text-\[\#4A6741\] { background-color: var(--ok) !important; color: var(--ok) !important; }
-
-/* Named Tailwind scales standing in for the old dark-canvas theme. */
-.s87-app .bg-slate-950, .s87-app .bg-zinc-950, .s87-app .bg-neutral-950 { background-color: var(--bg) !important; }
-.s87-app .bg-slate-900, .s87-app .bg-zinc-900, .s87-app .bg-neutral-900 { background-color: var(--surface) !important; }
-.s87-app .bg-slate-800, .s87-app .bg-zinc-800, .s87-app .bg-neutral-800 { background-color: var(--raised) !important; }
-.s87-app .text-slate-100, .s87-app .text-slate-200 { color: var(--ink) !important; }
-.s87-app .text-slate-300 { color: var(--ink-2) !important; }
-.s87-app .text-slate-400 { color: var(--muted) !important; }
-.s87-app .border-slate-700, .s87-app .border-slate-800, .s87-app .border-slate-900,
-.s87-app .border-zinc-700, .s87-app .border-zinc-800, .s87-app .border-zinc-900,
-.s87-app .border-neutral-700, .s87-app .border-neutral-800, .s87-app .border-neutral-900 { border-color: var(--rule) !important; }
-.s87-app .text-sky-50, .s87-app .text-sky-100, .s87-app .text-sky-200, .s87-app .text-sky-300,
-.s87-app .text-sky-400, .s87-app .text-sky-500, .s87-app .text-sky-600, .s87-app .text-sky-700,
-.s87-app .text-amber-50, .s87-app .text-amber-100, .s87-app .text-amber-200, .s87-app .text-amber-300,
-.s87-app .text-amber-400, .s87-app .text-amber-500, .s87-app .text-amber-600, .s87-app .text-amber-700,
-.s87-app .text-rose-50, .s87-app .text-rose-100, .s87-app .text-rose-200, .s87-app .text-rose-300,
-.s87-app .text-rose-400, .s87-app .text-rose-500, .s87-app .text-rose-600, .s87-app .text-rose-700 { color: var(--teal) !important; }
-
-/* text-white: correct to ink by default (ink is warm off-white in dark
-   mode, so this stays readable against the dark surfaces everywhere).
-   Every background below resolves to --teal or --ink, both light/bright
-   in dark mode — text on those needs to be dark (--teal-ink), never white. */
-.s87-app .text-white { color: var(--ink) !important; }
-.s87-app [class*="bg-gradient"].text-white,
-.s87-app .bg-\[\#131C25\].text-white,
-.s87-app .bg-\[\#1a73e8\].text-white,
-.s87-app .bg-\[\#1557b0\].text-white,
-.s87-app .bg-\[\#004a77\].text-white,
-.s87-app .bg-\[\#0F6E66\].text-white,
-.s87-app .bg-\[\#8C2F27\].text-white,
-.s87-app .bg-\[\#6B231C\].text-white,
-.s87-app .bg-\[\#F0B429\].text-white,
-.s87-app .bg-\[var\(--teal\)\].text-white,
-.s87-app .bg-\[var\(--ink\)\].text-white,
-.s87-app .bg-teal-600.text-white, .s87-app .bg-teal-700.text-white,
-.s87-app .group:hover .group-hover\:text-white { color: var(--teal-ink) !important; }
-
-/* The PDF-viewer view-mode pills pair an accent fill with ink text —
-   ink is light in dark mode, so that combination also needs teal-ink. */
-.s87-app .bg-\[\#F0B429\].text-\[\#131C25\] { color: var(--teal-ink) !important; }
-
-/* Radii: land old utilities in the Clear scale. */
+/* Radii: land old utilities in the Chambers scale. */
 .s87-app .rounded-2xl { border-radius: 12px; }
 .s87-app .rounded-3xl { border-radius: 16px; }
 .s87-app .rounded-xl  { border-radius: 11px; }
@@ -397,20 +317,23 @@
 
    Checkboxes, radios, ranges and file inputs are excluded by type.          */
 :root {
-  --field-bg: #FFFFFF;
-  /* At rest: a quiet neutral edge with soft depth, not a colored glow —
-     light surfaces read the accent as a focus cue, not a resting halo. */
+  /* The field ground is the raised surface, not stark white: on parchment a
+     pure-white field reads as a hole punched in the page. */
+  --field-bg: #FBF9F4;
+  /* At rest: a quiet warm edge with soft depth, not a colored glow — paper
+     reads the oxblood as a focus cue, not a resting halo. The rgba values are
+     --ink (28,25,23) and --accent (107,35,28) at low alpha. */
   --field-ring:
-    0 0 0 1px rgba(27, 27, 24, 0.1),
-    0 1px 2px 0 rgba(27, 27, 24, 0.04);
+    0 0 0 1px rgba(28, 25, 23, 0.12),
+    0 1px 2px 0 rgba(28, 25, 23, 0.05);
   --field-glow:
-    0 0 0 1px rgba(27, 27, 24, 0.1),
-    0 1px 3px 0 rgba(27, 27, 24, 0.06),
-    0 4px 16px 0 rgba(27, 27, 24, 0.05);
+    0 0 0 1px rgba(28, 25, 23, 0.12),
+    0 1px 3px 0 rgba(28, 25, 23, 0.07),
+    0 4px 16px 0 rgba(28, 25, 23, 0.06);
   --field-glow-focus:
-    0 0 0 1px rgba(14, 124, 140, 0.45),
-    0 1px 3px 0 rgba(27, 27, 24, 0.06),
-    0 4px 16px 0 rgba(14, 124, 140, 0.1);
+    0 0 0 1px rgba(107, 35, 28, 0.45),
+    0 1px 3px 0 rgba(28, 25, 23, 0.07),
+    0 4px 16px 0 rgba(107, 35, 28, 0.12);
 }
 
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
@@ -456,23 +379,25 @@
 
 /* Locked-dark field treatment for the two composers that live on permanently
    dark, self-contained surfaces (LandingPageView's hero search,
-   ResearchAssistantView's chat composer) — both keep their own hardcoded
-   palette (#0F1010/#F3F3EE/#161818) independent of the --field-* tokens
-   above, which now resolve light. Reusing .s87-field there put a white pill
-   on a black page with a white-on-white placeholder; this variant is the
-   same treatment pinned to the dark palette those two components already use
-   everywhere else, instead of following the light/dark token swap. */
+   ResearchAssistantView's chat composer). Those surfaces stay dark by design,
+   so this variant does not follow the paper ground — but it now reads its
+   values from the --ink-surface-* tokens instead of repeating hex literals,
+   and its focus ring is oxblood rather than the cyan it used to carry.
+   Reusing .s87-field there would put a parchment pill on a near-black page
+   with an unreadable placeholder. */
 .s87-app .s87-field-dark {
-  background-color: #161818;
+  background-color: var(--ink-surface-3);
   border: 0;
   border-radius: 999px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
-  color: #F3F3EE;
+  box-shadow: 0 0 0 1px rgba(243, 243, 238, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+  color: var(--on-ink);
   transition: box-shadow 0.25s ease;
 }
 
 .s87-app .s87-field-dark:focus-within {
-  box-shadow: 0 0 0 1px rgba(32, 184, 205, 0.5), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+  /* --accent-ink (140,47,39): the lighter oxblood, which holds up against a
+     near-black ground where the deeper fill oxblood would disappear. */
+  box-shadow: 0 0 0 1px rgba(140, 47, 39, 0.75), 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
   outline: none;
 }
 
@@ -481,7 +406,7 @@
   background-color: transparent;
   border-radius: 0;
   box-shadow: none !important;
-  color: #F3F3EE;
+  color: var(--on-ink);
 }
 
 /* Placeholder shimmer. A slow, low-contrast sweep — the point is to say "still
