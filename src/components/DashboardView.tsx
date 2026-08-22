@@ -114,7 +114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             disabled={!query.trim()}
             aria-label="Ask"
             className={`flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
-              query.trim() ? 'bg-[var(--teal)] text-white hover:opacity-90' : 'bg-[var(--raised)] text-[var(--muted)] cursor-not-allowed'
+              query.trim() ? 'bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90' : 'bg-[var(--raised)] text-[var(--muted)] cursor-not-allowed'
             }`}
           >
             <ArrowUp size={17} strokeWidth={2.6} />

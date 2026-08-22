@@ -35,7 +35,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
           <ul className="space-y-2.5">
             {PLAN_FEATURES.map((feature) => (
               <li key={feature} className="flex items-center gap-2.5 text-[14px] text-[var(--ink)]">
-                <Check size={15} className="flex-shrink-0 text-[var(--teal)]" />
+                <Check size={15} className="flex-shrink-0 text-[var(--accent)]" />
                 <span>{feature}</span>
               </li>
             ))}
@@ -43,7 +43,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
 
           <a
             href="mailto:billing@signal87.ai?subject=Signal87%20Subscription"
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center transition-all min-h-[44px]"
+            className="w-full py-2.5 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center transition-all min-h-[44px]"
           >
             Upgrade — billing coming soon
           </a>

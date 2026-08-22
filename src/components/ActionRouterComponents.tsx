@@ -32,7 +32,7 @@ export const parseInlineStyles = (
       return (
         <code
           key={idx}
-          className="bg-white/5 text-[#F3F3EE] border border-white/10 px-1.5 py-0.5 rounded-[3px] text-[11px] font-mono font-bold tracking-tight inline-block mx-0.5"
+          className="bg-[var(--on-ink)]/5 text-[var(--on-ink)] border border-[var(--rule)]/10 px-1.5 py-0.5 rounded-[3px] text-[11px] font-mono font-bold tracking-tight inline-block mx-0.5"
           style={{ fontFamily: 'var(--mono)' }}
         >
           {part.slice(1, -1)}
@@ -41,14 +41,14 @@ export const parseInlineStyles = (
     }
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={idx} className="font-semibold text-[#F3F3EE]">
+        <strong key={idx} className="font-semibold text-[var(--on-ink)]">
           {part.slice(2, -2)}
         </strong>
       );
     }
     if (part.startsWith('*') && part.endsWith('*')) {
       return (
-        <em key={idx} className="italic text-white/70">
+        <em key={idx} className="italic text-[var(--on-ink)]/70">
           {part.slice(1, -1)}
         </em>
       );
@@ -103,7 +103,7 @@ export const parseInlineStyles = (
                 }
               }
             }}
-            className="text-[#20B8CD] hover:opacity-80 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
+            className="text-[var(--accent-ink)] hover:opacity-80 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
             title={cite.paragraphRef ? `View: ${cite.docTitle} (${cite.paragraphRef})` : `View: ${cite.docTitle}`}
           >
             {part}
@@ -282,27 +282,27 @@ export const GeminiMarkdownRenderer: React.FC<{
   };
 
   return (
-    <div className="text-[14.5px] sm:text-[15px] leading-[1.65] text-[#F3F3EE] font-sans tracking-normal space-y-1">
+    <div className="text-[14.5px] sm:text-[15px] leading-[1.65] text-[var(--on-ink)] font-sans tracking-normal space-y-1">
       {blocks.map((block, idx) => {
         if (block.type === 'excel_card') {
           return (
-            <div key={idx} className="my-4 p-4 bg-[#111212] border border-white/10 rounded-[4px] flex items-center justify-between gap-4">
+            <div key={idx} className="my-4 p-4 bg-[var(--ink-surface-2)] border border-[var(--rule)]/10 rounded-[4px] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[3px] bg-[#20B8CD]/10 border border-[#20B8CD]/30 text-[#20B8CD] flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-[3px] bg-[var(--accent-ink)]/10 border border-[var(--accent-ink)]/30 text-[var(--accent-ink)] flex items-center justify-center flex-shrink-0">
                   <FileSpreadsheet size={18} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-mono font-bold text-[#20B8CD] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
+                  <div className="text-[10px] font-mono font-bold text-[var(--accent-ink)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                     EXCEL DATASET GENERATED
                   </div>
-                  <div className="text-sm font-semibold text-[#F3F3EE]" style={{ fontFamily: 'var(--serif)' }}>
+                  <div className="text-sm font-semibold text-[var(--on-ink)]" style={{ fontFamily: 'var(--serif)' }}>
                     {block.excelData.filename || 'analysis_export.xlsx'}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => downloadExcelFromBlock(block.excelData.data, block.excelData.filename)}
-                className="px-3.5 py-1.5 bg-[#20B8CD] hover:opacity-90 text-white text-xs font-semibold rounded-[3px] transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                className="px-3.5 py-1.5 bg-[var(--accent-ink)] hover:opacity-90 text-[var(--on-ink)] text-xs font-semibold rounded-[3px] transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0"
               >
                 <FileSpreadsheet size={14} />
                 <span>Download .xlsx</span>
@@ -313,12 +313,12 @@ export const GeminiMarkdownRenderer: React.FC<{
 
         if (block.type === 'code') {
           return (
-            <div key={idx} className="my-3 border border-white/10 rounded-[4px] bg-[#111212] overflow-hidden max-w-full">
-              <div className="px-3 py-1.5 bg-white/5 border-b border-white/10 text-[10px] font-mono font-bold uppercase tracking-[0.09em] text-white/40" style={{ fontFamily: 'var(--mono)' }}>
+            <div key={idx} className="my-3 border border-[var(--rule)]/10 rounded-[4px] bg-[var(--ink-surface-2)] overflow-hidden max-w-full">
+              <div className="px-3 py-1.5 bg-[var(--on-ink)]/5 border-b border-[var(--rule)]/10 text-[10px] font-mono font-bold uppercase tracking-[0.09em] text-[var(--on-ink)]/40" style={{ fontFamily: 'var(--mono)' }}>
                 {block.lang || 'CODE'}
               </div>
               <div className="overflow-x-auto max-w-full">
-                <pre className="p-3 text-xs font-mono text-[#F3F3EE] leading-relaxed whitespace-pre-wrap break-all sm:break-normal" style={{ fontFamily: 'var(--mono)' }}>
+                <pre className="p-3 text-xs font-mono text-[var(--on-ink)] leading-relaxed whitespace-pre-wrap break-all sm:break-normal" style={{ fontFamily: 'var(--mono)' }}>
                   {block.content}
                 </pre>
               </div>
@@ -330,27 +330,27 @@ export const GeminiMarkdownRenderer: React.FC<{
           const cleanText = parseInlineStyles(block.content || '', citations, onSelectDocument, documents);
           if (block.level === 1) {
             return (
-              <h1 key={idx} className="text-xl sm:text-2xl font-normal text-[#F3F3EE] mt-6 mb-2.5 tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
+              <h1 key={idx} className="text-xl sm:text-2xl font-normal text-[var(--on-ink)] mt-6 mb-2.5 tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
                 {cleanText}
               </h1>
             );
           }
           if (block.level === 2) {
             return (
-              <h2 key={idx} className="text-lg sm:text-xl font-normal text-[#F3F3EE] mt-5 mb-2 tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
+              <h2 key={idx} className="text-lg sm:text-xl font-normal text-[var(--on-ink)] mt-5 mb-2 tracking-tight" style={{ fontFamily: 'var(--serif)' }}>
                 {cleanText}
               </h2>
             );
           }
           if (block.level === 3) {
             return (
-              <h3 key={idx} className="text-base sm:text-lg font-semibold text-[#F3F3EE] mt-4 mb-1.5 tracking-tight">
+              <h3 key={idx} className="text-base sm:text-lg font-semibold text-[var(--on-ink)] mt-4 mb-1.5 tracking-tight">
                 {cleanText}
               </h3>
             );
           }
           return (
-            <h4 key={idx} className="text-sm sm:text-base font-semibold text-[#F3F3EE] mt-3 mb-1">
+            <h4 key={idx} className="text-sm sm:text-base font-semibold text-[var(--on-ink)] mt-3 mb-1">
               {cleanText}
             </h4>
           );
@@ -361,8 +361,8 @@ export const GeminiMarkdownRenderer: React.FC<{
             <ul key={idx} className="my-2.5 space-y-1.5 pl-1 max-w-full">
               {block.items?.map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-2.5 max-w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#20B8CD] mt-2 flex-shrink-0" />
-                  <div className="flex-1 text-[#F3F3EE] leading-[1.65] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-ink)] mt-2 flex-shrink-0" />
+                  <div className="flex-1 text-[var(--on-ink)] leading-[1.65] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
                 </li>
               ))}
             </ul>
@@ -371,22 +371,22 @@ export const GeminiMarkdownRenderer: React.FC<{
 
         if (block.type === 'table') {
           return (
-            <div key={idx} className="overflow-x-auto my-3 border border-white/10 rounded-[4px] bg-[#111212] max-w-full">
+            <div key={idx} className="overflow-x-auto my-3 border border-[var(--rule)]/10 rounded-[4px] bg-[var(--ink-surface-2)] max-w-full">
               <table className="w-full border-collapse text-left text-xs sm:text-sm">
-                <thead className="bg-white/5 text-[#F3F3EE] font-semibold border-b border-white/10">
+                <thead className="bg-[var(--on-ink)]/5 text-[var(--on-ink)] font-semibold border-b border-[var(--rule)]/10">
                   <tr>
                     {block.tableHeaders?.map((th, hIdx) => (
-                      <th key={hIdx} className="p-2.5 text-[11px] font-mono uppercase tracking-[0.09em] text-white/40 break-words" style={{ fontFamily: 'var(--mono)' }}>
+                      <th key={hIdx} className="p-2.5 text-[11px] font-mono uppercase tracking-[0.09em] text-[var(--on-ink)]/40 break-words" style={{ fontFamily: 'var(--mono)' }}>
                         {th}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-[var(--rule)]/5">
                   {block.tableRows?.map((row, rIdx) => (
-                    <tr key={rIdx} className="hover:bg-white/6 transition-colors">
+                    <tr key={rIdx} className="hover:bg-[var(--on-ink)]/6 transition-colors">
                       {row.map((cell, cIdx) => (
-                        <td key={cIdx} className="p-2.5 text-[#F3F3EE] break-words">
+                        <td key={cIdx} className="p-2.5 text-[var(--on-ink)] break-words">
                           {parseInlineStyles(cell, citations, onSelectDocument, documents)}
                         </td>
                       ))}
@@ -399,7 +399,7 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
 
         return (
-          <p key={idx} className="mb-3 text-[14.5px] leading-[1.65] text-[#F3F3EE] break-words">
+          <p key={idx} className="mb-3 text-[14.5px] leading-[1.65] text-[var(--on-ink)] break-words">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
@@ -407,7 +407,7 @@ export const GeminiMarkdownRenderer: React.FC<{
 
       {/* Verification Trace Card */}
       {citations && citations.length > 0 && (
-        <div className="mt-4 p-3.5 bg-[#111212] border border-white/10 rounded-[5px] space-y-2.5">
+        <div className="mt-4 p-3.5 bg-[var(--ink-surface-2)] border border-[var(--rule)]/10 rounded-[5px] space-y-2.5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[var(--verify)] flex-shrink-0" />
             <span className="font-mono text-[10px] font-bold text-[var(--verify)] uppercase tracking-[0.09em]">
@@ -415,7 +415,7 @@ export const GeminiMarkdownRenderer: React.FC<{
             </span>
           </div>
 
-          <div className="space-y-1.5 pt-1 border-t border-white/10">
+          <div className="space-y-1.5 pt-1 border-t border-[var(--rule)]/10">
             {citations.map((c, i) => {
               const citeTag = `CIT-0${i + 1}`;
               // No invented location. This printed "p.1" whenever the citation
@@ -461,13 +461,13 @@ export const GeminiMarkdownRenderer: React.FC<{
                 <button
                   key={i}
                   onClick={handleCiteClick}
-                  className="w-full flex items-center justify-between text-xs font-mono py-1 px-1.5 hover:bg-white/8 rounded-[3px] transition-all text-left cursor-pointer group"
+                  className="w-full flex items-center justify-between text-xs font-mono py-1 px-1.5 hover:bg-[var(--on-ink)]/8 rounded-[3px] transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="px-1.5 py-0.5 rounded-[3px] bg-[#20B8CD]/15 border-b-[1.5px] border-[#20B8CD] text-[#20B8CD] font-bold text-[10px] group-hover:bg-[#20B8CD] group-hover:text-white transition-colors" style={{ fontFamily: 'var(--mono)' }}>
+                    <span className="px-1.5 py-0.5 rounded-[3px] bg-[var(--accent-ink)]/15 border-b-[1.5px] border-[var(--accent-ink)] text-[var(--accent-ink)] font-bold text-[10px] group-hover:bg-[var(--accent-ink)] group-hover:text-[var(--on-ink)] transition-colors" style={{ fontFamily: 'var(--mono)' }}>
                       {citeTag}
                     </span>
-                    <span className="text-white/70 text-[11px] truncate group-hover:text-[#20B8CD] group-hover:underline">
+                    <span className="text-[var(--on-ink)]/70 text-[11px] truncate group-hover:text-[var(--accent-ink)] group-hover:underline">
                       {docMeta}
                     </span>
                   </div>
@@ -571,7 +571,7 @@ export const ActionRouterCard: React.FC<{
     <div className="py-1">
       {/* Response Content */}
       {isEditingExcel && spreadsheetData ? (
-        <div className="my-4 border border-white/10 rounded-[4px] overflow-hidden bg-[#111212]">
+        <div className="my-4 border border-[var(--rule)]/10 rounded-[4px] overflow-hidden bg-[var(--ink-surface-2)]">
           <Spreadsheet data={spreadsheetData} onChange={setSpreadsheetData} />
         </div>
       ) : (
@@ -587,11 +587,11 @@ export const ActionRouterCard: React.FC<{
       <div className="mt-3 pt-2 flex flex-wrap items-center gap-2 text-xs">
         <button
           onClick={() => onCopy(msg.id, msg.text)}
-          className="px-2.5 py-1.5 bg-[#111212] hover:bg-white/5 text-white/70 hover:text-[#F3F3EE] border border-white/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+          className="px-2.5 py-1.5 bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/70 hover:text-[var(--on-ink)] border border-[var(--rule)]/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
           title="Copy response"
         >
           {copiedMsgId === msg.id ? (
-            <Check size={13} className="text-[#20B8CD]" />
+            <Check size={13} className="text-[var(--accent-ink)]" />
           ) : (
             <Copy size={13} />
           )}
@@ -607,7 +607,7 @@ export const ActionRouterCard: React.FC<{
                 }
                 setIsEditingExcel(!isEditingExcel);
               }}
-              className={`px-2.5 py-1.5 bg-[#111212] hover:bg-white/5 ${isEditingExcel ? 'text-[#20B8CD]' : 'text-white/70'} hover:text-[#20B8CD] border border-white/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5`}
+              className={`px-2.5 py-1.5 bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 ${isEditingExcel ? 'text-[var(--accent-ink)]' : 'text-[var(--on-ink)]/70'} hover:text-[var(--accent-ink)] border border-[var(--rule)]/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5`}
               title={isEditingExcel ? "Save Changes" : "Edit in Browser"}
             >
               {isEditingExcel ? <Save size={13} /> : <Edit2 size={13} />}
@@ -615,7 +615,7 @@ export const ActionRouterCard: React.FC<{
             </button>
             <button
               onClick={handleDownloadExcel}
-              className="px-2.5 py-1.5 bg-[#111212] hover:bg-white/5 text-white/70 hover:text-[#20B8CD] border border-white/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/70 hover:text-[var(--accent-ink)] border border-[var(--rule)]/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
               title="Download Excel"
             >
               <FileSpreadsheet size={13} />
@@ -626,7 +626,7 @@ export const ActionRouterCard: React.FC<{
 
         <button
           onClick={() => onExportPDF('Signal87 AI Brief', msg.text)}
-          className="px-2.5 py-1.5 bg-[#111212] hover:bg-white/5 text-white/70 hover:text-[#F3F3EE] border border-white/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+          className="px-2.5 py-1.5 bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/70 hover:text-[var(--on-ink)] border border-[var(--rule)]/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
           title="Export PDF"
         >
           <Download size={13} />
@@ -638,8 +638,8 @@ export const ActionRouterCard: React.FC<{
             onClick={() => onSaveAnswer(msg, userPrompt || 'AI Assistant Answer')}
             className={`px-2.5 py-1.5 border rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
               isAnswerSaved
-                ? 'bg-[#20B8CD] text-white border-[#20B8CD]'
-                : 'bg-[#111212] hover:bg-white/5 text-white/70 hover:text-[#F3F3EE] border border-white/10'
+                ? 'bg-[var(--accent-ink)] text-[var(--on-ink)] border-[var(--accent-ink)]'
+                : 'bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/70 hover:text-[var(--on-ink)] border border-[var(--rule)]/10'
             }`}
             title={isAnswerSaved ? "Answer Saved" : "Save Answer"}
           >
@@ -650,7 +650,7 @@ export const ActionRouterCard: React.FC<{
 
         <button
           onClick={handleShare}
-          className="px-2.5 py-1.5 bg-[#111212] hover:bg-white/5 text-white/70 hover:text-[#F3F3EE] border border-white/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+          className="px-2.5 py-1.5 bg-[var(--ink-surface-2)] hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/70 hover:text-[var(--on-ink)] border border-[var(--rule)]/10 rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
           title="Share response"
         >
           <Share2 size={13} />

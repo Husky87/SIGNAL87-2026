@@ -22,7 +22,7 @@ export interface DocumentEntity {
 export interface FolderItem {
   id: string;
   name: string;
-  color?: string; // e.g. '#1a73e8', '#0f9d58', '#f4b400', '#ea4335', '#a142f4', '#5f6368'
+  color?: string; // a --cat-* token, e.g. 'var(--cat-oxblood)' or 'var(--cat-forest)'
   parentId?: string | null;
   createdAt: string;
   updatedAt?: string;

@@ -136,9 +136,9 @@ export default function App() {
 
   // Core Data States
   const defaultFolders: FolderItem[] = [
-    { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
-    { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
-    { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
+    { id: 'fld_contracts', name: 'Legal & Contracts', color: 'var(--accent)', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_financials', name: 'Financial Disclosures', color: 'var(--cat-forest)', parentId: null, createdAt: new Date().toISOString() },
+    { id: 'fld_governance', name: 'Board Minutes', color: 'var(--cat-ochre)', parentId: null, createdAt: new Date().toISOString() }
   ];
   const [folders, setFolders] = useState<FolderItem[]>(defaultFolders);
 
@@ -211,7 +211,7 @@ export default function App() {
     const newFld: FolderItem = {
       id: `fld_${Date.now()}`,
       name,
-      color: color || '#1a73e8',
+      color: color || 'var(--accent)',
       parentId: parentId ?? null,
       createdAt: new Date().toISOString()
     };
@@ -675,9 +675,9 @@ export default function App() {
     setPendingCompareIds([]);
     setNewNoteRequestId(0);
     setFolders([
-      { id: 'fld_contracts', name: 'Legal & Contracts', color: '#1a73e8', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_financials', name: 'Financial Disclosures', color: '#0f9d58', parentId: null, createdAt: new Date().toISOString() },
-      { id: 'fld_governance', name: 'Board Minutes', color: '#f4b400', parentId: null, createdAt: new Date().toISOString() }
+      { id: 'fld_contracts', name: 'Legal & Contracts', color: 'var(--accent)', parentId: null, createdAt: new Date().toISOString() },
+      { id: 'fld_financials', name: 'Financial Disclosures', color: 'var(--cat-forest)', parentId: null, createdAt: new Date().toISOString() },
+      { id: 'fld_governance', name: 'Board Minutes', color: 'var(--cat-ochre)', parentId: null, createdAt: new Date().toISOString() }
     ]);
     // Only this app's keys. localStorage.clear() wiped the entire origin,
     // including storage belonging to nothing to do with the workspace.
@@ -832,7 +832,7 @@ export default function App() {
   };
 
   if (!authReady) {
-    return <div className="min-h-[100dvh] w-full bg-[#0F1010]" />;
+    return <div className="min-h-[100dvh] w-full bg-[var(--ink-surface)]" />;
   }
 
   const getPageTitle = (tab: NavTab): string => {
@@ -899,11 +899,11 @@ export default function App() {
           onClose={() => setIsPrivacyOpen(false)}
         />
         {isTermsOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--ink)]/70">
             <button
               type="button"
               onClick={() => setIsTermsOpen(false)}
-              className="fixed right-4 z-50 px-3 py-2 rounded-full bg-[#161818] text-[#F3F3EE] text-sm cursor-pointer"
+              className="fixed right-4 z-50 px-3 py-2 rounded-full bg-[var(--ink-surface-3)] text-[var(--on-ink)] text-sm cursor-pointer"
               style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
             >
               Close
@@ -1042,7 +1042,7 @@ export default function App() {
               className="hidden sm:flex items-center gap-1 p-1 px-2 text-[10px] font-bold text-[var(--ink-2)] bg-[var(--paper)] hover:bg-[var(--raised)] rounded-full border border-[var(--rule)] uppercase cursor-pointer"
               title="Change active AI model"
             >
-              <Sparkles size={11} className="text-amber-500 animate-pulse" />
+              <Sparkles size={11} className="text-[var(--warn)] animate-pulse" />
               <span className="max-w-[70px] truncate">{selectedModel === 'gemini-2.5-pro' ? 'Deep' : selectedModel === 'gemini-2.5-flash-lite' ? 'Fast' : 'Standard'}</span>
               <ChevronDown size={10} className="text-[var(--slate)]" />
             </button>
@@ -1073,7 +1073,7 @@ export default function App() {
             ) : (
               <button
                 onClick={handleGoogleSignIn}
-                className="w-7 h-7 rounded-full bg-[var(--accent)] text-white flex items-center justify-center cursor-pointer hover:opacity-90"
+                className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] flex items-center justify-center cursor-pointer hover:opacity-90"
                 title="Sign In"
               >
                 <LogIn size={13} />

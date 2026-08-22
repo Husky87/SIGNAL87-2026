@@ -24,11 +24,11 @@ export const Signal87Logo: React.FC<Signal87LogoProps> = ({
         xmlns="http://www.w3.org/2000/svg"
         className="flex-shrink-0 rounded-2xl"
       >
-        {/* Dark Squircle Background */}
-        <rect width="100" height="100" rx="24" fill="#18181b" />
+        {/* Ink squircle */}
+        <rect width="100" height="100" rx="24" fill="var(--ink)" />
         
-        {/* 4 Diagonal Light Sky-Blue Signal Bars */}
-        <g fill="#7dd3fc">
+        {/* Four diagonal oxblood signal bars */}
+        <g fill="var(--accent-ink)">
           {/* Top Bar */}
           <path d="M 28 44.5 L 71 22.5 L 71 31 L 28 53 Z" />
           
@@ -45,7 +45,7 @@ export const Signal87Logo: React.FC<Signal87LogoProps> = ({
 
       {showText && (
         <span className={`tracking-tight flex items-center gap-1 ${textClassName}`}>
-          <span className="font-semibold text-slate-800">Signal87</span>
+          <span className="font-semibold text-[var(--ink)]">Signal87</span>
         </span>
       )}
     </div>

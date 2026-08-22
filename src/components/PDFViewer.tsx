@@ -133,8 +133,8 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   return (
     <div ref={containerRef} className="flex flex-col items-center w-full relative min-w-0">
       {loading && (
-        <div className="flex flex-col items-center justify-center p-12 text-[#78716C] gap-3">
-          <Loader2 size={32} className="animate-spin text-[#8C2F27]" />
+        <div className="flex flex-col items-center justify-center p-12 text-[var(--muted)] gap-3">
+          <Loader2 size={32} className="animate-spin text-[var(--accent-ink)]" />
           <span className="text-xs font-mono font-bold tracking-wider">RENDERING PDF DOCUMENT...</span>
         </div>
       )}
@@ -157,7 +157,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
               href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--teal-ink)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5"
+              className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5"
             >
               <Download size={13} /> Download
             </a>
@@ -165,7 +165,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
           <iframe
             src={fileUrl}
             title={fileName}
-            className="w-full rounded-xl border border-[var(--rule)] bg-white"
+            className="w-full rounded-xl border border-[var(--rule)] bg-[var(--surface)]"
             style={{ height: '70vh' }}
           />
         </div>
@@ -182,7 +182,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
       {pdfFile && !error && (
         <div className="w-full flex justify-center min-w-0 overflow-visible">
           <div
-            className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8] shadow-sm"
+            className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-[var(--surface)] border border-[var(--rule)] shadow-sm"
             style={{
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'top center',

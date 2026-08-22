@@ -69,13 +69,15 @@ interface DocumentLibraryViewProps {
   initialSearch?: string;
 }
 
+/** The swatches offered when naming a folder. Category tokens, not chrome —
+ *  see --cat-* in index.css for why these are not all --accent. */
 const DEFAULT_FOLDER_COLORS = [
-  'var(--teal)',
-  '#0f9d58',
-  '#f4b400',
-  '#ea4335',
-  '#a142f4',
-  '#5f6368'
+  'var(--cat-oxblood)',
+  'var(--cat-forest)',
+  'var(--cat-ochre)',
+  'var(--cat-brick)',
+  'var(--cat-plum)',
+  'var(--cat-stone)'
 ];
 
 type SortField = 'name' | 'owner' | 'modified' | 'size';
@@ -185,7 +187,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [selectedFolderColor, setSelectedFolderColor] = useState('var(--teal)');
+  const [selectedFolderColor, setSelectedFolderColor] = useState('var(--accent)');
 
   const [activeMenuDocId, setActiveMenuDocId] = useState<string | null>(null);
   const [activeMenuFolderId, setActiveMenuFolderId] = useState<string | null>(null);
@@ -901,7 +903,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
             onClick={() => { onToggleStar(doc.id); closeAllMenus(); }}
             className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer border-t border-[var(--rule-2)]"
           >
-            <Star size={13} className={doc.starred ? 'fill-[var(--teal)] text-[var(--teal)]' : ''} />
+            <Star size={13} className={doc.starred ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} />
             {doc.starred ? 'Remove from starred' : 'Add to starred'}
           </button>
         )}
@@ -924,7 +926,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     className="w-full px-2 py-1 text-left hover:bg-[var(--surface)] text-[12px] text-[var(--ink)] rounded flex items-center justify-between"
                   >
                     <span>{p}</span>
-                    {doc.permissions === p && <Check size={12} className="text-[var(--teal)]" />}
+                    {doc.permissions === p && <Check size={12} className="text-[var(--accent)]" />}
                   </button>
                 ))}
               </div>
@@ -948,7 +950,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   className="w-full px-2 py-1 text-left hover:bg-[var(--surface)] text-[12px] text-[var(--ink)] rounded flex items-center justify-between"
                 >
                   <span>No folder</span>
-                  {!doc.folderId && <Check size={12} className="text-[var(--teal)]" />}
+                  {!doc.folderId && <Check size={12} className="text-[var(--accent)]" />}
                 </button>
                 {folderPaths.map(({ folder, depth }) => (
                   <button
@@ -958,7 +960,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     style={{ paddingLeft: `${8 + depth * 12}px` }}
                   >
                     <span className="truncate max-w-[120px]">{folder.name}</span>
-                    {doc.folderId === folder.id && <Check size={12} className="text-[var(--teal)]" />}
+                    {doc.folderId === folder.id && <Check size={12} className="text-[var(--accent)]" />}
                   </button>
                 ))}
               </div>
@@ -1041,9 +1043,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       onDrop={handleContainerDrop}
     >
       {isExternalDropActive && (
-        <div className="absolute inset-0 z-40 bg-[var(--teal-soft)]/90 border-2 border-dashed border-[var(--teal)] flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-40 bg-[var(--accent-soft)]/90 border-2 border-dashed border-[var(--accent)] flex items-center justify-center pointer-events-none">
           <div className="text-center space-y-2">
-            <Upload size={28} className="mx-auto text-[var(--teal)]" />
+            <Upload size={28} className="mx-auto text-[var(--accent)]" />
             <p className="text-[15px] font-semibold text-[var(--ink)]">Drop to upload</p>
           </div>
         </div>
@@ -1133,7 +1135,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setOpenMenu(openMenu === 'create' ? null : 'create')}
-                    className="px-4 py-2 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full flex items-center gap-2 transition-all cursor-pointer min-h-[44px]"
+                    className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-full flex items-center gap-2 transition-all cursor-pointer min-h-[44px]"
                   >
                     <Plus size={15} />
                     <span>New</span>
@@ -1175,7 +1177,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     ? `Search files in ${currentFolder.name}`
                     : `Search ${basePool.length} files`
                 }
-                className="w-full pl-10 pr-9 py-3 bg-[var(--surface)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
+                className="w-full pl-10 pr-9 py-3 bg-[var(--surface)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-all"
               />
               {searchFilter && (
                 <button onClick={() => setSearchFilter('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--ink)] p-1 cursor-pointer">
@@ -1192,7 +1194,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       onClick={() => setSearchScope(scope)}
                       className={`px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
                         searchScope === scope
-                          ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                          ? 'border-[var(--accent)] text-[var(--ink)] bg-[var(--accent-soft)]'
                           : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
                       }`}
                     >
@@ -1208,7 +1210,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setOpenMenu(openMenu === 'type' ? null : 'type')}
-                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterType ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
+                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterType ? 'border-[var(--accent)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
                 >
                   <span>{filterType ? getFileTypeLabel(filterType) : 'Type'}</span>
                   <ChevronDown size={12} />
@@ -1216,11 +1218,11 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 {openMenu === 'type' && (
                   <div className="absolute right-0 top-11 w-40 bg-[var(--surface)] border border-[var(--rule)] rounded-xl py-1 z-30 text-[13px] overflow-hidden max-h-56 overflow-y-auto">
                     <button onClick={() => { setFilterType(null); setOpenMenu(null); }} className="w-full px-3 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
-                      <span>Any type</span>{!filterType && <Check size={12} className="text-[var(--teal)]" />}
+                      <span>Any type</span>{!filterType && <Check size={12} className="text-[var(--accent)]" />}
                     </button>
                     {uniqueTypes.map((t) => (
                       <button key={t} onClick={() => { setFilterType(t); setOpenMenu(null); }} className="w-full px-3 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
-                        <span>{getFileTypeLabel(t)}</span>{filterType === t && <Check size={12} className="text-[var(--teal)]" />}
+                        <span>{getFileTypeLabel(t)}</span>{filterType === t && <Check size={12} className="text-[var(--accent)]" />}
                       </button>
                     ))}
                   </div>
@@ -1231,7 +1233,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setOpenMenu(openMenu === 'owner' ? null : 'owner')}
-                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterOwner ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
+                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterOwner ? 'border-[var(--accent)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
                 >
                   <span className="truncate max-w-[100px]">{filterOwner || 'Owner'}</span>
                   <ChevronDown size={12} />
@@ -1239,11 +1241,11 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 {openMenu === 'owner' && (
                   <div className="absolute right-0 top-11 w-48 bg-[var(--surface)] border border-[var(--rule)] rounded-xl py-1 z-30 text-[13px] overflow-hidden max-h-56 overflow-y-auto">
                     <button onClick={() => { setFilterOwner(null); setOpenMenu(null); }} className="w-full px-3 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
-                      <span>Any owner</span>{!filterOwner && <Check size={12} className="text-[var(--teal)]" />}
+                      <span>Any owner</span>{!filterOwner && <Check size={12} className="text-[var(--accent)]" />}
                     </button>
                     {uniqueOwners.map((o) => (
                       <button key={o} onClick={() => { setFilterOwner(o); setOpenMenu(null); }} className="w-full px-3 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
-                        <span className="truncate max-w-[150px]">{o}</span>{filterOwner === o && <Check size={12} className="text-[var(--teal)]" />}
+                        <span className="truncate max-w-[150px]">{o}</span>{filterOwner === o && <Check size={12} className="text-[var(--accent)]" />}
                       </button>
                     ))}
                   </div>
@@ -1254,7 +1256,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setOpenMenu(openMenu === 'modified' ? null : 'modified')}
-                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterModified !== 'any' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
+                  className={`px-3 py-2 rounded-full text-[12.5px] border flex items-center gap-1.5 cursor-pointer min-h-[40px] ${filterModified !== 'any' ? 'border-[var(--accent)] text-[var(--ink)]' : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`}
                 >
                   <span>{filterModified === 'any' ? 'Modified' : filterModified === 'today' ? 'Today' : filterModified === 'week' ? 'This week' : filterModified === 'month' ? 'This month' : 'This year'}</span>
                   <ChevronDown size={12} />
@@ -1264,7 +1266,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     {(['any', 'today', 'week', 'month', 'year'] as ModifiedFilter[]).map((m) => (
                       <button key={m} onClick={() => { setFilterModified(m); setOpenMenu(null); }} className="w-full px-3 py-1.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
                         <span>{m === 'any' ? 'Any time' : m === 'today' ? 'Today' : m === 'week' ? 'This week' : m === 'month' ? 'This month' : 'This year'}</span>
-                        {filterModified === m && <Check size={12} className="text-[var(--teal)]" />}
+                        {filterModified === m && <Check size={12} className="text-[var(--accent)]" />}
                       </button>
                     ))}
                   </div>
@@ -1278,7 +1280,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 aria-pressed={detailsVisible}
                 className={`p-2 rounded-full border cursor-pointer transition-colors min-h-[40px] flex items-center ${
                   detailsVisible
-                    ? 'border-[var(--teal)] text-[var(--ink)] bg-[var(--accent-soft)]'
+                    ? 'border-[var(--accent)] text-[var(--ink)] bg-[var(--accent-soft)]'
                     : 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)]'
                 }`}
               >
@@ -1314,7 +1316,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-1 py-2 text-[13px] transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center border-b-2 -mb-px ${
-                    isActive ? 'text-[var(--ink)] font-semibold border-[var(--teal)]' : 'text-[var(--muted)] hover:text-[var(--ink)] border-transparent'
+                    isActive ? 'text-[var(--ink)] font-semibold border-[var(--accent)]' : 'text-[var(--muted)] hover:text-[var(--ink)] border-transparent'
                   }`}
                 >
                   {cat}
@@ -1330,7 +1332,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           {selectedDocs.length > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="fixed left-1/2 -translate-x-1/2 bottom-[calc(var(--dock-height)_+_0.75rem)] md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
+              className="fixed left-1/2 -translate-x-1/2 bottom-[calc(var(--dock-height)_+_0.75rem)] md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--accent)] rounded-full"
             >
               <button
                 onClick={clearSelection}
@@ -1477,7 +1479,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       draggable={!isEditing && !!onMoveFolder}
                       onDragStart={(e) => handleFolderDragStart(e, fld.id)}
                       onDragEnd={handleFolderDragEnd}
-                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--teal-soft)]' : ''} ${draggingFolderId === fld.id ? 'opacity-40' : ''}`}
+                      className={`flex items-center justify-between gap-2 py-3.5 min-h-[44px] border-b border-[var(--rule-2)] last:border-b-0 cursor-pointer group ${isDropTarget ? 'bg-[var(--accent-soft)]' : ''} ${draggingFolderId === fld.id ? 'opacity-40' : ''}`}
                       onClick={() => { if (!isEditing) handleSetActiveFolderId(fld.id); }}
                       onContextMenu={(e) => openContextMenu(e, 'folder', fld.id)}
                       onDragOver={(e) => handleFolderDragOver(e, fld.id)}
@@ -1505,7 +1507,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                               if (e.key === 'Escape') setEditingFolderId(null);
                             }}
                             autoFocus
-                            className="w-full px-2 py-1 text-[14.5px] text-[var(--ink)] bg-[var(--raised)] border border-[var(--teal)] rounded focus:outline-none"
+                            className="w-full px-2 py-1 text-[14.5px] text-[var(--ink)] bg-[var(--raised)] border border-[var(--accent)] rounded focus:outline-none"
                           />
                         ) : (
                           <span className="text-[14.5px] text-[var(--ink)] truncate">{fld.name}</span>
@@ -1561,9 +1563,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       className="flex-shrink-0 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
                     >
                       {allVisibleSelected ? (
-                        <CheckSquare size={15} className="text-[var(--teal)]" />
+                        <CheckSquare size={15} className="text-[var(--accent)]" />
                       ) : selectedDocs.length > 0 ? (
-                        <MinusSquare size={15} className="text-[var(--teal)]" />
+                        <MinusSquare size={15} className="text-[var(--accent)]" />
                       ) : (
                         <Square size={15} />
                       )}
@@ -1622,7 +1624,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
                           className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
                             isSelected
-                              ? 'opacity-100 text-[var(--teal)]'
+                              ? 'opacity-100 text-[var(--accent)]'
                               : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
                           }`}
                         >
@@ -1645,11 +1647,11 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                                 if (e.key === 'Escape') setRenamingDocId(null);
                               }}
                               onBlur={() => saveDocRename(doc.id)}
-                              className="w-full px-2 py-1 text-[14.5px] text-[var(--ink)] bg-[var(--surface)] border border-[var(--teal)] rounded focus:outline-none"
+                              className="w-full px-2 py-1 text-[14.5px] text-[var(--ink)] bg-[var(--surface)] border border-[var(--accent)] rounded focus:outline-none"
                             />
                           ) : (
                             <h3 className="text-[14.5px] text-[var(--ink)] truncate flex items-center gap-1.5">
-                              {doc.starred && <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />}
+                              {doc.starred && <Star size={12} className="flex-shrink-0 fill-[var(--accent)] text-[var(--accent)]" />}
                               <span className="truncate">{doc.title}</span>
                             </h3>
                           )}
@@ -1709,7 +1711,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         }
                       }}
                       className={`relative bg-[var(--surface)] border rounded-xl p-2.5 cursor-pointer transition-colors group ${
-                        isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
+                        isSelected ? 'border-[var(--accent)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
                       {/* Title row sits above the preview, Drive-style */}
@@ -1719,7 +1721,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
                           className={`flex-shrink-0 cursor-pointer transition-opacity max-sm:opacity-100 focus-visible:opacity-100 ${
                             isSelected
-                              ? 'opacity-100 text-[var(--teal)]'
+                              ? 'opacity-100 text-[var(--accent)]'
                               : 'opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--ink)]'
                           }`}
                         >
@@ -1730,7 +1732,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
                         })()}
                         {doc.starred && (
-                          <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />
+                          <Star size={12} className="flex-shrink-0 fill-[var(--accent)] text-[var(--accent)]" />
                         )}
                         <span className="text-[13px] text-[var(--ink)] truncate flex-1 min-w-0" title={doc.title}>
                           {doc.title}
@@ -1797,7 +1799,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               {filesView !== 'trash' && (
                 <button
                   onClick={() => onOpenUpload(activeFolderId || undefined)}
-                  className="px-4 py-2.5 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center gap-1.5 transition-all min-h-[44px]"
+                  className="px-4 py-2.5 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center gap-1.5 transition-all min-h-[44px]"
                 >
                   <Upload size={14} /> Upload document
                 </button>
@@ -1810,7 +1812,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
       {/* Right-hand detail panel */}
       {selectedDoc && (
         <>
-          <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => clearSelection()} />
+          <div className="md:hidden fixed inset-0 bg-[var(--ink)]/40 z-40" onClick={() => clearSelection()} />
           <aside className="fixed md:relative inset-y-0 right-0 z-50 md:z-auto w-full sm:w-96 md:w-80 flex-shrink-0 bg-[var(--surface)] border-l border-[var(--rule)] overflow-y-auto">
             <div className="p-4 space-y-5">
               <div className="flex items-center justify-between">
@@ -1825,7 +1827,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   <FileText size={26} className="text-[var(--muted)]" />
                 </div>
                 <h3 className="text-[15px] text-[var(--ink)] font-medium break-words px-2">{selectedDoc.title}</h3>
-                {selectedDoc.starred && <span className="text-[12px] text-[var(--muted)] flex items-center gap-1"><Star size={11} className="fill-[var(--teal)] text-[var(--teal)]" /> Starred</span>}
+                {selectedDoc.starred && <span className="text-[12px] text-[var(--muted)] flex items-center gap-1"><Star size={11} className="fill-[var(--accent)] text-[var(--accent)]" /> Starred</span>}
               </div>
 
               <div className="space-y-2.5 text-[13px]">
@@ -1873,7 +1875,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     </button>
                     {onToggleStar && (
                       <button onClick={() => onToggleStar(selectedDoc.id)} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--raised)] text-[13.5px] text-[var(--ink)] cursor-pointer">
-                        <Star size={15} className={selectedDoc.starred ? 'fill-[var(--teal)] text-[var(--teal)]' : ''} /> {selectedDoc.starred ? 'Remove from starred' : 'Add to starred'}
+                        <Star size={15} className={selectedDoc.starred ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} /> {selectedDoc.starred ? 'Remove from starred' : 'Add to starred'}
                       </button>
                     )}
                     {selectedDoc.fileUrl && (
@@ -1931,7 +1933,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
       {/* New folder modal */}
       {isNewFolderModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--ink)]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-md w-full p-6 text-[var(--ink)] space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule-2)] pb-3">
               <h2 className="text-[16px] font-semibold text-[var(--ink)]">
@@ -1951,7 +1953,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder="e.g. Closing Schedules 2026"
                   autoFocus
-                  className="w-full px-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] focus:outline-none focus:border-[var(--teal)] placeholder-[var(--muted)]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] placeholder-[var(--muted)]"
                 />
               </div>
 
@@ -1964,12 +1966,12 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       type="button"
                       onClick={() => setSelectedFolderColor(clr)}
                       className={`w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
-                        selectedFolderColor === clr ? 'scale-110 ring-2 ring-offset-2 ring-[var(--teal)]' : 'hover:scale-105'
+                        selectedFolderColor === clr ? 'scale-110 ring-2 ring-offset-2 ring-[var(--accent)]' : 'hover:scale-105'
                       }`}
                       style={{ backgroundColor: clr }}
                     >
                       {selectedFolderColor === clr && (
-                        <Check size={14} className={clr === 'var(--teal)' ? 'text-[var(--teal-ink)]' : 'text-white'} />
+                        <Check size={14} className="text-[var(--accent-contrast)]" />
                       )}
                     </button>
                   ))}
@@ -1987,7 +1989,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 <button
                   type="submit"
                   disabled={!newFolderName.trim()}
-                  className="px-5 py-2 bg-[var(--teal)] hover:opacity-90 disabled:opacity-50 text-white font-medium text-[13.5px] rounded-xl transition-all cursor-pointer"
+                  className="px-5 py-2 bg-[var(--accent)] hover:opacity-90 disabled:opacity-50 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-xl transition-all cursor-pointer"
                 >
                   Create
                 </button>

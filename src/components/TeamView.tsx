@@ -82,7 +82,7 @@ export const TeamView: React.FC = () => {
   ];
 
   return (
-    <main className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[#131314] text-[#e3e3e3] font-sans min-h-[100dvh] w-full max-w-full overflow-x-hidden">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 bg-[var(--bg)] text-[var(--ink)] font-sans min-h-[100dvh] w-full max-w-full overflow-x-hidden">
       {/* Inject JSON-LD Schema for SEO */}
       <script
         type="application/ld+json"
@@ -90,22 +90,22 @@ export const TeamView: React.FC = () => {
       />
 
       {/* Hero Header - SEO Optimized */}
-      <header className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#37393b] pb-6">
+      <header className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl p-6 sm:p-10 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--rule)] pb-6">
           <div className="space-y-2 max-w-3xl">
             <div className="inline-flex items-center gap-1.5 text-[13px] text-[var(--muted)]">
               <Sparkles size={14} />
               <span>Signal87 Team</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-[#e3e3e3] tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-[var(--ink)] tracking-tight leading-tight">
               Meet the Visionaries Engineering Verifiable Legal AI & Enterprise Memory
             </h1>
-            <p className="text-sm sm:text-base text-[#c4c7c5] leading-relaxed font-normal">
-              Signal87 is spearheaded by <strong className="text-[#e3e3e3] font-semibold">Michael Benezra</strong> (CEO & Co-Founder) and <strong className="text-[#e3e3e3] font-semibold">Michael Chavira</strong> (Co-Founder). Together, they lead a world-class team building secure, citation-backed document research systems for enterprise governance.
+            <p className="text-sm sm:text-base text-[var(--ink-2)] leading-relaxed font-normal">
+              Signal87 is spearheaded by <strong className="text-[var(--ink)] font-semibold">Michael Benezra</strong> (CEO & Co-Founder) and <strong className="text-[var(--ink)] font-semibold">Michael Chavira</strong> (Co-Founder). Together, they lead a world-class team building secure, citation-backed document research systems for enterprise governance.
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#131314] p-1.5 rounded-2xl border border-[#37393b] overflow-x-auto scrollbar-none w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 bg-[var(--bg)] p-1.5 rounded-2xl border border-[var(--rule)] overflow-x-auto scrollbar-none w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('leadership')}
               className={`px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-all cursor-pointer ${
@@ -134,7 +134,7 @@ export const TeamView: React.FC = () => {
         </div>
 
         {/* SEO Keywords Tags */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px] text-[#c4c7c5] font-medium">
+        <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px] text-[var(--ink-2)] font-medium">
           <span className="text-[var(--ink)] font-medium">Focus areas:</span>
           <span>Legal AI Memory</span>
           <span>·</span>
@@ -152,10 +152,10 @@ export const TeamView: React.FC = () => {
       {activeTab === 'leadership' && (
         <section aria-labelledby="executive-leadership-heading" className="space-y-8">
           <div className="flex items-center justify-between">
-            <h2 id="executive-leadership-heading" className="text-xl font-bold text-[#e3e3e3] flex items-center gap-2">
-              <Users size={22} className="text-[#c4c7c5]" /> Signal87 Co-Founders & Executive Leaders
+            <h2 id="executive-leadership-heading" className="text-xl font-bold text-[var(--ink)] flex items-center gap-2">
+              <Users size={22} className="text-[var(--ink-2)]" /> Signal87 Co-Founders & Executive Leaders
             </h2>
-            <span className="text-xs text-[#c4c7c5] font-medium hidden sm:inline">
+            <span className="text-xs text-[var(--ink-2)] font-medium hidden sm:inline">
               San Francisco, CA • Washington, D.C.
             </span>
           </div>
@@ -166,7 +166,7 @@ export const TeamView: React.FC = () => {
             <article
               itemScope
               itemType="https://schema.org/Person"
-              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
+              className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl p-6 sm:p-8 hover:border-[var(--accent)] transition-all space-y-6 flex flex-col justify-between"
             >
               <div className="space-y-6">
                 <div className="flex items-start gap-4 sm:gap-6">
@@ -175,45 +175,45 @@ export const TeamView: React.FC = () => {
                       src="/assets/michael_benezra.jpg"
                       alt="Michael Benezra - Chief Executive Officer & Co-Founder Signal87"
                       itemProp="image"
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b]"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[var(--rule)]"
                     />
-                    <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
+                    <span className="absolute -bottom-1 -right-1 bg-[var(--ok)] text-[var(--ink)] p-1 rounded-full border-2 border-[var(--surface)]" title="Verified Founder">
                       <ShieldCheck size={12} />
                     </span>
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[#e3e3e3]">
+                      <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[var(--ink)]">
                         Michael Benezra
                       </h3>
                       <span className="text-[12px] text-[var(--muted)]">
                         Co-Founder
                       </span>
                     </div>
-                    <p itemProp="jobTitle" className="text-sm font-semibold text-[#c4c7c5]">
+                    <p itemProp="jobTitle" className="text-sm font-semibold text-[var(--ink-2)]">
                       Chief Executive Officer & Co-Founder
                     </p>
-                    <p className="text-xs text-[#c4c7c5] flex items-center gap-1 font-medium">
-                      <Building2 size={12} className="text-[#c4c7c5]" />
+                    <p className="text-xs text-[var(--ink-2)] flex items-center gap-1 font-medium">
+                      <Building2 size={12} className="text-[var(--ink-2)]" />
                       <span itemProp="worksFor">Signal87 AI Memory Platforms</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#c4c7c5]">Executive Biography</h4>
-                  <p itemProp="description" className="text-xs sm:text-sm text-[#e3e3e3] leading-relaxed">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-2)]">Executive Biography</h4>
+                  <p itemProp="description" className="text-xs sm:text-sm text-[var(--ink)] leading-relaxed">
                     Michael Benezra is the Chief Executive Officer and Co-Founder of Signal87. Under his leadership, Signal87 has pioneered verifiable document research memory for high-stakes legal, legislative, and enterprise policy teams. Michael brings a relentless focus on enterprise product design, legal tech innovation, and strategic AI alignment.
                   </p>
                 </div>
 
                 {/* Core Competencies */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#c4c7c5]">Key Expertise</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-2)]">Key Expertise</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {['Legal AI Strategy', 'Enterprise Document Memory', 'AI Governance', 'Product Vision', 'Municipal Tech'].map((skill, idx) => (
-                      <span key={idx} className="text-[11px] font-medium bg-[#28292a] text-[#e3e3e3] px-2.5 py-1 rounded-lg border border-[#37393b]">
+                      <span key={idx} className="text-[11px] font-medium bg-[var(--surface-2)] text-[var(--ink)] px-2.5 py-1 rounded-lg border border-[var(--rule)]">
                         {skill}
                       </span>
                     ))}
@@ -221,11 +221,11 @@ export const TeamView: React.FC = () => {
                 </div>
 
                 {/* Publications & Thought Leadership */}
-                <div className="bg-[#131314] border border-[#37393b] rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#e3e3e3]">
-                    <BookOpen size={14} className="text-[#7dd3fc]" /> Key Insights & Publications
+                <div className="bg-[var(--bg)] border border-[var(--rule)] rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--ink)]">
+                    <BookOpen size={14} className="text-[var(--accent-ink)]" /> Key Insights & Publications
                   </div>
-                  <ul className="text-xs text-[#c4c7c5] space-y-1 list-disc pl-4">
+                  <ul className="text-xs text-[var(--ink-2)] space-y-1 list-disc pl-4">
                     <li>"Eliminating Hallucinations in Municipal Ordinance Analysis" (2025)</li>
                     <li>"The Future of Citation-Backed Legal AI Systems" (2026 Keynote)</li>
                   </ul>
@@ -233,12 +233,12 @@ export const TeamView: React.FC = () => {
               </div>
 
               {/* Contact / Social Links */}
-              <div className="pt-4 border-t border-[#37393b] flex items-center justify-between text-xs">
-                <span className="text-[#c4c7c5] font-medium">Contact & Media:</span>
+              <div className="pt-4 border-t border-[var(--rule)] flex items-center justify-between text-xs">
+                <span className="text-[var(--ink-2)] font-medium">Contact & Media:</span>
                 <div className="flex items-center gap-3">
                   <a
                     href="mailto:ceo@signal87.ai"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#e3e3e3] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--ink)] rounded-xl transition-colors cursor-pointer"
                     title="Email Michael Benezra"
                   >
                     <Mail size={16} />
@@ -247,7 +247,7 @@ export const TeamView: React.FC = () => {
                     href="https://linkedin.com/in/michaelbenezra"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#7dd3fc] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--accent-ink)] rounded-xl transition-colors cursor-pointer"
                     title="LinkedIn Profile"
                   >
                     <Linkedin size={16} />
@@ -256,7 +256,7 @@ export const TeamView: React.FC = () => {
                     href="https://twitter.com/michaelbenezra"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#7dd3fc] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--accent-ink)] rounded-xl transition-colors cursor-pointer"
                     title="Twitter / X Profile"
                   >
                     <Twitter size={16} />
@@ -269,7 +269,7 @@ export const TeamView: React.FC = () => {
             <article
               itemScope
               itemType="https://schema.org/Person"
-              className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 hover:border-[#1a73e8] transition-all space-y-6 flex flex-col justify-between"
+              className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl p-6 sm:p-8 hover:border-[var(--accent)] transition-all space-y-6 flex flex-col justify-between"
             >
               <div className="space-y-6">
                 <div className="flex items-start gap-4 sm:gap-6">
@@ -278,45 +278,45 @@ export const TeamView: React.FC = () => {
                       src="/assets/michael_chavira.jpg"
                       alt="Michael Chavira - Co-Founder Signal87"
                       itemProp="image"
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[#37393b]"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[var(--rule)]"
                     />
-                    <span className="absolute -bottom-1 -right-1 bg-[var(--teal)] text-white p-1 rounded-full border-2 border-[#1e1f20]" title="Verified Founder">
+                    <span className="absolute -bottom-1 -right-1 bg-[var(--accent)] text-[var(--accent-contrast)] p-1 rounded-full border-2 border-[var(--surface)]" title="Verified Founder">
                       <ShieldCheck size={12} />
                     </span>
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[#e3e3e3]">
+                      <h3 itemProp="name" className="text-xl sm:text-2xl font-bold text-[var(--ink)]">
                         Michael Chavira
                       </h3>
                       <span className="text-[12px] text-[var(--muted)]">
                         Co-Founder
                       </span>
                     </div>
-                    <p itemProp="jobTitle" className="text-sm font-semibold text-[#c4c7c5]">
+                    <p itemProp="jobTitle" className="text-sm font-semibold text-[var(--ink-2)]">
                       Co-Founder & Chief Systems Architect
                     </p>
-                    <p className="text-xs text-[#c4c7c5] flex items-center gap-1 font-medium">
-                      <Building2 size={12} className="text-[#c4c7c5]" />
+                    <p className="text-xs text-[var(--ink-2)] flex items-center gap-1 font-medium">
+                      <Building2 size={12} className="text-[var(--ink-2)]" />
                       <span itemProp="worksFor">Signal87 Systems Architecture</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#c4c7c5]">Executive Biography</h4>
-                  <p itemProp="description" className="text-xs sm:text-sm text-[#e3e3e3] leading-relaxed">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-2)]">Executive Biography</h4>
+                  <p itemProp="description" className="text-xs sm:text-sm text-[var(--ink)] leading-relaxed">
                     Michael Chavira is Co-Founder and Chief Systems Architect at Signal87. Michael architects Signal87's ultra-low latency vector pipelines, long-context memory stores, and distributed document parsing nodes. His engineering principles ensure sub-second citation verification with zero data leakage.
                   </p>
                 </div>
 
                 {/* Core Competencies */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#c4c7c5]">Key Expertise</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-2)]">Key Expertise</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {['Distributed Systems', 'Vector Search Infrastructure', 'Real-Time Citations', 'FedRAMP Security', 'Graph Indexing'].map((skill, idx) => (
-                      <span key={idx} className="text-[11px] font-medium bg-[#28292a] text-[#e3e3e3] px-2.5 py-1 rounded-lg border border-[#37393b]">
+                      <span key={idx} className="text-[11px] font-medium bg-[var(--surface-2)] text-[var(--ink)] px-2.5 py-1 rounded-lg border border-[var(--rule)]">
                         {skill}
                       </span>
                     ))}
@@ -324,11 +324,11 @@ export const TeamView: React.FC = () => {
                 </div>
 
                 {/* Technical Accomplishments */}
-                <div className="bg-[#131314] border border-[#37393b] rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#e3e3e3]">
-                    <Cpu size={14} className="text-[#7dd3fc]" /> Core Engineering Architecture
+                <div className="bg-[var(--bg)] border border-[var(--rule)] rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--ink)]">
+                    <Cpu size={14} className="text-[var(--accent-ink)]" /> Core Engineering Architecture
                   </div>
-                  <ul className="text-xs text-[#c4c7c5] space-y-1 list-disc pl-4">
+                  <ul className="text-xs text-[var(--ink-2)] space-y-1 list-disc pl-4">
                     <li>Designed Signal87's sub-second multi-document vector alignment engine</li>
                     <li>Pioneered immutable evidence tracking for legal auditability</li>
                   </ul>
@@ -336,12 +336,12 @@ export const TeamView: React.FC = () => {
               </div>
 
               {/* Contact / Social Links */}
-              <div className="pt-4 border-t border-[#37393b] flex items-center justify-between text-xs">
-                <span className="text-[#c4c7c5] font-medium">Contact & Media:</span>
+              <div className="pt-4 border-t border-[var(--rule)] flex items-center justify-between text-xs">
+                <span className="text-[var(--ink-2)] font-medium">Contact & Media:</span>
                 <div className="flex items-center gap-3">
                   <a
                     href="mailto:michael.chavira@signal87.ai"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#e3e3e3] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--ink)] rounded-xl transition-colors cursor-pointer"
                     title="Email Michael Chavira"
                   >
                     <Mail size={16} />
@@ -350,7 +350,7 @@ export const TeamView: React.FC = () => {
                     href="https://linkedin.com/in/michaelchavira"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#7dd3fc] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--accent-ink)] rounded-xl transition-colors cursor-pointer"
                     title="LinkedIn Profile"
                   >
                     <Linkedin size={16} />
@@ -359,7 +359,7 @@ export const TeamView: React.FC = () => {
                     href="https://twitter.com/michaelchavira"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-[#28292a] hover:bg-[#37393b] text-[#7dd3fc] rounded-xl transition-colors cursor-pointer"
+                    className="p-2 bg-[var(--surface-2)] hover:bg-[var(--rule)] text-[var(--accent-ink)] rounded-xl transition-colors cursor-pointer"
                     title="Twitter / X Profile"
                   >
                     <Twitter size={16} />
@@ -373,35 +373,35 @@ export const TeamView: React.FC = () => {
 
       {/* Mission Section */}
       {activeTab === 'mission' && (
-        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-10 space-y-6">
+        <section className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl p-6 sm:p-10 space-y-6">
           <div className="max-w-3xl space-y-4">
-            <h2 className="text-2xl font-bold text-[#e3e3e3]">The Signal87 Mission & Core Values</h2>
-            <p className="text-sm text-[#c4c7c5] leading-relaxed">
-              Founded by Michael Benezra and Michael Chavira, Signal87 was built on a single uncompromising thesis: <strong className="text-[#e3e3e3]">Enterprise research AI must be completely verifiable, citation-backed, and immune to memory loss.</strong>
+            <h2 className="text-2xl font-bold text-[var(--ink)]">The Signal87 Mission & Core Values</h2>
+            <p className="text-sm text-[var(--ink-2)] leading-relaxed">
+              Founded by Michael Benezra and Michael Chavira, Signal87 was built on a single uncompromising thesis: <strong className="text-[var(--ink)]">Enterprise research AI must be completely verifiable, citation-backed, and immune to memory loss.</strong>
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-            <div className="p-5 bg-[#131314] border border-[#37393b] rounded-2xl space-y-2">
+            <div className="p-5 bg-[var(--bg)] border border-[var(--rule)] rounded-2xl space-y-2">
               <CheckCircle2 size={22} className="text-[var(--ok)]" />
-              <h3 className="font-bold text-[#e3e3e3] text-sm">Verifiable Grounding</h3>
-              <p className="text-xs text-[#c4c7c5] leading-relaxed">
+              <h3 className="font-bold text-[var(--ink)] text-sm">Verifiable Grounding</h3>
+              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
                 Every insight, summary, and comparison links directly to verbatim source clauses with page and line citations.
               </p>
             </div>
 
-            <div className="p-5 bg-[#131314] border border-[#37393b] rounded-2xl space-y-2">
-              <ShieldCheck size={22} className="text-[#7dd3fc]" />
-              <h3 className="font-bold text-[#e3e3e3] text-sm">Zero Data Compromise</h3>
-              <p className="text-xs text-[#c4c7c5] leading-relaxed">
+            <div className="p-5 bg-[var(--bg)] border border-[var(--rule)] rounded-2xl space-y-2">
+              <ShieldCheck size={22} className="text-[var(--accent-ink)]" />
+              <h3 className="font-bold text-[var(--ink)] text-sm">Zero Data Compromise</h3>
+              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
                 Enterprise documents remain securely within isolated, client-owned vaults protected by FedRAMP High standards.
               </p>
             </div>
 
-            <div className="p-5 bg-[#131314] border border-[#37393b] rounded-2xl space-y-2">
-              <Cpu size={22} className="text-amber-400" />
-              <h3 className="font-bold text-[#e3e3e3] text-sm">Persistent Memory</h3>
-              <p className="text-xs text-[#c4c7c5] leading-relaxed">
+            <div className="p-5 bg-[var(--bg)] border border-[var(--rule)] rounded-2xl space-y-2">
+              <Cpu size={22} className="text-[var(--warn)]" />
+              <h3 className="font-bold text-[var(--ink)] text-sm">Persistent Memory</h3>
+              <p className="text-xs text-[var(--ink-2)] leading-relaxed">
                 Research threads, notes, and vector indices synchronize in real-time across teams via Firebase Firestore.
               </p>
             </div>
@@ -411,18 +411,18 @@ export const TeamView: React.FC = () => {
 
       {/* Leadership Timeline Section */}
       {activeTab === 'milestones' && (
-        <section className="bg-[#1e1f20] border border-[#37393b] rounded-3xl p-6 sm:p-8 space-y-6">
+        <section className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl p-6 sm:p-8 space-y-6">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-[#e3e3e3]">Signal87 Executive Leadership Timeline</h2>
-            <p className="text-xs text-[#c4c7c5]">
+            <h2 className="text-xl font-bold text-[var(--ink)]">Signal87 Executive Leadership Timeline</h2>
+            <p className="text-xs text-[var(--ink-2)]">
               Clean tabular breakdown of executive milestones led by Michael Benezra and Michael Chavira.
             </p>
           </div>
 
-          <div className="overflow-x-auto border border-[#37393b] rounded-2xl">
+          <div className="overflow-x-auto border border-[var(--rule)] rounded-2xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-[#131314] border-b border-[#37393b] text-[#c4c7c5] font-bold uppercase tracking-wider text-[11px]">
+                <tr className="bg-[var(--bg)] border-b border-[var(--rule)] text-[var(--ink-2)] font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Period</th>
                   <th className="py-3 px-4">Strategic Milestone</th>
                   <th className="py-3 px-4">Leadership Lead</th>
@@ -430,19 +430,19 @@ export const TeamView: React.FC = () => {
                   <th className="py-3 px-4 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#37393b] bg-[#1e1f20]">
+              <tbody className="divide-y divide-[var(--rule)] bg-[var(--surface)]">
                 {milestonesSequence.map((m, idx) => (
-                  <tr key={idx} className="hover:bg-[#28292a] transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#e3e3e3] whitespace-nowrap">
+                  <tr key={idx} className="hover:bg-[var(--surface-2)] transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-[var(--ink)] whitespace-nowrap">
                       {m.year}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-[#e3e3e3]">
+                    <td className="py-3.5 px-4 font-bold text-[var(--ink)]">
                       {m.milestone}
                     </td>
-                    <td className="py-3.5 px-4 text-[#c4c7c5] font-semibold">
+                    <td className="py-3.5 px-4 text-[var(--ink-2)] font-semibold">
                       {m.leader}
                     </td>
-                    <td className="py-3.5 px-4 text-[#c4c7c5] leading-relaxed">
+                    <td className="py-3.5 px-4 text-[var(--ink-2)] leading-relaxed">
                       {m.impact}
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
@@ -465,16 +465,16 @@ export const TeamView: React.FC = () => {
       )}
 
       {/* Footer Contact Call to Action */}
-      <footer className="bg-[#1e1f20] border border-[#37393b] text-[#e3e3e3] rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)] rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="space-y-1 text-center sm:text-left">
           <h3 className="text-base font-bold">Contact Signal87 Executive Office</h3>
-          <p className="text-xs text-[#c4c7c5]">
+          <p className="text-xs text-[var(--ink-2)]">
             For investor relations, press queries, or executive briefings with Michael Benezra or Michael Chavira.
           </p>
         </div>
         <a
           href="mailto:ceo@signal87.ai"
-          className="px-5 py-2.5 bg-[#1a73e8] text-white hover:bg-[#1557b0] font-bold text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0"
+          className="px-5 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent)] font-bold text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0"
         >
           <Mail size={15} /> Request Executive Briefing
         </a>

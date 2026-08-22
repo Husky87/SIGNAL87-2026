@@ -606,7 +606,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
           </button>
           <button
             onClick={() => onOpenCompare(doc)}
-            className="flex-1 py-2.5 px-4 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 px-4 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
           >
             <GitFork size={14} />
             <span>Compare documents</span>

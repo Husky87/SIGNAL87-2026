@@ -324,7 +324,7 @@ export const PdfFormFiller: React.FC<PdfFormFillerProps> = ({
               onClick={() => goToPage(page)}
               className={`min-h-0 px-2 py-1 rounded-full transition-colors cursor-pointer ${
                 page === pageIndex
-                  ? 'bg-[var(--accent)] text-[var(--teal-ink)]'
+                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                   : 'bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--ink)]'
               }`}
             >
@@ -335,7 +335,7 @@ export const PdfFormFiller: React.FC<PdfFormFillerProps> = ({
       )}
 
       <div ref={containerRef} className="w-full flex justify-center">
-        <div className="relative inline-block rounded-xl overflow-hidden border border-[var(--rule)] bg-white">
+        <div className="relative inline-block rounded-xl overflow-hidden border border-[var(--rule)] bg-[var(--surface)]">
           <canvas ref={canvasRef} className="block" />
           {viewport &&
             positioned.map((item) => (

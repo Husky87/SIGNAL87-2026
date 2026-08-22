@@ -17,30 +17,33 @@ type TypeMeta = {
 };
 
 /**
- * File-format accents, following the same convention Drive and Office use — PDF
- * red, Sheets green, Docs blue. These are format identity rather than app theme,
- * so they stay fixed while every surface around them uses the app's tokens.
+ * File-format accents. These are format identity rather than app chrome — they
+ * have to stay distinguishable from one another — so they are category tokens
+ * rather than --accent. They used to be Drive's own red/blue/green palette; the
+ * roles are unchanged, but the hues now come from the Chambers family and live
+ * in index.css like every other colour in the app.
  */
 const TYPE_META: Record<DocumentFileType, TypeMeta> = {
-  pdf: { label: 'PDF', color: '#d93025', Icon: FileText },
-  docx: { label: 'Doc', color: '#1a73e8', Icon: FileText },
-  txt: { label: 'Text', color: '#5f6368', Icon: FileText },
-  xlsx: { label: 'Sheet', color: '#0f9d58', Icon: FileSpreadsheet },
-  csv: { label: 'Sheet', color: '#0f9d58', Icon: FileSpreadsheet },
-  pptx: { label: 'Slides', color: '#f4b400', Icon: Presentation },
-  img: { label: 'Image', color: '#a142f4', Icon: ImageIcon },
-  email: { label: 'Email', color: '#1a73e8', Icon: Mail },
-  zip: { label: 'Archive', color: '#5f6368', Icon: Archive }
+  pdf: { label: 'PDF', color: 'var(--cat-brick)', Icon: FileText },
+  docx: { label: 'Doc', color: 'var(--cat-sepia)', Icon: FileText },
+  txt: { label: 'Text', color: 'var(--cat-stone)', Icon: FileText },
+  xlsx: { label: 'Sheet', color: 'var(--cat-forest)', Icon: FileSpreadsheet },
+  csv: { label: 'Sheet', color: 'var(--cat-forest)', Icon: FileSpreadsheet },
+  pptx: { label: 'Slides', color: 'var(--cat-ochre)', Icon: Presentation },
+  img: { label: 'Image', color: 'var(--cat-plum)', Icon: ImageIcon },
+  email: { label: 'Email', color: 'var(--cat-sepia)', Icon: Mail },
+  zip: { label: 'Archive', color: 'var(--cat-stone)', Icon: Archive }
 };
 
 export const getTypeMeta = (type: DocumentFileType): TypeMeta =>
-  TYPE_META[type] || { label: 'File', color: '#5f6368', Icon: FileIcon };
+  TYPE_META[type] || { label: 'File', color: 'var(--cat-stone)', Icon: FileIcon };
 
-// The page itself is paper, not chrome, so it defaults to white the way a real
-// document preview does. Define --thumb-paper / --thumb-ink to tune it per theme.
-const PAPER = 'var(--thumb-paper, #ffffff)';
-const PAPER_INK = 'var(--thumb-ink, #3c4043)';
-const PAPER_INK_SOFT = 'var(--thumb-ink-soft, #5f6368)';
+// The page inside a thumbnail is paper, not chrome: it stands for a real sheet
+// of A4, so it stays white and its rule lines stay grey however the app is
+// themed. --thumb-* still override it per theme if that ever stops being true.
+const PAPER = 'var(--thumb-paper, #FFFFFF)';
+const PAPER_INK = 'var(--thumb-ink, #57534E)';
+const PAPER_INK_SOFT = 'var(--thumb-ink-soft, #8F8880)';
 
 const isSpreadsheet = (type: DocumentFileType) => type === 'xlsx' || type === 'csv';
 

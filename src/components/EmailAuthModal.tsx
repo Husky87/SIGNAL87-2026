@@ -51,7 +51,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--ink)]/60 backdrop-blur-xs">
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-sm w-full p-6 text-[var(--ink)] space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-[18px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
@@ -78,7 +78,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              className="w-full pl-10 pr-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-all"
             />
           </div>
 
@@ -92,7 +92,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (min. 6 characters)"
-              className="w-full pl-10 pr-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-all"
             />
           </div>
 
@@ -103,7 +103,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 text-white font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px] flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[var(--accent)] hover:opacity-90 disabled:opacity-60 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px] flex items-center justify-center gap-2"
           >
             {isSubmitting && <Loader2 size={15} className="animate-spin" />}
             <span>{mode === 'signup' ? 'Create account' : 'Log in'}</span>
@@ -131,7 +131,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
           <button
             type="button"
             onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setError(null); }}
-            className="text-[var(--teal)] hover:underline cursor-pointer font-medium"
+            className="text-[var(--accent)] hover:underline cursor-pointer font-medium"
           >
             {mode === 'signup' ? 'Log in' : 'Sign up'}
           </button>

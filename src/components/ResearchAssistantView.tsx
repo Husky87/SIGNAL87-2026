@@ -77,21 +77,21 @@ const parseInlineStyles = (text: string) => {
   return parts.map((part, idx) => {
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={idx} className="bg-[#161818] text-[#F3F3EE] border border-white/10 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold">
+        <code key={idx} className="bg-[var(--ink-surface-3)] text-[var(--on-ink)] border border-[var(--rule)]/10 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold">
           {part.slice(1, -1)}
         </code>
       );
     }
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={idx} className="font-semibold text-[#F3F3EE]">
+        <strong key={idx} className="font-semibold text-[var(--on-ink)]">
           {part.slice(2, -2)}
         </strong>
       );
     }
     if (part.startsWith('*') && part.endsWith('*')) {
       return (
-        <em key={idx} className="italic text-white/70">
+        <em key={idx} className="italic text-[var(--on-ink)]/70">
           {part.slice(1, -1)}
         </em>
       );
@@ -121,10 +121,10 @@ const renderFormattedText = (rawText: string) => {
         .map((c) => c.trim());
 
       elements.push(
-        <div key={key} className="overflow-x-auto my-3 border border-white/10 rounded-xl">
+        <div key={key} className="overflow-x-auto my-3 border border-[var(--rule)]/10 rounded-xl">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#161818] border-b border-white/10 text-[#F3F3EE] font-bold">
+              <tr className="bg-[var(--ink-surface-3)] border-b border-[var(--rule)]/10 text-[var(--on-ink)] font-bold">
                 {headerCols.map((col, cIdx) => (
                   <th key={cIdx} className="p-2.5">
                     {parseInlineStyles(col)}
@@ -132,16 +132,16 @@ const renderFormattedText = (rawText: string) => {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-[#111212]">
+            <tbody className="divide-y divide-[var(--rule)]/5 bg-[var(--ink-surface-2)]">
               {bodyRows.map((rowStr, rIdx) => {
                 const cols = rowStr
                   .split('|')
                   .slice(1, -1)
                   .map((c) => c.trim());
                 return (
-                  <tr key={rIdx} className="hover:bg-white/5 transition-colors">
+                  <tr key={rIdx} className="hover:bg-[var(--on-ink)]/5 transition-colors">
                     {cols.map((col, cIdx) => (
-                      <td key={cIdx} className="p-2.5 text-white/70">
+                      <td key={cIdx} className="p-2.5 text-[var(--on-ink)]/70">
                         {parseInlineStyles(col)}
                       </td>
                     ))}
@@ -173,7 +173,7 @@ const renderFormattedText = (rawText: string) => {
     if (isHashHeader) {
       const headerText = trimmed.replace(/^#+\s*/, '').replace(/[\*\_]/g, '');
       elements.push(
-        <h3 key={lineIdx} className="font-bold text-[#F3F3EE] text-sm sm:text-base tracking-tight pt-3 pb-1 border-b border-white/10">
+        <h3 key={lineIdx} className="font-bold text-[var(--on-ink)] text-sm sm:text-base tracking-tight pt-3 pb-1 border-b border-[var(--rule)]/10">
           {headerText}
         </h3>
       );
@@ -187,8 +187,8 @@ const renderFormattedText = (rawText: string) => {
       const content = bulletMatch[1];
       elements.push(
         <div key={lineIdx} className="flex items-start gap-2.5 pl-1 my-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#20B8CD] mt-2 flex-shrink-0" />
-          <div className="flex-1 text-white/80">{parseInlineStyles(content)}</div>
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-ink)] mt-2 flex-shrink-0" />
+          <div className="flex-1 text-[var(--on-ink)]/80">{parseInlineStyles(content)}</div>
         </div>
       );
       return;
@@ -199,15 +199,15 @@ const renderFormattedText = (rawText: string) => {
       const content = numberedMatch[2];
       elements.push(
         <div key={lineIdx} className="flex items-start gap-2.5 pl-1 my-1">
-          <span className="font-bold text-[#F3F3EE] text-xs font-mono mt-0.5 flex-shrink-0">{num}.</span>
-          <div className="flex-1 text-white/80">{parseInlineStyles(content)}</div>
+          <span className="font-bold text-[var(--on-ink)] text-xs font-mono mt-0.5 flex-shrink-0">{num}.</span>
+          <div className="flex-1 text-[var(--on-ink)]/80">{parseInlineStyles(content)}</div>
         </div>
       );
       return;
     }
 
     elements.push(
-      <p key={lineIdx} className="my-1.5 text-white/80 leading-relaxed">
+      <p key={lineIdx} className="my-1.5 text-[var(--on-ink)]/80 leading-relaxed">
         {parseInlineStyles(trimmed)}
       </p>
     );
@@ -216,7 +216,7 @@ const renderFormattedText = (rawText: string) => {
   flushTable('table-final');
 
   return (
-    <div className="space-y-2 font-sans text-[13.5px] sm:text-sm leading-relaxed text-white/80 antialiased tracking-normal">
+    <div className="space-y-2 font-sans text-[13.5px] sm:text-sm leading-relaxed text-[var(--on-ink)]/80 antialiased tracking-normal">
       {elements}
     </div>
   );
@@ -723,14 +723,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         <head>
           <title>${title}</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; }
-            h1 { font-size: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
-            h2, h3 { font-size: 16px; margin-top: 20px; color: #1e293b; }
-            p { font-size: 13px; margin: 8px 0; color: #334155; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: var(--ink); line-height: 1.6; }
+            h1 { font-size: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 20px; }
+            h2, h3 { font-size: 16px; margin-top: 20px; color: var(--ink); }
+            p { font-size: 13px; margin: 8px 0; color: var(--ink-2); }
             table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-            th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 12px; }
-            th { background: #f1f5f9; font-weight: bold; }
-            .meta { font-size: 11px; color: #64748b; margin-bottom: 24px; }
+            th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; font-size: 12px; }
+            th { background: var(--surface-2); font-weight: bold; }
+            .meta { font-size: 11px; color: var(--muted); margin-bottom: 24px; }
           </style>
         </head>
         <body>
@@ -795,12 +795,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           {attachedFiles.map((f) => (
             <div
               key={f.id}
-              className="pl-3 pr-2 min-h-[36px] bg-[#161818] text-[#F3F3EE] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
+              className="pl-3 pr-2 min-h-[36px] bg-[var(--ink-surface-3)] text-[var(--on-ink)] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
             >
               {f.dataUrl ? (
                 <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
               ) : (
-                <FileText size={13} className="text-white/35 flex-shrink-0" />
+                <FileText size={13} className="text-[var(--on-ink)]/35 flex-shrink-0" />
               )}
               <span className="truncate min-w-0 flex-1">{f.name}</span>
               <button
@@ -809,7 +809,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
                 }}
                 aria-label={`Remove ${f.name}`}
-                className="w-8 h-8 -mr-1 flex items-center justify-center text-white/35 hover:text-[#F3F3EE] transition-colors cursor-pointer flex-shrink-0"
+                className="w-8 h-8 -mr-1 flex items-center justify-center text-[var(--on-ink)]/35 hover:text-[var(--on-ink)] transition-colors cursor-pointer flex-shrink-0"
               >
                 <X size={14} />
               </button>
@@ -836,22 +836,22 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               onClick={() => setShowAttachMenu(!showAttachMenu)}
               aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
               aria-expanded={showAttachMenu}
-              className="flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-transparent hover:bg-white/5 text-white/45 hover:text-[#F3F3EE] transition-colors cursor-pointer"
+              className="flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-transparent hover:bg-[var(--on-ink)]/5 text-[var(--on-ink)]/45 hover:text-[var(--on-ink)] transition-colors cursor-pointer"
             >
               {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
             </button>
 
             {showAttachMenu && (
-              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--ink-surface-3)] border border-[var(--rule)]/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAttachMenu(false);
                     setShowFilePicker(true);
                   }}
-                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--on-ink)]/5 text-[13px] font-medium text-[var(--on-ink)] transition-colors cursor-pointer"
                 >
-                  <FolderOpen size={15} className="text-white/35" />
+                  <FolderOpen size={15} className="text-[var(--on-ink)]/35" />
                   <span>Choose from Files</span>
                 </button>
 
@@ -862,9 +862,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                     fileInputRef.current?.click();
                   }}
                   disabled={isParsingFile}
-                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-white/5 text-[13px] font-medium text-[#F3F3EE] transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--on-ink)]/5 text-[13px] font-medium text-[var(--on-ink)] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isParsingFile ? <Loader2 size={15} className="animate-spin text-white/40" /> : <Paperclip size={15} className="text-white/35" />}
+                  {isParsingFile ? <Loader2 size={15} className="animate-spin text-[var(--on-ink)]/40" /> : <Paperclip size={15} className="text-[var(--on-ink)]/35" />}
                   <span>Upload Document</span>
                 </button>
               </div>
@@ -872,7 +872,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           </div>
 
           <span
-            className="flex-shrink-0 text-[15px] font-medium text-[#20B8CD] select-none"
+            className="flex-shrink-0 text-[15px] font-medium text-[var(--accent-ink)] select-none"
             aria-hidden="true"
           >
             &gt;_
@@ -888,7 +888,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               }
             }}
             placeholder="Ask anything..."
-            className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[#F3F3EE] placeholder:text-white/30 focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[#20B8CD]"
+            className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[var(--on-ink)] placeholder:text-[var(--on-ink)]/30 focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[var(--accent-ink)]"
             rows={1}
           />
 
@@ -903,8 +903,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             title="Research across your documents — slower, writes a full brief"
             className={`flex-shrink-0 h-11 sm:h-9 px-3 flex items-center gap-1.5 rounded-full border transition-colors cursor-pointer text-[12.5px] font-medium ${
               inputQuery.trim() && !loading
-                ? 'border-white/15 text-white/70 hover:text-[#F3F3EE] hover:border-white/30'
-                : 'border-white/5 text-white/20 cursor-not-allowed'
+                ? 'border-[var(--rule)]/15 text-[var(--on-ink)]/70 hover:text-[var(--on-ink)] hover:border-[var(--rule)]/30'
+                : 'border-[var(--rule)]/5 text-[var(--on-ink)]/20 cursor-not-allowed'
             }`}
           >
             <Layers size={15} />
@@ -918,8 +918,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             aria-label="Send"
             className={`flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
               inputQuery.trim() && !loading
-                ? 'bg-[#20B8CD] text-[#0F1010] hover:opacity-90'
-                : 'bg-white/5 text-white/25 cursor-not-allowed'
+                ? 'bg-[var(--accent-ink)] text-[var(--ink-surface)] hover:opacity-90'
+                : 'bg-[var(--on-ink)]/5 text-[var(--on-ink)]/25 cursor-not-allowed'
             }`}
             title="Send message"
           >
@@ -935,7 +935,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className="relative flex flex-col bg-[#0F1010] text-[#F3F3EE] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
+      className="relative flex flex-col bg-[var(--ink-surface)] text-[var(--on-ink)] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
     >
       <input
         type="file"
@@ -956,29 +956,29 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       />
 
       {isDragging && (
-        <div className="absolute inset-0 bg-[#0F1010]/92 backdrop-blur-md z-50 flex flex-col items-center justify-center text-[#F3F3EE] border-2 border-dashed border-[#20B8CD]/40 p-6 text-center animate-fadeIn">
-          <UploadCloud size={56} className="text-[#20B8CD] mb-4" />
+        <div className="absolute inset-0 bg-[var(--ink-surface)]/92 backdrop-blur-md z-50 flex flex-col items-center justify-center text-[var(--on-ink)] border-2 border-dashed border-[var(--accent-ink)]/40 p-6 text-center animate-fadeIn">
+          <UploadCloud size={56} className="text-[var(--accent-ink)] mb-4" />
           <h2 className="text-2xl" style={{ fontWeight: 600, letterSpacing: '-0.036em' }}>Drop files to add them</h2>
-          <p className="text-sm text-white/45 max-w-md mt-2">
+          <p className="text-sm text-[var(--on-ink)]/45 max-w-md mt-2">
             PDF, DOCX, XLSX, and TXT files are ready to search in a moment.
           </p>
         </div>
       )}
 
       {/* Clean Header & Model Selector (Desktop) */}
-      <header className="hidden md:flex h-12 px-4 items-center justify-between gap-3 flex-shrink-0 z-10 bg-[#0F1010] border-b border-white/5">
+      <header className="hidden md:flex h-12 px-4 items-center justify-between gap-3 flex-shrink-0 z-10 bg-[var(--ink-surface)] border-b border-[var(--rule)]/5">
         <div className="flex items-center gap-3">
           {/* Model Selector Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowModelMenu(!showModelMenu)}
-              className="px-3 py-1.5 text-[13px] rounded-full text-white/45 hover:text-[#F3F3EE] hover:bg-white/5 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-[13px] rounded-full text-[var(--on-ink)]/45 hover:text-[var(--on-ink)] hover:bg-[var(--on-ink)]/5 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>{getModelLabel(selectedModel)}</span>
-              <ChevronDown size={14} className="text-white/30 ml-0.5" />
+              <ChevronDown size={14} className="text-[var(--on-ink)]/30 ml-0.5" />
             </button>
             {showModelMenu && (
-              <div className="absolute left-0 mt-2 w-64 bg-[#161818] border border-white/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
+              <div className="absolute left-0 mt-2 w-64 bg-[var(--ink-surface-3)] border border-[var(--rule)]/10 rounded-[12px] py-1.5 z-50 animate-in fade-in duration-150">
                 {[
                   { id: 'gemini-2.5-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
                   { id: 'gemini-2.5-pro', name: 'Signal87 Deep', desc: 'Deep synthesis & reasoning' },
@@ -990,15 +990,15 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                       onChangeModel(m.id);
                       setShowModelMenu(false);
                     }}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors cursor-pointer flex flex-col gap-0.5 ${
- selectedModel === m.id ? 'bg-white/5 text-[#F3F3EE] font-medium' : 'text-white/55'
+                    className={`w-full text-left px-4 py-2.5 hover:bg-[var(--on-ink)]/5 transition-colors cursor-pointer flex flex-col gap-0.5 ${
+ selectedModel === m.id ? 'bg-[var(--on-ink)]/5 text-[var(--on-ink)] font-medium' : 'text-[var(--on-ink)]/55'
  }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
                       <span>{m.name}</span>
-                      {selectedModel === m.id && <Check size={14} className="text-[#20B8CD]" />}
+                      {selectedModel === m.id && <Check size={14} className="text-[var(--accent-ink)]" />}
                     </div>
-                    <span className="text-[11px] text-white/35 font-normal">{m.desc}</span>
+                    <span className="text-[11px] text-[var(--on-ink)]/35 font-normal">{m.desc}</span>
                   </button>
                 ))}
               </div>
@@ -1009,20 +1009,20 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         {/* Quiet User Profile / Account Badge */}
         <div className="flex items-center gap-2">
           {currentUser ? (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-white/5 rounded-full text-xs text-[#F3F3EE] font-medium transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--on-ink)]/5 rounded-full text-xs text-[var(--on-ink)] font-medium transition-colors cursor-pointer">
               {currentUser.photoURL ? (
                 <img src={currentUser.photoURL} alt={currentUser.displayName || 'User'} className="w-5 h-5 rounded-full object-cover" />
               ) : (
-                <div className="w-5 h-5 rounded-full bg-[#161818] text-[#F3F3EE] font-bold flex items-center justify-center text-[10px]">
+                <div className="w-5 h-5 rounded-full bg-[var(--ink-surface-3)] text-[var(--on-ink)] font-bold flex items-center justify-center text-[10px]">
                   {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'U'}
                 </div>
               )}
-              <span className="hidden sm:inline font-medium text-white/70">{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
+              <span className="hidden sm:inline font-medium text-[var(--on-ink)]/70">{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
             </div>
           ) : (
             <button
               onClick={onGoogleSignIn}
-              className="px-3 py-1.5 text-white/40 hover:text-white/80 text-[13px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-[var(--on-ink)]/40 hover:text-[var(--on-ink)]/80 text-[13px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <LogIn size={13} /> Sign In
             </button>
@@ -1031,7 +1031,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           {chatHistory.length > 0 && (
             <button
               onClick={() => { setChatHistory([]); setActiveArtifact(null); }}
-              className="p-1.5 text-white/30 hover:text-[#F3F3EE] hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+              className="p-1.5 text-[var(--on-ink)]/30 hover:text-[var(--on-ink)] hover:bg-[var(--on-ink)]/5 rounded-full transition-colors cursor-pointer"
               title="Clear conversation"
             >
               <Trash2 size={16} />
@@ -1041,17 +1041,17 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       </header>
 
       {/* Main Centered Workspace Canvas */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative bg-[#0F1010]">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative bg-[var(--ink-surface)]">
         <div className={`flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-x-hidden transition-all duration-300 ${
- splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-white/5' : 'w-full'
+ splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-[var(--rule)]/5' : 'w-full'
  }`}>
           {isEmptyChat ? (
             <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
               <div className="flex flex-col items-center justify-end text-center pb-5 sm:pb-7 min-h-0">
-                <span className="text-[12px] font-medium text-white/35">
+                <span className="text-[12px] font-medium text-[var(--on-ink)]/35">
                   {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
                 </span>
-                <h1 className="mt-2 text-[1.65rem] sm:text-[2.5rem] leading-[1.15] text-[#F3F3EE] m-0 font-semibold tracking-tight max-w-[18ch] sm:max-w-none">
+                <h1 className="mt-2 text-[1.65rem] sm:text-[2.5rem] leading-[1.15] text-[var(--on-ink)] m-0 font-semibold tracking-tight max-w-[18ch] sm:max-w-none">
                   What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
                 </h1>
               </div>
@@ -1064,13 +1064,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 <div className="relative w-full max-w-md">
                   <button
                     onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-white/5 rounded-full transition-colors cursor-pointer text-[13px] text-white/40 hover:text-white/70"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-[var(--on-ink)]/5 rounded-full transition-colors cursor-pointer text-[13px] text-[var(--on-ink)]/40 hover:text-[var(--on-ink)]/70"
                   >
                     <span>More questions to try</span>
                     <ChevronDown size={14} />
                   </button>
                   {showActionsDropdown && (
-                    <div className="absolute top-full left-0 w-full mt-2 bg-[#161818] border border-white/10 rounded-[12px] z-20 overflow-hidden text-left">
+                    <div className="absolute top-full left-0 w-full mt-2 bg-[var(--ink-surface-3)] border border-[var(--rule)]/10 rounded-[12px] z-20 overflow-hidden text-left">
                       {quickActionChips.map((chip) => (
                         <button
                           key={chip.id}
@@ -1078,7 +1078,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                             setInputQuery(chip.prompt);
                             setShowActionsDropdown(false);
                           }}
-                          className="w-full text-left px-4 py-3 hover:bg-white/5 text-[13px] text-white/60 hover:text-[#F3F3EE] border-b border-white/5 last:border-b-0 cursor-pointer"
+                          className="w-full text-left px-4 py-3 hover:bg-[var(--on-ink)]/5 text-[13px] text-[var(--on-ink)]/60 hover:text-[var(--on-ink)] border-b border-[var(--rule)]/5 last:border-b-0 cursor-pointer"
                         >
                           {chip.label}
                         </button>
@@ -1105,13 +1105,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         <div key={msg.id} className="py-1">
                           {msg.role === 'user' ? (
                             <div className="flex justify-end my-3">
-                              <div className="bg-[#161818] text-[#F3F3EE] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
+                              <div className="bg-[var(--ink-surface-3)] text-[var(--on-ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
                                 {msg.text}
                               </div>
                             </div>
                           ) : (
                             <div className="flex gap-3 sm:gap-4 items-start my-4">
-                              <div className="w-8 h-8 rounded-full bg-[#161818] text-white/50 flex items-center justify-center flex-shrink-0 mt-1">
+                              <div className="w-8 h-8 rounded-full bg-[var(--ink-surface-3)] text-[var(--on-ink)]/50 flex items-center justify-center flex-shrink-0 mt-1">
                                 <Signal87Logo size={16} />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -1144,8 +1144,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                     })}
 
                     {loading && (
-                      <div className="flex items-center gap-3 py-3 text-[13.5px] text-white/40">
-                        <div className="w-6 h-6 bg-[#161818] rounded-full flex items-center justify-center text-white/40">
+                      <div className="flex items-center gap-3 py-3 text-[13.5px] text-[var(--on-ink)]/40">
+                        <div className="w-6 h-6 bg-[var(--ink-surface-3)] rounded-full flex items-center justify-center text-[var(--on-ink)]/40">
                           <Signal87Logo size={14} className="animate-spin" />
                         </div>
                         <span>Reading your documents...</span>
@@ -1156,7 +1156,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[#0F1010]">
+              <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[var(--ink-surface)]">
                 <div className="max-w-[768px] w-full mx-auto">
                   {composer}
                 </div>
@@ -1166,11 +1166,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         </div>
 
         {splitViewOpen && (
-          <div className="w-full md:w-1/2 lg:w-2/5 bg-[#111212] border-l border-white/5 flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
-            <div className="h-12 px-4 border-b border-white/5 flex items-center justify-between bg-[#0F1010] flex-shrink-0">
+          <div className="w-full md:w-1/2 lg:w-2/5 bg-[var(--ink-surface-2)] border-l border-[var(--rule)]/5 flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
+            <div className="h-12 px-4 border-b border-[var(--rule)]/5 flex items-center justify-between bg-[var(--ink-surface)] flex-shrink-0">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-white/40" />
-                <span className="font-medium text-xs text-[#F3F3EE] truncate max-w-[200px]">
+                <FileText size={16} className="text-[var(--on-ink)]/40" />
+                <span className="font-medium text-xs text-[var(--on-ink)] truncate max-w-[200px]">
                   {activeArtifact?.title || 'Deliverable Canvas'}
                 </span>
               </div>
@@ -1179,14 +1179,14 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   <>
                     <button
                       onClick={() => handleCopy('canvas', activeArtifact.content)}
-                      className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-1.5 text-[var(--on-ink)]/35 hover:text-[var(--on-ink)] rounded-lg hover:bg-[var(--on-ink)]/5 transition-colors cursor-pointer"
                       title="Copy Canvas Content"
                     >
                       <Copy size={14} />
                     </button>
                     <button
                       onClick={() => handleExportPDF(activeArtifact.title, activeArtifact.content)}
-                      className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-1.5 text-[var(--on-ink)]/35 hover:text-[var(--on-ink)] rounded-lg hover:bg-[var(--on-ink)]/5 transition-colors cursor-pointer"
                       title="Export to PDF"
                     >
                       <Download size={14} />
@@ -1195,26 +1195,26 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 )}
                 <button
                   onClick={() => setSplitViewOpen(false)}
-                  className="p-1.5 text-white/35 hover:text-[#F3F3EE] rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                  className="p-1.5 text-[var(--on-ink)]/35 hover:text-[var(--on-ink)] rounded-lg hover:bg-[var(--on-ink)]/5 transition-colors cursor-pointer"
                 >
                   <X size={15} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-[#F3F3EE]">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-[var(--on-ink)]">
               {activeArtifact ? (
                 <div className="space-y-4">
-                  <div className="text-xs text-white/35 border-b border-white/5 pb-2">
+                  <div className="text-xs text-[var(--on-ink)]/35 border-b border-[var(--rule)]/5 pb-2">
                     Artifact Created at {activeArtifact.timestamp}
                   </div>
                   {renderFormattedText(activeArtifact.content)}
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-white/35 text-xs text-center p-6 space-y-2">
-                  <FileText size={32} className="text-white/15" />
+                <div className="h-full flex flex-col items-center justify-center text-[var(--on-ink)]/35 text-xs text-center p-6 space-y-2">
+                  <FileText size={32} className="text-[var(--on-ink)]/15" />
                   <p>No deliverable active in side canvas.</p>
-                  <p className="text-[11px] text-white/30">
+                  <p className="text-[11px] text-[var(--on-ink)]/30">
                     Click "Inspect in Canvas" on any generated AI response to view full side-by-side synthesis.
                   </p>
                 </div>

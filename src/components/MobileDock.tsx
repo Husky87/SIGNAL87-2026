@@ -79,7 +79,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
           {/* Transparent/blur Backdrop overlay */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-2xs transition-opacity"
+            className="absolute inset-0 bg-[var(--ink)]/40 backdrop-blur-2xs transition-opacity"
             onClick={() => setIsBottomSheetOpen(false)}
           />
 
@@ -114,7 +114,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('note')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center border border-[var(--warn)]/30 group-active:scale-95 transition-transform">
                   <StickyNote size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
@@ -124,7 +124,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('folder')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-[var(--teal-soft)] text-[var(--teal)] flex items-center justify-center border border-[var(--teal)]/20 group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20 group-active:scale-95 transition-transform">
                   <FolderPlus size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Folder</span>
@@ -134,7 +134,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                 onClick={() => handleAction('upload')}
                 className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-active:scale-95 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center border border-[var(--ok)]/30 group-active:scale-95 transition-transform">
                   <Upload size={22} />
                 </div>
                 <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>

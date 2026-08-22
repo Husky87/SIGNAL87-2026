@@ -30,7 +30,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
   const isSelectedAttached = selectedDoc ? attachedIds.includes(selectedDoc.id) : false;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--ink)]/60 backdrop-blur-xs">
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col text-[var(--ink)]">
         <div className="flex items-center justify-between p-5 pb-3 border-b border-[var(--rule-2)]">
           <h2 className="text-[16px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
@@ -53,7 +53,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={`Search ${documents.length} files`}
-                  className="w-full pl-9 pr-3 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
+                  className="w-full pl-9 pr-3 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-all"
                 />
               </div>
             </div>
@@ -85,13 +85,13 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                       <span
                         className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                           isAttached
-                            ? 'bg-[var(--teal)] border-[var(--teal)]'
+                            ? 'bg-[var(--accent)] border-[var(--accent)]'
                             : isSelected
-                            ? 'border-2 border-[var(--teal)]'
+                            ? 'border-2 border-[var(--accent)]'
                             : 'border-[var(--rule)] group-hover:border-[var(--ink-2)]'
                         }`}
                       >
-                        {isAttached && <Check size={12} className="text-white" />}
+                        {isAttached && <Check size={12} className="text-[var(--ink)]" />}
                       </span>
                     </button>
                   );
@@ -117,7 +117,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                     className={`flex-shrink-0 py-2 px-4 rounded-full font-medium text-[13px] transition-all cursor-pointer ${
                       isSelectedAttached
                         ? 'bg-[var(--raised)] text-[var(--ink)] hover:opacity-80'
-                        : 'bg-[var(--teal)] text-white hover:opacity-90'
+                        : 'bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90'
                     }`}
                   >
                     {isSelectedAttached ? 'Remove' : 'Attach'}
@@ -172,7 +172,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
         <div className="p-4 border-t border-[var(--rule-2)]">
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px]"
+            className="w-full py-2.5 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px]"
           >
             Done{attachedIds.length > 0 ? ` (${attachedIds.length} attached)` : ''}
           </button>

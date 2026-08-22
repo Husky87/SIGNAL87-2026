@@ -71,26 +71,26 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors cursor-pointer z-10"
+          className="absolute top-5 right-5 p-2 text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-full transition-colors cursor-pointer z-10"
         >
           <X size={20} />
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
-          <div className="p-2.5 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center">
-            <BookOpen size={24} className="text-[#7dd3fc]" />
+        <div className="flex items-center gap-3 border-b border-[var(--rule-2)] pb-5">
+          <div className="p-2.5 bg-[var(--accent-soft)] rounded-2xl flex items-center justify-center">
+            <BookOpen size={24} className="text-[var(--accent-ink)]" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--ink)] tracking-tight">
               Signal87 AI Research Blog & Insights
             </h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-xs text-[var(--muted)] font-medium mt-0.5">
               Engineering perspectives on legal tech, document memory, and verifiable AI architectures.
             </p>
           </div>
@@ -101,22 +101,22 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
           <div className="space-y-6">
             <button
               onClick={() => setSelectedPost(null)}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-[var(--ink-2)] hover:text-[var(--ink)] flex items-center gap-1 cursor-pointer"
             >
               ← Back to all articles
             </button>
 
             <div className="space-y-3">
-              <span className="text-[10px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-1 rounded-full font-mono font-bold uppercase">
+              <span className="text-[10px] bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--rule)] px-2.5 py-1 rounded-full font-mono font-bold uppercase">
                 {selectedPost.tag}
               </span>
-              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-extrabold text-[var(--ink)] tracking-tight">
                 {selectedPost.title}
               </h3>
 
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-medium border-y border-slate-100 py-3">
-                <span className="flex items-center gap-1.5 text-slate-800 font-bold">
-                  <User size={14} className="text-slate-400" /> {selectedPost.author} ({selectedPost.role})
+              <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--muted)] font-medium border-y border-[var(--rule-2)] py-3">
+                <span className="flex items-center gap-1.5 text-[var(--ink)] font-bold">
+                  <User size={14} className="text-[var(--muted)]" /> {selectedPost.author} ({selectedPost.role})
                 </span>
                 <span className="flex items-center gap-1">
                   <Calendar size={13} /> {selectedPost.date}
@@ -125,7 +125,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="whitespace-pre-line text-xs sm:text-sm text-slate-700 leading-relaxed space-y-4 font-sans">
+            <div className="whitespace-pre-line text-xs sm:text-sm text-[var(--ink-2)] leading-relaxed space-y-4 font-sans">
               {selectedPost.content}
             </div>
           </div>
@@ -136,28 +136,28 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
               <div
                 key={post.id}
                 onClick={() => setSelectedPost(post)}
-                className="p-5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-4 transition-all cursor-pointer group hover:border-slate-300"
+                className="p-5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--rule)]/80 rounded-2xl flex flex-col justify-between space-y-4 transition-all cursor-pointer group hover:border-[var(--rule)]"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="bg-slate-200/70 text-slate-800 px-2 py-0.5 rounded font-mono font-bold">
+                    <span className="bg-[var(--rule)]/70 text-[var(--ink)] px-2 py-0.5 rounded font-mono font-bold">
                       {post.tag}
                     </span>
-                    <span className="text-slate-400 font-medium">{post.readTime}</span>
+                    <span className="text-[var(--muted)] font-medium">{post.readTime}</span>
                   </div>
 
-                  <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-[var(--teal)] transition-colors">
+                  <h3 className="font-extrabold text-[var(--ink)] text-sm leading-snug group-hover:text-[var(--accent)] transition-colors">
                     {post.title}
                   </h3>
 
-                  <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
+                  <p className="text-xs text-[var(--muted)] line-clamp-3 leading-relaxed">
                     {post.snippet}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-800">
-                  <span className="text-[11px] text-slate-500">{post.author}</span>
-                  <span className="flex items-center gap-1 text-slate-900 group-hover:translate-x-0.5 transition-transform">
+                <div className="pt-3 border-t border-[var(--rule)]/60 flex items-center justify-between text-xs font-semibold text-[var(--ink)]">
+                  <span className="text-[11px] text-[var(--muted)]">{post.author}</span>
+                  <span className="flex items-center gap-1 text-[var(--ink)] group-hover:translate-x-0.5 transition-transform">
                     Read <ArrowRight size={13} />
                   </span>
                 </div>
@@ -167,7 +167,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
         )}
 
         {/* Footer */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+        <div className="pt-4 border-t border-[var(--rule-2)] flex items-center justify-between text-xs text-[var(--muted)] font-medium">
           <span>Signal87 AI Engineering & Publications</span>
           <span>Updated July 2026</span>
         </div>

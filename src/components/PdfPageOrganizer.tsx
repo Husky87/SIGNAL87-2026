@@ -272,7 +272,7 @@ export const PdfPageOrganizer: React.FC<PdfPageOrganizerProps> = ({
                     disabled={disabled}
                     className={`min-h-0 p-1 rounded-lg transition-colors cursor-pointer disabled:opacity-30 ${
                       splitAfter.has(index)
-                        ? 'text-[var(--teal-ink)] bg-[var(--accent)]'
+                        ? 'text-[var(--accent-contrast)] bg-[var(--accent)]'
                         : 'text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--raised)]'
                     }`}
                     title={splitAfter.has(index) ? 'Remove split here' : 'Split into a separate file here'}

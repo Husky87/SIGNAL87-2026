@@ -11,7 +11,9 @@ import React from 'react';
 const shimmer =
   'relative overflow-hidden bg-[var(--surface-2)] before:absolute before:inset-0 ' +
   'before:-translate-x-full before:animate-[s87-shimmer_1.4s_infinite] ' +
-  'before:bg-gradient-to-r before:from-transparent before:via-white/[0.04] before:to-transparent';
+  // The sweep is a lighter parchment passing over the raised tone. It used to
+// be white at 4%, which read on the old dark surfaces and is invisible on paper.
+  'before:bg-gradient-to-r before:from-transparent before:via-[var(--surface)]/70 before:to-transparent';
 
 const Bar: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`${shimmer} rounded-md ${className}`} />

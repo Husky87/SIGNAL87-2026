@@ -216,11 +216,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-haspopup="menu"
             aria-expanded={newMenuOpen}
             title="Create something new"
-            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--teal)] hover:opacity-90 border-transparent text-white ${
+            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--accent)] hover:opacity-90 border-transparent text-[var(--accent-contrast)] ${
               collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''
             }`}
           >
-            <Icon size={16} className="flex-shrink-0 text-white" />
+            <Icon size={16} className="flex-shrink-0 text-[var(--ink)]" />
             {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
           </button>
 
@@ -465,7 +465,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-40"
+          className="md:hidden fixed inset-0 bg-[var(--ink)]/40 backdrop-blur-xs z-40"
           onClick={onCloseMobileMenu}
         />
       )}

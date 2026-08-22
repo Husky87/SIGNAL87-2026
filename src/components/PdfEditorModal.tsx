@@ -521,7 +521,7 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
                 setShowExport(true);
               }}
               disabled={busy}
-              className="min-h-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--accent)] text-[var(--teal-ink)] text-[13px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
+              className="min-h-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)] text-[13px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
             >
               <Download size={14} /> Export
             </button>
@@ -649,7 +649,7 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
               <button
                 onClick={() => commitInsert(pendingInsert, parsePageRange(insertRange, pendingInsert.pageCount))}
                 disabled={busy || parsePageRange(insertRange, pendingInsert.pageCount).length === 0}
-                className="px-3.5 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-[var(--teal-ink)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="px-3.5 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Insert
               </button>
@@ -702,7 +702,7 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
               <button
                 onClick={() => runExport('single')}
                 disabled={exporting}
-                className="w-full px-4 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--teal-ink)] text-[13.5px] font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] text-[13.5px] font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
                 {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
                 Export one PDF ({overlay.pages.length} pages)
