@@ -25,7 +25,7 @@ const manifest = JSON.parse(readFileSync(new URL('../public/manifest.webmanifest
 check('the app has a name to install under', manifest.name === 'Signal87 AI' && manifest.short_name.length <= 12, manifest.short_name);
 check('it opens without browser chrome', manifest.display === 'standalone', manifest.display);
 check('it declares a start url and scope', manifest.start_url === '/' && manifest.scope === '/');
-check('its background matches the app, so the launch is not a white flash', manifest.background_color === '#1E2020', manifest.background_color);
+check('its background matches the app, so the launch is not a white flash', manifest.background_color === '#F4F1EA', manifest.background_color);
 check('it ships a maskable icon for Android', manifest.icons.some((i) => i.purpose === 'maskable'));
 check('it ships a 512px icon for the store listing and splash', manifest.icons.some((i) => i.sizes === '512x512' && i.purpose === 'any'));
 
@@ -53,9 +53,11 @@ try {
 
   check('the manifest is linked', head.manifest === '/manifest.webmanifest', String(head.manifest));
   check('there is a real PNG home-screen icon', head.appleIcon === '/icons/icon-180.png', String(head.appleIcon));
-  check('the status bar is themed to the app', head.themeColor === '#1E2020', String(head.themeColor));
+  check('the status bar is themed to the app', head.themeColor === '#F4F1EA', String(head.themeColor));
   check('iOS is told it can run standalone', head.capable === 'yes', String(head.capable));
-  check('the status bar is translucent, not an opaque strip', head.statusBar === 'black-translucent', String(head.statusBar));
+  // Chambers is a light theme: black-translucent would draw the clock and
+  // battery in white over parchment. "default" is the correct pairing.
+  check('the status bar suits a light theme', head.statusBar === 'default', String(head.statusBar));
   check('the home-screen label is short enough not to truncate', (head.title || '').length <= 12, String(head.title));
   check('the viewport extends under the notch', /viewport-fit=cover/.test(head.viewport || ''), String(head.viewport));
   check('pinch zoom is not disabled', !/user-scalable\s*=\s*no|maximum-scale/.test(head.viewport || ''), String(head.viewport));

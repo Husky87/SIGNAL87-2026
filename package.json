@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "node tests/theme-guard.mjs && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit",
+    "lint": "node tests/theme-guard.mjs && tsc --noEmit",
     "test:payload": "tsx tests/payload.test.ts",
     "test:read": "node tests/run-reading.mjs",
     "test:answer": "tsx tests/answering.e2e.ts",
-    "test": "npm run test:payload && npm run test:read && npm run test:answer && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back && npm run test:polish && npm run test:pdfedit && npm run test:pdfeditor",
+    "test": "npm run test:payload && npm run test:read && npm run test:answer && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back && npm run test:polish && npm run test:pdfedit && npm run test:pdfeditor && npm run test:theme",
     "test:newmenu": "node tests/newmenu.e2e.mjs",
     "test:quickanswer": "node tests/quickanswer.e2e.mjs",
     "icons": "node tests/make-icons.mjs",
@@ -22,7 +22,10 @@
     "fonts": "node tests/make-fonts.mjs",
     "test:polish": "node tests/polish.e2e.mjs",
     "test:pdfedit": "tsx tests/pdfedit.test.ts",
-    "test:pdfeditor": "node tests/pdfeditor.e2e.mjs"
+    "test:pdfeditor": "node tests/pdfeditor.e2e.mjs",
+    "tokens": "node tests/make-tokens.mjs",
+    "lint:theme": "node tests/theme-guard.mjs",
+    "test:theme": "node tests/theme.e2e.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

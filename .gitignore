@@ -12,3 +12,6 @@ coverage/
 # Text captured by the reading suite for the answering suite to consume.
 tests/.parsed.json
 .secrets/
+
+# Screenshots produced by the theme suite.
+tests/.theme-*.png
