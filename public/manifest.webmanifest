@@ -7,9 +7,12 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1E2020",
-  "theme_color": "#1E2020",
-  "categories": ["business", "productivity"],
+  "background_color": "#F4F1EA",
+  "theme_color": "#F4F1EA",
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -35,13 +38,23 @@
       "name": "Ask a question",
       "short_name": "Ask",
       "url": "/?action=ask",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "My files",
       "short_name": "Files",
       "url": "/?action=files",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

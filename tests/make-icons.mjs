@@ -39,8 +39,9 @@ for (const { file, size, square } of TARGETS) {
       const ctx = canvas.getContext('2d');
 
       // The mark's own background only covers the squircle; fill behind it so
-      // no transparent corners reach a platform that will not mask them.
-      ctx.fillStyle = '#18181b';
+      // no transparent corners reach a platform that will not mask them. This
+      // has to match the squircle in public/favicon.svg — Chambers ink.
+      ctx.fillStyle = '#1C1917';
       ctx.fillRect(0, 0, size, size);
 
       const source = square ? svg.replace(/rx="24"/, 'rx="0"') : svg;
