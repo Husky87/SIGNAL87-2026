@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { FileText, Upload, MessageSquare, Moon, Sun, ChevronRight, Play, Plus } from 'lucide-react';
+import { FileText, Upload, MessageSquare, Moon, Sun, ChevronRight, Play, Plus, Menu, X } from 'lucide-react';
 
 export default function Signal87App() {
   const [darkMode, setDarkMode] = useState(true);
+  // Phone-only: the sidebar is a drawer below md. At md and up it is the
+  // same static rail it has always been and this stays false and unused.
+  const [navOpen, setNavOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'compare' | 'chat'>('compare');
   const [selectedDocs, setSelectedDocs] = useState<string[]>(['EIN-MHCG Inc.pdf', 'Mount_Horeb_Capital_Strategy(1).pdf']);
   const [analyzing, setAnalyzing] = useState(false);
@@ -38,13 +41,31 @@ export default function Signal87App() {
 
   return (
     <div className={darkMode ? 'dark bg-slate-950 text-slate-100 min-h-screen font-sans flex' : 'bg-slate-50 text-slate-900 min-h-screen font-sans flex'}>
-      <aside className={`w-64 border-r flex flex-col justify-between p-4 transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+      {/* Below md the rail slides in over the content instead of sitting beside
+          it: at 390px a fixed 256px rail left main just 134px, which is what
+          squeezed every heading to one word per line. From md up the
+          md:* classes restore exactly the previous static rail. */}
+      {navOpen && (
+        <div
+          onClick={() => setNavOpen(false)}
+          className="md:hidden fixed inset-0 z-40 bg-black/60"
+          aria-hidden="true"
+        />
+      )}
+      <aside className={`w-64 border-r flex flex-col justify-between p-4 transition-colors fixed inset-y-0 left-0 z-50 transform md:static md:z-auto md:transform-none ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div>
           <div className="flex items-center justify-between mb-6 px-2">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center font-bold text-slate-950 shadow-md">S87</div>
               <span className="font-semibold text-lg tracking-tight">Signal87 AI</span>
             </div>
+            <button
+              onClick={() => setNavOpen(false)}
+              className={`md:hidden p-2 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              aria-label="Close navigation"
+            >
+              <X size={16} />
+            </button>
             <button 
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
@@ -61,14 +82,14 @@ export default function Signal87App() {
 
           <nav className="space-y-1">
             <button 
-              onClick={() => setActiveTab('compare')}
+              onClick={() => { setActiveTab('compare'); setNavOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'compare' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : darkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
               <FileText size={18} />
               <span>Multi-Doc Compare</span>
             </button>
             <button 
-              onClick={() => setActiveTab('chat')}
+              onClick={() => { setActiveTab('chat'); setNavOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : darkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
               <MessageSquare size={18} />
@@ -86,19 +107,26 @@ export default function Signal87App() {
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className={`h-16 border-b flex items-center justify-between px-6 transition-colors ${darkMode ? 'bg-slate-900/50 border-slate-800 backdrop-blur' : 'bg-white/80 border-slate-200 backdrop-blur'}`}>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs uppercase tracking-wider font-semibold text-cyan-500 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
+        <header className={`h-16 border-b flex items-center justify-between px-4 md:px-6 transition-colors ${darkMode ? 'bg-slate-900/50 border-slate-800 backdrop-blur' : 'bg-white/80 border-slate-200 backdrop-blur'}`}>
+          <div className="flex items-center space-x-3 min-w-0">
+            <button
+              onClick={() => setNavOpen(true)}
+              className={`md:hidden -ml-1 p-2 rounded-lg border transition-colors flex-shrink-0 ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              aria-label="Open navigation"
+            >
+              <Menu size={18} />
+            </button>
+            <span className="text-xs uppercase tracking-wider font-semibold text-cyan-500 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20 truncate">
               {activeTab === 'compare' ? 'Comparative Matrix Engine' : 'Long-Context Reasoning'}
             </span>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium">Michael Benezra</span>
+          <div className="flex items-center space-x-4 flex-shrink-0">
+            <span className="hidden sm:inline text-sm font-medium">Michael Benezra</span>
             <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white text-sm">MB</div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === 'compare' ? (
             <div className="max-w-5xl mx-auto space-y-6">
               <div>
