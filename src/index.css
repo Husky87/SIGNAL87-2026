@@ -51,6 +51,11 @@
   --accent-ink:#8C2F27;     /* the accent used as text or an icon on paper */
   --accent-soft:#F3E3DF;    /* accent tint */
   --accent-contrast:#FBF9F4;/* text on an oxblood fill — never dark */
+  /* --accent-ink as raw channels, for the places that need the accent at an
+     alpha the palette does not enumerate: the two composer glows and the PDF
+     form-field tint. rgb(var(--accent-rgb) / <alpha>) keeps them on the token
+     instead of freezing a colour into an rgba() literal. */
+  --accent-rgb: 140 47 39;
 
   --ok:#4A6741;
   --ok-soft:#E6EDE2;

@@ -152,7 +152,7 @@ export const PdfFormFiller: React.FC<PdfFormFillerProps> = ({
    *  which would hide the printed field it is standing on. */
   const overlayInputStyle: React.CSSProperties = {
     borderRadius: 3,
-    backgroundColor: 'rgba(14, 124, 140, 0.07)',
+    backgroundColor: 'rgb(var(--accent-rgb) / 0.07)',
     padding: '0 3px'
   };
 

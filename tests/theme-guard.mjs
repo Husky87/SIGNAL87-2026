@@ -85,6 +85,16 @@ const CHECKS = [
 ];
 
 const ANY_HEX = /#[0-9a-fA-F]{3,8}\b/g;
+
+// rgb()/rgba() with numeric channels. The hex scan cannot see these, which is
+// how the cyan composer glows (rgba(32,184,205,...)) and the old teal PDF
+// field tint (rgba(14,124,140,...)) survived the conversion. Pure black and
+// pure white are exempt: those are shadows and scrims, not theme colours.
+const ANY_RGB = /\brgba?\(\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})/g;
+function isNeutral(r, g, b) {
+  const n = [r, g, b].map(Number);
+  return n.every((v) => v === 0) || n.every((v) => v === 255);
+}
 // .mjs, .svg and .webmanifest are included deliberately: the icon generator,
 // the favicon and the PWA manifest were all still carrying the dark theme,
 // and none of them would have been caught by scanning source files alone.
@@ -124,6 +134,11 @@ for (const full of walk(ROOT)) {
     }
 
     if (isPalette) return;
+
+    for (const m of text.matchAll(ANY_RGB)) {
+      if (isNeutral(m[1], m[2], m[3])) continue;
+      fail(file, line, `hardcoded rgb() colour: ${m[0]}) — use a token, or rgb(var(--accent-rgb) / <alpha>)`);
+    }
 
     for (const m of text.matchAll(ANY_HEX)) {
       const hex = m[0];
