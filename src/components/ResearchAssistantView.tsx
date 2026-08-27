@@ -823,7 +823,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           className="pointer-events-none absolute -inset-5 sm:-inset-6 rounded-[36px]"
           style={{
             background:
-              'radial-gradient(ellipse at center, rgba(32,184,205,0.45) 0%, rgba(32,184,205,0.18) 45%, transparent 75%)',
+              'radial-gradient(ellipse at center, rgb(var(--accent-rgb) / 0.45) 0%, rgb(var(--accent-rgb) / 0.18) 45%, transparent 75%)',
             filter: 'blur(14px)'
           }}
         />
@@ -1046,7 +1046,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
  splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-[var(--rule)]/5' : 'w-full'
  }`}>
           {isEmptyChat ? (
-            <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
+            /* The column is minmax(0,1fr), not auto. An auto track takes the
+               composer's min-content width as its floor, and on a 390px phone
+               that floor (384px) is wider than the 358px left inside px-4 — so
+               the track grew and the send button was clipped off-screen rather
+               than the composer shrinking to fit. No visual change anywhere the
+               row already fits, which is every desktop width. */
+            <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
               <div className="flex flex-col items-center justify-end text-center pb-5 sm:pb-7 min-h-0">
                 <span className="text-[12px] font-medium text-[var(--on-ink)]/35">
                   {documents.length} {documents.length === 1 ? 'document' : 'documents'} added

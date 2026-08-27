@@ -57,7 +57,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <button
             type="button"
             onClick={() => onOpenEmailAuth('signup')}
-            className="min-h-[40px] px-4 bg-[var(--accent-ink)] hover:opacity-90 text-[var(--ink-surface)] text-[13px] font-semibold rounded-full cursor-pointer transition-opacity"
+            /* 44px on a phone, where this is a thumb target and its Log in
+               sibling is already 44; the deliberate 40 is kept from sm up so
+               the desktop header is unchanged. */
+            className="min-h-[44px] sm:min-h-[40px] px-4 bg-[var(--accent-ink)] hover:opacity-90 text-[var(--ink-surface)] text-[13px] font-semibold rounded-full cursor-pointer transition-opacity"
           >
             Sign up
           </button>
@@ -81,7 +84,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               className="pointer-events-none absolute -inset-3 sm:-inset-4 rounded-[32px]"
               style={{
                 background:
-                  'radial-gradient(ellipse at center, rgba(32,184,205,0.2) 0%, rgba(32,184,205,0.06) 42%, transparent 70%)',
+                  'radial-gradient(ellipse at center, rgb(var(--accent-rgb) / 0.2) 0%, rgb(var(--accent-rgb) / 0.06) 42%, transparent 70%)',
                 filter: 'blur(10px)'
               }}
             />
