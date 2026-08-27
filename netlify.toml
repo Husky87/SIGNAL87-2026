@@ -1,5 +1,10 @@
 [build]
-  command = "vite build"
+  # The theme guard runs ahead of the build, not just in npm run build locally.
+  # Netlify's build is the only CI this project has, so a reintroduced legacy
+  # navy/cyan value has to fail here or the guard is advisory. esbuild's server
+  # bundle is deliberately not run: Netlify serves the static dist plus the
+  # functions in netlify/functions, and never executes server.ts.
+  command = "node tests/theme-guard.mjs && vite build"
   publish = "dist"
 
 [functions]
