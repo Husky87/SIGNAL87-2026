@@ -61,14 +61,14 @@ export default function Signal87App() {
             </div>
             <button
               onClick={() => setNavOpen(false)}
-              className={`md:hidden p-2 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              className={`md:hidden w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               aria-label="Close navigation"
             >
               <X size={16} />
             </button>
             <button 
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              className={`p-2 min-w-[44px] md:min-w-0 rounded-lg border transition-colors ${darkMode ? 'border-slate-700 bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               title="Toggle Theme"
             >
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
@@ -111,7 +111,7 @@ export default function Signal87App() {
           <div className="flex items-center space-x-3 min-w-0">
             <button
               onClick={() => setNavOpen(true)}
-              className={`md:hidden -ml-1 p-2 rounded-lg border transition-colors flex-shrink-0 ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              className={`md:hidden -ml-1 w-11 h-11 flex items-center justify-center rounded-lg border transition-colors flex-shrink-0 ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               aria-label="Open navigation"
             >
               <Menu size={18} />
@@ -226,9 +226,9 @@ export default function Signal87App() {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask anything about your files or strategy..."
-                  className="flex-1 bg-transparent border-none outline-none px-3 text-sm"
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none px-3 min-h-[44px] md:min-h-0 text-base md:text-sm"
                 />
-                <button type="submit" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 p-2.5 rounded-xl font-medium transition-all">
+                <button type="submit" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 p-2.5 min-w-[44px] md:min-w-0 flex items-center justify-center rounded-xl font-medium transition-all flex-shrink-0">
                   <ChevronRight size={18} />
                 </button>
               </form>
