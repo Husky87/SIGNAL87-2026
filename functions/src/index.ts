@@ -5,6 +5,10 @@ import { generateWithFallback } from './lib/aiFallbackService.js';
 import { hasUsableText } from './lib/extractedText.js';
 import { buildChatMessages } from './lib/chatPayload.js';
 
+// Subscription billing lives in its own module; re-exported so the Firebase
+// deploy picks the handlers up as functions.
+export { billingPlans, billingCheckout, billingPortal, billingWebhook } from './billing.js';
+
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
 

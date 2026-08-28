@@ -6,6 +6,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Entitlement. The client may read its own record and never write one:
+    // the only writer is the Stripe webhook, which runs with Admin credentials
+    // and bypasses these rules entirely. This is why subscription state does
+    // not live under users/{uid} — that subtree is client-writable, so a
+    // subscription stored there could be granted from the browser console.
+    match /subscriptions/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     // Legacy shared collections are closed. New writes go under users/{uid}/...
     match /{document=**} {
       allow read, write: if false;
