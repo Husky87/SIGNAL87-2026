@@ -20,7 +20,9 @@ import { TermsOfService } from './pages/TermsOfService';
 import { AuthErrorModal } from './components/AuthErrorModal';
 import { EmailAuthModal } from './components/EmailAuthModal';
 import { PaywallView } from './components/PaywallView';
-import { getTrialStatus } from './lib/trial';
+import { useAccess } from './lib/subscription';
+import { TrialBanner } from './components/TrialBanner';
+import { SubscribeModal } from './components/SubscribeModal';
 import { isAdminEmail } from './lib/admins';
 import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
@@ -831,6 +833,29 @@ export default function App() {
     setIsEmailAuthOpen(false);
   };
 
+  /* ── Entitlement ────────────────────────────────────────────────────────
+     Called here, above every early return, because it is a hook: React
+     requires the same hooks to run on every render, and the paywall branch
+     below returns before the main shell. */
+  const access = useAccess(currentUser);
+  const subscribed = access.state === 'subscribed';
+  const [isBillingOpen, setIsBillingOpen] = useState(false);
+
+  /* Coming back from Stripe, the subscription record may land a beat after the
+     redirect — the webhook and the browser are racing. The banner below says so
+     rather than leaving someone who has just paid looking at a paywall and
+     wondering whether the card went through. */
+  const [checkoutReturn, setCheckoutReturn] = useState<'success' | 'cancelled' | null>(null);
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get('checkout');
+    if (status !== 'success' && status !== 'cancelled') return;
+    setCheckoutReturn(status);
+    // Drop the parameter so a refresh does not replay the message.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('checkout');
+    window.history.replaceState({}, '', url.toString());
+  }, []);
+
   if (!authReady) {
     return <div className="min-h-[100dvh] w-full bg-[var(--ink-surface)]" />;
   }
@@ -923,9 +948,16 @@ export default function App() {
     );
   }
 
-  const trialStatus = getTrialStatus(currentUser);
-  if (trialStatus.isExpired && !isAdminEmail(currentUser.email)) {
-    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
+  /* Admins are never gated. Otherwise: a live subscription or an unexpired
+     trial gets in, and 'unknown' — trial over, subscription record not back
+     yet — waits rather than accusing a paying customer of not paying. */
+  if (!isAdminEmail(currentUser.email)) {
+    if (access.state === 'unknown') {
+      return <div className="min-h-[100dvh] w-full bg-[var(--bg)]" />;
+    }
+    if (access.state === 'expired') {
+      return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
+    }
   }
 
   return (
@@ -966,10 +998,27 @@ export default function App() {
         }}
         onOpenNewFolderModal={handleOpenNewFolder}
         onOpenNewNote={handleOpenNewNote}
+        subscribed={subscribed}
+        onOpenBilling={() => setIsBillingOpen(true)}
       />
 
       {/* Main Workspace Area */}
       <div ref={mainScrollRef} className="flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-hidden">
+        {/* Sits above the mobile header and the desktop content alike, so the
+            trial is visible wherever the reader happens to be working. */}
+        {checkoutReturn === 'success' && !subscribed && (
+          <div className="flex-shrink-0 px-4 py-2 border-b border-[var(--rule)] bg-[var(--ok-soft)] text-[13px] text-[var(--ink)]">
+            Payment received — activating your subscription. This page updates by itself.
+          </div>
+        )}
+        {checkoutReturn === 'cancelled' && (
+          <div className="flex-shrink-0 px-4 py-2 border-b border-[var(--rule)] bg-[var(--surface)] text-[13px] text-[var(--ink-2)]">
+            Checkout cancelled — nothing was charged.
+          </div>
+        )}
+        {access.state === 'trial' && (
+          <TrialBanner daysRemaining={access.daysRemaining} onUpgrade={() => setIsBillingOpen(true)} />
+        )}
         {/* Persistent Mobile Top Header (Authentic Google Drive Pill Search Bar) */}
         {/* Installed on a home screen the app runs under the status bar, so the
             top inset has to be paid here or the search field sits beneath the
@@ -1249,6 +1298,12 @@ export default function App() {
           onOpenNewNote={handleOpenNewNote}
         />
       </div>
+
+      <SubscribeModal
+        isOpen={isBillingOpen}
+        onClose={() => setIsBillingOpen(false)}
+        subscribed={subscribed}
+      />
 
       {/* Global Modals */}
       <DocumentUploadModal

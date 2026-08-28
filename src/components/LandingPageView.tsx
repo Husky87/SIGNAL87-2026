@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Signal87Logo } from './Signal87Logo';
 import { Footer } from './Footer';
 import { NavTab } from './Sidebar';
+import { PricingPlans } from './PricingPlans';
+import { TRIAL_DAYS } from '../lib/trial';
 
 interface LandingPageViewProps {
   onOpenEmailAuth: (mode?: 'signup' | 'signin') => void;
@@ -47,6 +49,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
+          <a
+            href="#pricing"
+            className="hidden sm:inline-flex items-center min-h-[44px] px-3.5 text-[13px] font-medium text-[var(--on-ink)]/55 hover:text-[var(--on-ink)] transition-colors"
+          >
+            Pricing
+          </a>
           <button
             type="button"
             onClick={() => onOpenEmailAuth('signin')}
@@ -126,6 +134,41 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </ul>
         </div>
       </main>
+
+      {/* Paper band under the dark hero. The plans read as an offer rather than
+          another slab of the hero, and PricingPlans is already built on the
+          light tokens, so it needs no dark variant. */}
+      <section id="pricing" className="bg-[var(--bg)] text-[var(--ink)] px-5 sm:px-8 py-16 sm:py-20">
+        <div className="max-w-[720px] mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-[26px] sm:text-[30px] m-0" style={{ fontWeight: 600, letterSpacing: '-0.03em' }}>
+              Simple pricing
+            </h2>
+            <p className="m-0 text-[14.5px] text-[var(--ink-2)]" style={{ lineHeight: 1.6 }}>
+              Start with {TRIAL_DAYS} days free. No card required to try it — bring your documents and
+              ask them something.
+            </p>
+          </div>
+
+          {/* A signed-out visitor has no account to bill, so the plan buttons
+              open sign-up; checkout happens once they are in. */}
+          <PricingPlans
+            ctaLabel="Start free trial"
+            onSelect={() => onOpenEmailAuth('signup')}
+            unconfiguredNote="Online checkout is opening shortly. Start your free trial now and we'll be in touch."
+          />
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => onOpenEmailAuth('signup')}
+              className="min-h-[44px] px-6 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] text-[13.5px] font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Create your account
+            </button>
+          </div>
+        </div>
+      </section>
 
       <section id="team" className="px-5 sm:px-8 py-16 sm:py-20 border-t border-[var(--rule)]/5">
         <div className="max-w-4xl mx-auto">

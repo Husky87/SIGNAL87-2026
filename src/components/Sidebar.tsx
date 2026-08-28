@@ -17,6 +17,7 @@ import {
   Share2,
   Trash2,
   LogOut,
+  CreditCard
 } from 'lucide-react';
 import { User } from '../lib/firebase';
 import { getTrialStatus } from '../lib/trial';
@@ -65,6 +66,9 @@ interface SidebarProps {
   onSelectFilesView?: (view: FilesView) => void;
   onOpenNewFolderModal?: () => void;
   onOpenNewNote?: () => void;
+  /** True once a paid subscription is active, which replaces the trial countdown. */
+  subscribed?: boolean;
+  onOpenBilling?: () => void;
 }
 
 const FILES_SUB_ITEMS: { id: FilesView; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -104,6 +108,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectFilesView,
   onOpenNewFolderModal,
   onOpenNewNote,
+  subscribed = false,
+  onOpenBilling,
 }) => {
   const [filesExpanded, setFilesExpanded] = useState(true);
   const [newMenuOpen, setNewMenuOpen] = useState(false);
@@ -412,7 +418,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-2 px-1">
             <div className="flex items-center justify-between">
               <span>Signal87 Platform</span>
-              {trialStatus ? (
+              {subscribed ? (
+                <span className="text-[var(--verify)] font-bold">SUBSCRIBED</span>
+              ) : trialStatus ? (
                 <span className={trialStatus.daysRemaining <= 1 ? 'text-[var(--warn)] font-bold' : 'text-[var(--verify)] font-bold'}>
                   {trialStatus.daysRemaining}D LEFT IN TRIAL
                 </span>
@@ -420,6 +428,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-[var(--verify)] font-bold">ACTIVE</span>
               )}
             </div>
+            {onOpenBilling && (
+              <button
+                type="button"
+                onClick={onOpenBilling}
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-full text-[12px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] cursor-pointer"
+              >
+                <CreditCard size={14} />
+                {subscribed ? 'Billing' : 'Subscribe'}
+              </button>
+            )}
             {onSignOut && (
               <button
                 type="button"
