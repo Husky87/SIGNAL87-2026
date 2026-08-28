@@ -14,8 +14,8 @@
 #      repository secret, named FIREBASE_SERVICE_ACCOUNT, with the whole
 #      contents of that JSON file pasted in as the value.
 #
-# Until that secret exists the job is skipped rather than failing, so adding
-# this file does not paint the Actions tab red.
+# Until that secret exists the run succeeds having done nothing, and says so in
+# the summary — so adding this file does not paint the Actions tab red.
 name: Deploy Hosting
 
 on:
@@ -30,35 +30,58 @@ on:
 
 jobs:
   deploy:
-    # Skipped, not failed, when the credential has not been added yet.
-    if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
+      # The guard has to be a step. The secrets context is not available in a
+      # job-level `if:` — GitHub rejects the whole workflow file for it — so
+      # the credential is checked here and every later step keys off this
+      # output.
+      - name: Check for the deploy credential
+        id: cred
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "### Nothing deployed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The \`FIREBASE_SERVICE_ACCOUNT\` secret is not set, so this run stopped before touching the site." >> "$GITHUB_STEP_SUMMARY"
+            echo "See the comment at the top of \`.github/workflows/deploy-hosting.yml\` for the three browser steps that add it." >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set - skipping the deploy."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.cred.outputs.present == 'true'
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
       - uses: actions/setup-node@v4
+        if: steps.cred.outputs.present == 'true'
         with:
           node-version: '20'
           cache: npm
 
-      - run: npm ci
+      - if: steps.cred.outputs.present == 'true'
+        run: npm ci
 
-      - run: npm run build
+      - if: steps.cred.outputs.present == 'true'
+        run: npm run build
 
       # Written to a file rather than passed inline: firebase-tools reads
       # Application Default Credentials from a path, and this keeps the key out
       # of the process list.
       - name: Write service-account credentials
+        if: steps.cred.outputs.present == 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+        run: printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
 
       - name: Deploy to Firebase Hosting
+        if: steps.cred.outputs.present == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
         run: |
@@ -66,6 +89,13 @@ jobs:
             --only hosting \
             --project gen-lang-client-0608802366 \
             --non-interactive
+
+      - name: Report
+        if: steps.cred.outputs.present == 'true' && success()
+        run: |
+          echo "### Deployed to Firebase Hosting" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ref: \`${{ github.event.inputs.ref || github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove credentials
         if: always()
