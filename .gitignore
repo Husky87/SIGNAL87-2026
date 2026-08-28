@@ -16,3 +16,4 @@ tests/.parsed.json
 # Screenshots produced by the theme suite.
 tests/.theme-*.png
 tests/.mobile-*.png
+tests/.billing-*.png
