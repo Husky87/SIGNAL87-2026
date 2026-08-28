@@ -1,0 +1,72 @@
+# Deploys the site to Firebase Hosting from GitHub's runners.
+#
+# This exists because the deploy has to be runnable without a shell. Everything
+# it needs is done in a browser: the service-account key is created in the
+# Google Cloud console, pasted into this repository's Actions secrets, and the
+# run is started from the Actions tab.
+#
+# One-time setup:
+#   1. Google Cloud console -> IAM & Admin -> Service Accounts, for project
+#      gen-lang-client-0608802366. Create one (or reuse an existing one) and
+#      give it the "Firebase Hosting Admin" role.
+#   2. On that service account: Keys -> Add key -> Create new key -> JSON.
+#   3. This repo -> Settings -> Secrets and variables -> Actions -> New
+#      repository secret, named FIREBASE_SERVICE_ACCOUNT, with the whole
+#      contents of that JSON file pasted in as the value.
+#
+# Until that secret exists the job is skipped rather than failing, so adding
+# this file does not paint the Actions tab red.
+name: Deploy Hosting
+
+on:
+  push:
+    branches: [mobile-only-fix]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or commit to deploy
+        required: false
+        default: mobile-only-fix
+
+jobs:
+  deploy:
+    # Skipped, not failed, when the credential has not been added yet.
+    if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # Written to a file rather than passed inline: firebase-tools reads
+      # Application Default Credentials from a path, and this keeps the key out
+      # of the process list.
+      - name: Write service-account credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Deploy to Firebase Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+        run: |
+          npx --yes firebase-tools@13 deploy \
+            --only hosting \
+            --project gen-lang-client-0608802366 \
+            --non-interactive
+
+      - name: Remove credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"
