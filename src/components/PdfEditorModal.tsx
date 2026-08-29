@@ -9,6 +9,7 @@ import {
   Lock,
   Merge,
   RotateCw,
+  ShieldAlert,
   Undo2,
   X
 } from 'lucide-react';
@@ -35,7 +36,8 @@ import {
   resolvePdfBytes,
   splitPdf
 } from '../lib/pdfEditEngine';
-import { loadPdfJsDocument } from '../lib/pdfRender';
+import { clearAllRedactions } from '../lib/pdfRedaction';
+import { loadPdfJsDocument, rasterizeRedactions } from '../lib/pdfRender';
 import { listAvailableSourceIds, loadSourceBytesMap, putSourceBytes } from '../lib/pdfSourceStore';
 import {
   deletePdfEditOverlayFromFirestore,
@@ -43,12 +45,22 @@ import {
   savePdfEditOverlayToFirestore
 } from '../lib/firestoreService';
 import { useBackDismiss } from '../lib/useBackDismiss';
+import { replaceDocumentFile } from '../lib/firebase';
+import { fileDataCache } from '../lib/pdfGenerator';
 import { PdfPageOrganizer } from './PdfPageOrganizer';
 import { PdfFormFiller } from './PdfFormFiller';
+import { PdfRedactionCanvas } from './PdfRedactionCanvas';
 
 interface PdfEditorModalProps {
   document: DocumentItem | null;
   onClose: () => void;
+  /**
+   * Called when redaction has replaced the stored document, with the record as
+   * it now stands. The editor cannot update the app's copy of the document by
+   * itself, and a redacted file paired with the old extracted text would leave
+   * the removed content answerable by the assistant.
+   */
+  onDocumentReplaced?: (document: DocumentItem) => void;
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -104,14 +116,27 @@ const BLOCKER_COPY: Record<PdfEditBlocker['kind'], { title: string; body: string
   unavailable: { title: 'This document has no file to edit', body: '' }
 };
 
-export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, onClose }) => {
+/** What the user must type to replace a stored document with a redacted one. */
+const REDACT_CONFIRMATION = 'REDACT';
+
+type RedactState =
+  | { kind: 'idle' }
+  | { kind: 'working' }
+  | { kind: 'done'; pages: number }
+  | { kind: 'error'; message: string };
+
+export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({
+  document: doc,
+  onClose,
+  onDocumentReplaced
+}) => {
   const [loading, setLoading] = useState(true);
   const [blocker, setBlocker] = useState<PdfEditBlocker | null>(null);
   const [ready, setReady] = useState<ReadyState | null>(null);
   const [overlay, setOverlay] = useState<PdfEditOverlay | null>(null);
   const [sourcePdfs, setSourcePdfs] = useState<Map<string, PDFDocumentProxy>>(new Map());
   const [availableSourceIds, setAvailableSourceIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'pages' | 'form'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'form' | 'redact'>('pages');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [splitAfter, setSplitAfter] = useState<Set<number>>(new Set());
   const [pendingInsert, setPendingInsert] = useState<PendingInsert | null>(null);
@@ -120,6 +145,9 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
+  const [showRedactConfirm, setShowRedactConfirm] = useState(false);
+  const [redactConfirmText, setRedactConfirmText] = useState('');
+  const [redactState, setRedactState] = useState<RedactState>({ kind: 'idle' });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const insertAtRef = useRef<number>(0);
@@ -154,6 +182,9 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
     setActiveTab('pages');
     setSaveState('idle');
     setExportError(null);
+    setShowRedactConfirm(false);
+    setRedactConfirmText('');
+    setRedactState({ kind: 'idle' });
     lastSavedRef.current = '';
 
     (async () => {
@@ -372,14 +403,18 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
 
       if (mode === 'split') {
         const segments = segmentsFromBreaks(splitAfter, overlay.pages.length);
-        const parts = await splitPdf(ready.originalBytes, overlay, sourceBytes, segments);
+        const parts = await splitPdf(ready.originalBytes, overlay, sourceBytes, segments, {
+          rasterizer: rasterizeRedactions
+        });
         parts.forEach((part, index) => {
           // Staggered: browsers drop simultaneous programmatic downloads.
           window.setTimeout(() => downloadBytes(part.bytes, `${base}-part-${index + 1}.pdf`), index * 350);
         });
       } else {
-        const bytes = await applyOverlayToPdf(ready.originalBytes, overlay, sourceBytes);
-        downloadBytes(bytes, `${base}-edited.pdf`);
+        const applied = await applyOverlayToPdf(ready.originalBytes, overlay, sourceBytes, {
+          rasterizer: rasterizeRedactions
+        });
+        downloadBytes(applied.bytes, `${base}-edited.pdf`);
       }
       setShowExport(false);
     } catch (error) {
@@ -392,6 +427,85 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
       );
     } finally {
       setExporting(false);
+    }
+  };
+
+  /* ── Redacting the stored document ─────────────────────────────────── */
+
+  /**
+   * Applies the marked redactions to the stored document, in place.
+   *
+   * Deliberately narrow: only the redactions are applied, on the document's own
+   * page order. Page moves, insertions and deletions stay pending, because they
+   * describe a document being produced for someone rather than a document being
+   * made safe to hold, and running both at once makes it hard to say afterwards
+   * what the stored file is.
+   *
+   * Three things have to change together, and a failure between them is the
+   * dangerous case:
+   *
+   *   the file in Storage, which is overwritten rather than joined by a copy;
+   *   the extracted text in Firestore, which the assistant answers from and
+   *     which would otherwise still hold every redacted word;
+   *   the summary, which was written from that text.
+   *
+   * The file goes first. If the text write then fails the document is over-
+   * redacted in the index rather than under-redacted, which is the direction
+   * to fail in.
+   */
+  const applyRedactionsToStoredDocument = async () => {
+    if (!overlay || !ready || !doc) return;
+    setRedactState({ kind: 'working' });
+    try {
+      // The document's own pages, in their own order, carrying only the marks.
+      const redactionOnly: PdfEditOverlay = {
+        ...createIdentityOverlay(doc.id, ready.inspection.pageCount),
+        redactions: overlay.redactions
+      };
+
+      const applied = await applyOverlayToPdf(ready.originalBytes, redactionOnly, new Map(), {
+        rasterizer: rasterizeRedactions
+      });
+
+      const fileUrl = await replaceDocumentFile(
+        applied.bytes,
+        doc.id,
+        doc.fileUrl,
+        `${baseFileName(doc.title)}.pdf`
+      );
+
+      // The upload-time cache is what the viewer and the editor read first, so
+      // leaving the pre-redaction bytes in it would keep showing the old page
+      // for the rest of the session.
+      fileDataCache.set(doc.id, new Uint8Array(applied.bytes).buffer);
+
+      const text = applied.redactedText ?? '';
+      onDocumentReplaced?.({
+        ...doc,
+        fileUrl,
+        sizeBytes: applied.bytes.byteLength,
+        contentPreview: text,
+        fullText: text,
+        // Written from the text that has just been removed, so it cannot stand.
+        summary: ''
+      });
+
+      const cleared = clearAllRedactions(overlay);
+      setOverlay(cleared);
+      lastSavedRef.current = JSON.stringify(cleared);
+      await savePdfEditOverlayToFirestore(cleared);
+
+      setRedactState({ kind: 'done', pages: applied.pagesRedacted });
+    } catch (error) {
+      setRedactState({
+        kind: 'error',
+        message:
+          error instanceof PdfExportError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'The document could not be redacted.'
+      });
     }
   };
 
@@ -479,6 +593,21 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
               >
                 Form
               </button>
+              <button
+                onClick={() => setActiveTab('redact')}
+                className={`min-h-0 px-3 py-2 text-[13px] border-l border-[var(--rule)] transition-colors cursor-pointer ${
+                  activeTab === 'redact'
+                    ? 'bg-[var(--raised)] text-[var(--ink)] font-medium'
+                    : 'text-[var(--ink-2)] hover:text-[var(--ink)]'
+                }`}
+              >
+                Redact
+                {overlay.redactions.length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] text-[11px] tabular-nums">
+                    {overlay.redactions.length}
+                  </span>
+                )}
+              </button>
             </div>
 
             {activeTab === 'pages' && (
@@ -508,6 +637,25 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
                   <FilePlus2 size={14} /> Insert pages
                 </button>
               </>
+            )}
+
+            {activeTab === 'redact' && (
+              <button
+                onClick={() => {
+                  setRedactConfirmText('');
+                  setRedactState({ kind: 'idle' });
+                  setShowRedactConfirm(true);
+                }}
+                disabled={busy || exporting || overlay.redactions.length === 0}
+                className={toolbarButton}
+                title={
+                  overlay.redactions.length === 0
+                    ? 'Mark something to redact first'
+                    : 'Destroy the marked content in the stored document'
+                }
+              >
+                <ShieldAlert size={14} /> Redact stored document
+              </button>
             )}
 
             <div className="flex-1" />
@@ -576,6 +724,16 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
             />
           )}
 
+          {ready && overlay && activeTab === 'redact' && (
+            <PdfRedactionCanvas
+              overlay={overlay}
+              originalPdf={ready.originalPdf}
+              originalPageCount={ready.inspection.pageCount}
+              onChange={setOverlay}
+              disabled={busy || exporting}
+            />
+          )}
+
           {ready && overlay && activeTab === 'form' && (
             <PdfFormFiller
               fields={ready.inspection.fields}
@@ -601,7 +759,9 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
         >
           <p className="text-[12px] text-[var(--muted)] m-0 px-1 truncate">
-            Edits are pending until you export. The stored original is never changed.
+            {overlay && overlay.redactions.length > 0
+              ? 'Marked regions are destroyed on export. Replacing the stored document is the only step that changes it.'
+              : 'Edits are pending until you export. The stored original is never changed.'}
           </p>
           <button
             onClick={onClose}
@@ -658,6 +818,109 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
         </div>
       )}
 
+      {/* Redact the stored document. This is the one irreversible action in the
+          editor, so it asks for the word rather than a click. */}
+      {showRedactConfirm && ready && overlay && (
+        <div className="fixed inset-0 bg-[var(--ink)]/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl w-full max-w-md p-5 space-y-3.5">
+            {redactState.kind === 'done' ? (
+              <>
+                <h3 className="text-[15px] font-medium text-[var(--ink)] m-0 flex items-center gap-2">
+                  <Check size={16} className="text-[var(--ok)]" /> Redacted
+                </h3>
+                <p className="text-[13px] text-[var(--ink-2)] m-0">
+                  {redactState.pages} {redactState.pages === 1 ? 'page was' : 'pages were'} replaced, and the
+                  stored document, its extracted text and its summary were rewritten. The removed content is no
+                  longer in the file and is no longer readable by the assistant.
+                </p>
+                <p className="text-[12.5px] text-[var(--muted)] m-0">
+                  Answers the assistant has already given, and any copy of this document downloaded before now,
+                  are unaffected.
+                </p>
+                <div className="flex items-center justify-end pt-1">
+                  <button
+                    onClick={() => {
+                      setShowRedactConfirm(false);
+                      onClose();
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] text-[13.5px] font-medium hover:opacity-90 cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-[15px] font-medium text-[var(--ink)] m-0 flex items-center gap-2">
+                  <ShieldAlert size={16} className="text-[var(--accent)]" /> Redact the stored document
+                </h3>
+                <p className="text-[13px] text-[var(--ink-2)] m-0">
+                  {overlay.redactions.length} marked{' '}
+                  {overlay.redactions.length === 1 ? 'region' : 'regions'} across{' '}
+                  {new Set(overlay.redactions.map((redaction) => redaction.pageIndex)).size}{' '}
+                  {new Set(overlay.redactions.map((redaction) => redaction.pageIndex)).size === 1
+                    ? 'page'
+                    : 'pages'}{' '}
+                  will be destroyed. This cannot be undone.
+                </p>
+                <ul className="text-[12.5px] text-[var(--ink-2)] m-0 pl-4 space-y-1 list-disc">
+                  <li>The stored file is overwritten. There is no unredacted copy left behind.</li>
+                  <li>Marked pages become images: they lose selectable text and any form fields on them.</li>
+                  <li>The extracted text the assistant reads is rewritten without the removed content.</li>
+                  <li>The AI summary is cleared, because it was written from that text.</li>
+                  <li>Pending page and form edits are left pending — only the marks are applied.</li>
+                </ul>
+                <p className="text-[12.5px] text-[var(--muted)] m-0">
+                  Answers already given in a chat are not rewritten, and neither is any copy downloaded earlier.
+                </p>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[12.5px] text-[var(--ink-2)]" htmlFor="redact-confirm">
+                    Type <span className="font-medium text-[var(--ink)]">{REDACT_CONFIRMATION}</span> to confirm
+                  </label>
+                  <input
+                    id="redact-confirm"
+                    type="text"
+                    value={redactConfirmText}
+                    onChange={(event) => setRedactConfirmText(event.target.value)}
+                    autoComplete="off"
+                    className="w-full px-3.5 py-2.5 text-[13.5px] text-[var(--ink)]"
+                  />
+                </div>
+
+                {redactState.kind === 'error' && (
+                  <p className="text-[12.5px] text-[var(--warn)] m-0">{redactState.message}</p>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setShowRedactConfirm(false)}
+                    disabled={redactState.kind === 'working'}
+                    className="px-3.5 py-2 text-[13px] text-[var(--ink-2)] hover:text-[var(--ink)] rounded-lg cursor-pointer disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => void applyRedactionsToStoredDocument()}
+                    disabled={
+                      redactState.kind === 'working' || redactConfirmText.trim() !== REDACT_CONFIRMATION
+                    }
+                    className="px-4 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] text-[13.5px] font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2"
+                  >
+                    {redactState.kind === 'working' ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <ShieldAlert size={15} />
+                    )}
+                    Redact permanently
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Export */}
       {showExport && ready && overlay && (
         <div className="fixed inset-0 bg-[var(--ink)]/50 z-[60] flex items-center justify-center p-4">
@@ -667,6 +930,17 @@ export const PdfEditorModal: React.FC<PdfEditorModalProps> = ({ document: doc, o
             <p className="text-[13px] text-[var(--ink-2)] m-0">
               The pending edits are applied to a copy. The stored original is left untouched.
             </p>
+
+            {overlay.redactions.length > 0 && (
+              <p className="text-[12.5px] text-[var(--ink-2)] m-0 p-2.5 rounded-lg bg-[var(--accent-soft)]">
+                <span className="text-[var(--ink)] font-medium">
+                  {overlay.redactions.length} marked{' '}
+                  {overlay.redactions.length === 1 ? 'region' : 'regions'} will be destroyed in the exported file.
+                </span>{' '}
+                The stored document keeps them — use <span className="font-medium">Redact stored document</span> on
+                the Redact tab to remove them from the copy Signal87 holds and from what the assistant can read.
+              </p>
+            )}
 
             {ready.inspection.hasAcroForm && (
               <label className="flex items-start gap-2.5 text-[13px] cursor-pointer">

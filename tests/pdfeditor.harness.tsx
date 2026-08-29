@@ -26,6 +26,11 @@ async function buildFixture(): Promise<ArrayBuffer> {
     const page = doc.addPage([420, 560]);
     page.drawText(`PAGE ${i + 1}`, { x: 40, y: 500, size: 26, font, color: rgb(0.1, 0.1, 0.1) });
   }
+  // Something to find and remove. Page 1 carries the string the redaction test
+  // searches for; page 4 carries a near-miss, so a search that over-matched
+  // would be caught rather than passing by accident.
+  doc.getPages()[0].drawText('CLIENT PRIVILEGED-4417', { x: 40, y: 440, size: 15, font, color: rgb(0.1, 0.1, 0.1) });
+  doc.getPages()[3].drawText('PUBLIC EXHIBIT-4418', { x: 40, y: 440, size: 15, font, color: rgb(0.1, 0.1, 0.1) });
   const pages = doc.getPages();
   // A page that already carries a rotation, so the additive-rotation path is
   // covered rather than only the 0-degree case.

@@ -21,9 +21,15 @@ const PALETTE_FILES = new Set(['src/index.css', 'public/chambers.css']);
 // Values that are not app chrome: a sheet of paper inside a document
 // thumbnail, and the page pdf.js paints under a rendered PDF. Both stand for
 // real paper and stay literal however the app is themed.
+//
+// Redaction black belongs to the same category and is deliberately not a
+// token. It is painted into an exported PDF that will be read outside this
+// app, and it is the mark a reader recognises as withheld content; tying it to
+// the theme would make a legal document's redactions change colour with a
+// design decision.
 const ALLOWED_LITERALS = {
   'src/components/DocumentThumbnail.tsx': new Set(['#FFFFFF', '#57534E', '#8F8880']),
-  'src/lib/pdfRender.ts': new Set(['#FFFFFF']),
+  'src/lib/pdfRender.ts': new Set(['#FFFFFF', '#000000']),
   // <meta name="theme-color"> tints the browser's own chrome and cannot
   // reference a CSS variable, so this one has to repeat --bg literally.
   'index.html': new Set(['#F4F1EA']),

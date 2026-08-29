@@ -90,6 +90,26 @@ export interface PdfFieldInfo {
   initial?: PdfFormFieldValue;
 }
 
+/**
+ * One rectangle whose content is to be destroyed, in PDF user space on a page
+ * of the *original* document.
+ *
+ * Deliberately carries no copy of the text it covers. A redaction record is
+ * written to Firestore, and storing the matched string there would leave the
+ * very content the user is removing sitting in plain text beside the document
+ * — the same class of mistake as drawing a black box over text that is still
+ * selectable underneath.
+ */
+export interface PdfRedaction {
+  id: string;
+  /** 0-based index into the original document's pages. */
+  pageIndex: number;
+  /** In PDF user space, origin bottom-left, before any /Rotate is applied. */
+  rect: PdfWidgetRect;
+  /** Drawn by hand, or produced by a text search. */
+  origin: 'manual' | 'search';
+}
+
 /** Metadata for a PDF whose pages have been inserted or merged in.
  *
  * The bytes are deliberately not here: they live in IndexedDB on the device
@@ -118,6 +138,13 @@ export interface PdfEditOverlay {
   deletedOriginalPages: number[];
   formValues: Record<string, PdfFormFieldValue>;
   sources: PdfEditSourceMeta[];
+  /**
+   * Regions to destroy on export. Unlike every other entry here, applying
+   * these is not reversible from the exported bytes — the content is gone, not
+   * hidden. The stored original is still untouched until the user explicitly
+   * asks for it to be replaced.
+   */
+  redactions: PdfRedaction[];
   /** Bake field values into the page content, dropping interactivity. */
   flattenOnExport: boolean;
   updatedAt: string;
@@ -149,3 +176,49 @@ export interface PdfSplitSegment {
   /** Inclusive. */
   end: number;
 }
+
+/* ── Redaction rasterisation contract ──────────────────────────────────────
+   Destroying content means replacing the affected page with a picture of
+   itself taken *after* the removed regions were painted out. Only a renderer
+   can produce that picture, and the renderer is pdf.js — which needs a canvas,
+   and so cannot live in the pdf-lib engine that runs under Node in the tests.
+
+   The engine therefore states what it needs and takes the implementation as an
+   argument. `pdfRender.ts` supplies the browser one.                        */
+
+/** What the engine asks a rasteriser to produce. */
+export interface PdfRasterRequest {
+  /** The document as it stands after form values and flattening were applied. */
+  bytes: Uint8Array;
+  /** Redaction rectangles, grouped by 0-based page index. */
+  redactionsByPage: Map<number, PdfWidgetRect[]>;
+}
+
+/** One page, rendered with its redacted regions painted out. */
+export interface PdfRasterPage {
+  pageIndex: number;
+  /** PNG bytes. Lossless, because JPEG ringing around legal text is not acceptable. */
+  png: Uint8Array;
+  /**
+   * The user-space box the image covers. This is the page's visible box (its
+   * CropBox where one is set), not necessarily its MediaBox, because that is
+   * what a renderer draws.
+   */
+  box: PdfWidgetRect;
+}
+
+/** A rasteriser's answer: the replaced pages, plus the document's surviving text. */
+export interface PdfRasterResult {
+  pages: PdfRasterPage[];
+  /**
+   * The whole document's text with every run touching a redaction dropped.
+   *
+   * The engine hands this back to the caller so the copy of the text held
+   * outside the PDF — the search index the assistant reads from — can be
+   * rewritten in the same breath. Redacting the file while leaving that copy
+   * in place would remove the content from the page and leave it quotable.
+   */
+  text: string;
+}
+
+export type PdfRasterizer = (request: PdfRasterRequest) => Promise<PdfRasterResult>;

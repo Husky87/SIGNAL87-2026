@@ -583,6 +583,22 @@ export default function App() {
     [savedItems, currentUser]
   );
 
+  /**
+   * Takes the redacted document back from the editor.
+   *
+   * The editor has already overwritten the file in Storage and recomputed the
+   * extracted text; this is where the app's own copy catches up. It has to
+   * happen in the same breath, because every AI surface reads `fullText` from
+   * this state rather than from the file — leaving the old text in place would
+   * mean the assistant could still quote what was just removed from the page.
+   */
+  const handleDocumentRedacted = (redacted: DocumentItem) => {
+    setDocuments((prev) => prev.map((d) => (d.id === redacted.id ? redacted : d)));
+    setEditingPdfDoc((current) => (current && current.id === redacted.id ? redacted : current));
+    setSelectedDocForDetail((current) => (current && current.id === redacted.id ? redacted : current));
+    saveDocumentToFirestore(redacted);
+  };
+
   // Handlers
   const handleUploadSuccess = (newDoc: DocumentItem, parsedFile?: any) => {
     const withText: DocumentItem = {
@@ -1349,7 +1365,11 @@ export default function App() {
 
       {editingPdfDoc && (
         <Suspense fallback={null}>
-          <PdfEditorModal document={editingPdfDoc} onClose={() => setEditingPdfDoc(null)} />
+          <PdfEditorModal
+            document={editingPdfDoc}
+            onClose={() => setEditingPdfDoc(null)}
+            onDocumentReplaced={handleDocumentRedacted}
+          />
         </Suspense>
       )}
 

@@ -142,5 +142,62 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   return getDownloadURL(storageRef);
 }
 
+/**
+ * The object path inside a Firebase Storage download URL, or null.
+ *
+ * getDownloadURL() produces `.../o/<url-encoded path>?alt=media&token=…`, so
+ * the path is recoverable from a stored fileUrl. That matters for redaction:
+ * replacing the document has to overwrite *the object the original is in*.
+ * Writing the redacted copy to a freshly derived path would leave the
+ * unredacted original sitting in the bucket under its old name — a redaction
+ * that removes nothing.
+ */
+function storagePathFromDownloadUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const marker = '/o/';
+    const at = parsed.pathname.indexOf(marker);
+    if (at === -1) return null;
+    const encoded = parsed.pathname.slice(at + marker.length);
+    if (!encoded) return null;
+    return decodeURIComponent(encoded);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Overwrites a document's stored file with new bytes and returns its fresh URL.
+ *
+ * The old object is replaced rather than joined by a new one. This is the point
+ * of no return for redaction, and the caller is expected to have said so.
+ *
+ * A path that does not sit under this user's own document folder is refused
+ * even though the Storage rules would refuse it too: a fileUrl comes back out
+ * of Firestore, and a write target read out of stored data should be checked
+ * where it is used rather than trusted because something else will catch it.
+ */
+export async function replaceDocumentFile(
+  bytes: Uint8Array,
+  docId: string,
+  existingUrl: string | undefined,
+  fallbackName: string
+): Promise<string> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    throw new Error('Not signed in');
+  }
+
+  const folder = `users/${uid}/documents/${docId}/`;
+  const existingPath = existingUrl ? storagePathFromDownloadUrl(existingUrl) : null;
+  const path = existingPath && existingPath.startsWith(folder) ? existingPath : `${folder}${fallbackName}`;
+
+  const storageRef = ref(storage, path);
+  // Copied into a fresh buffer so the blob owns bytes nothing else holds a
+  // view onto, and typed so the object is served back as a PDF.
+  await uploadBytes(storageRef, new Uint8Array(bytes), { contentType: 'application/pdf' });
+  return getDownloadURL(storageRef);
+}
+
 export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider };
 export type { User };

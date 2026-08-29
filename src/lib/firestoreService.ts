@@ -353,6 +353,20 @@ export async function savePdfEditOverlayToFirestore(overlay: PdfEditOverlay): Pr
           sizeBytes: source.sizeBytes,
           addedAt: source.addedAt
         })),
+        // Only geometry and provenance. A redaction never carries a copy of
+        // the text it removes, so this write cannot become the leak the
+        // redaction was for.
+        redactions: overlay.redactions.map((redaction) => ({
+          id: redaction.id,
+          pageIndex: redaction.pageIndex,
+          rect: {
+            x: redaction.rect.x,
+            y: redaction.rect.y,
+            width: redaction.rect.width,
+            height: redaction.rect.height
+          },
+          origin: redaction.origin
+        })),
         flattenOnExport: overlay.flattenOnExport,
         updatedAt: overlay.updatedAt,
         userId: uid

@@ -15,21 +15,13 @@ import {
   PdfPageInstance,
   PdfPageRotation
 } from './pdfEditTypes';
+import { newId } from './ids';
+import { normalizeRedactions } from './pdfRedaction';
 
 const ROTATIONS: PdfPageRotation[] = [0, 90, 180, 270];
 
-/**
- * crypto.randomUUID() needs a secure context; it is absent on plain http and
- * in some embedded webviews. Ids only have to be unique within one overlay, so
- * the fallback is good enough and keeps the editor working there too.
- */
-export function newId(prefix: string): string {
-  const globalCrypto = typeof crypto !== 'undefined' ? crypto : undefined;
-  if (globalCrypto && typeof globalCrypto.randomUUID === 'function') {
-    return `${prefix}_${globalCrypto.randomUUID()}`;
-  }
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
+// Re-exported so that the many callers that reach for it here keep working.
+export { newId };
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -58,6 +50,7 @@ export function createIdentityOverlay(docId: string, pageCount: number): PdfEdit
     deletedOriginalPages: [],
     formValues: {},
     sources: [],
+    redactions: [],
     flattenOnExport: false,
     updatedAt: nowIso()
   };
@@ -178,6 +171,11 @@ export function normalizeOverlay(raw: unknown, docId: string, originalPageCount:
 
   if (pages.length === 0) return { ...identity, sources: [] };
 
+  // Redactions are validated against the document itself rather than the page
+  // plan: they name original pages, and a page removed from the output plan is
+  // still a page of the stored document that may yet be redacted.
+  const redactions = normalizeRedactions(record.redactions, originalPageCount);
+
   const formValues: Record<string, PdfFormFieldValue> = {};
   if (typeof record.formValues === 'object' && record.formValues !== null) {
     for (const [name, value] of Object.entries(record.formValues as Record<string, unknown>)) {
@@ -196,6 +194,7 @@ export function normalizeOverlay(raw: unknown, docId: string, originalPageCount:
     deletedOriginalPages: computeDeletedOriginals(pages, originalPageCount),
     formValues,
     sources: sources.filter((s) => usedSourceIds.has(s.id)),
+    redactions,
     flattenOnExport: record.flattenOnExport === true,
     updatedAt: readString(record.updatedAt) || nowIso()
   };
@@ -351,6 +350,7 @@ export function hasPendingEdits(overlay: PdfEditOverlay, originalPageCount: numb
   return (
     !hasIdentityPagePlan(overlay, originalPageCount) ||
     Object.keys(overlay.formValues).length > 0 ||
+    overlay.redactions.length > 0 ||
     overlay.flattenOnExport
   );
 }
