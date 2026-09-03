@@ -178,7 +178,7 @@ Provide a comprehensive answer with clear reasoning steps.`;
     const aiResult = await generateWithFallback({
       prompt,
       systemInstruction,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.2
     });

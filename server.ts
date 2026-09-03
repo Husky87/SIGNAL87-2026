@@ -123,7 +123,7 @@ app.post('/api/knowledge-graph/extract', async (req, res) => {
   "nodes": [{"id": "k1", "label": "...", "type": "Company|Person|Law|Address", "details": "..."}],
   "links": [{"source": "k1", "target": "k2", "label": "...", "strength": 80}]
 }`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o-mini',
       temperature: 0.1,
       responseMimeType: 'application/json'

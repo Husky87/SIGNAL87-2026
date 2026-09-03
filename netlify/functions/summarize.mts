@@ -47,7 +47,7 @@ Generate only the summary text, no additional commentary.`;
     const aiResult = await generateWithFallback({
       prompt,
       systemInstruction: `You are an expert document summarization system for Signal87 AI. Generate clear, thorough executive summaries that capture the essence and critical details of documents. Your summaries should be immediately useful to decision-makers and should highlight key risks, opportunities, and required actions.`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.3
     });

@@ -9,7 +9,7 @@ export interface GenerateWithFallbackOptions {
   prompt?: string;
   messages?: OpenAiMessage[];
   systemInstruction?: string;
-  model?: string; // Default Gemini model, e.g. 'gemini-2.5-flash'
+  model?: string; // Default Gemini model, e.g. 'gemini-3.6-flash'
   fallbackModel?: string; // Default OpenAI model, e.g. 'gpt-4o-mini' or 'gpt-4o'
   temperature?: number;
   responseMimeType?: string;
@@ -96,7 +96,7 @@ export function mapMessagesToGeminiFormat(messages: OpenAiMessage[]) {
 export async function generateWithFallback(
   options: GenerateWithFallbackOptions
 ): Promise<NormalizedAiResponse> {
-  const geminiModel = options.model || 'gemini-2.5-flash';
+  const geminiModel = options.model || 'gemini-3.6-flash';
   const openaiModel = options.fallbackModel || 'gpt-4o-mini';
   const temperature = options.temperature ?? 0.2;
   const timeoutMs = options.timeoutMs ?? 25000;
@@ -150,7 +150,7 @@ export async function generateWithFallback(
     }
 
     // 2. Retry with secondary Gemini model (gemini-2.5-flash-lite) if 503/429/error
-    const secondaryModel = geminiModel === 'gemini-2.5-flash-lite' ? 'gemini-2.5-flash' : 'gemini-2.5-flash-lite';
+    const secondaryModel = geminiModel === 'gemini-2.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-2.5-flash-lite';
     try {
       // Small 600ms backoff
       await new Promise((r) => setTimeout(r, 600));

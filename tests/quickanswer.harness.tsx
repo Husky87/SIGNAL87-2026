@@ -42,7 +42,7 @@ function Harness() {
         documents={documents}
         attachedFiles={[]}
         setAttachedFiles={() => {}}
-        selectedModel="gemini-2.5-flash"
+        selectedModel="gemini-3.6-flash"
         onChangeModel={() => {}}
         chatHistory={chatHistory}
         setChatHistory={setChatHistory as any}

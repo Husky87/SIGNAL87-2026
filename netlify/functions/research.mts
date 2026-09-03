@@ -18,7 +18,7 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { researchGoal, documentIds, model = 'gemini-2.5-flash', documents, ingestedFilesData } = await req.json();
+    const { researchGoal, documentIds, model = 'gemini-3.6-flash', documents, ingestedFilesData } = await req.json();
 
     if (!researchGoal) {
       return Response.json({ error: 'Research goal is required' }, { status: 400 });

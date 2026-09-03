@@ -34,7 +34,7 @@ export default async function handler(req: Request) {
   "riskHighlights": ["...", "..."],
   "suggestedTags": ["...", "..."]
 }`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'

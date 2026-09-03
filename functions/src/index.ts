@@ -178,7 +178,7 @@ Generate only the summary text, no additional commentary.`;
     const aiResult = await generateWithFallback({
       prompt,
       systemInstruction: `You are an expert document summarization system for Signal87 AI. Generate clear, thorough executive summaries that capture the essence and critical details of documents. Your summaries should be immediately useful to decision-makers and should highlight key risks, opportunities, and required actions.`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.3
     });
@@ -245,7 +245,7 @@ Provide a JSON output comparing the documents with the following structure:
   "repeatedLanguage": ["bullet 1", "bullet 2"],
   "riskTrends": ["bullet 1", "bullet 2"]
 }`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
@@ -314,7 +314,7 @@ export const documentsProcess = onRequest(RUNTIME_OPTS, async (req, res) => {
   "riskHighlights": ["...", "..."],
   "suggestedTags": ["...", "..."]
 }`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
@@ -484,7 +484,7 @@ Provide a comprehensive answer with clear reasoning steps.`;
     const aiResult = await generateWithFallback({
       prompt,
       systemInstruction,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.2
     });
@@ -636,7 +636,7 @@ export const research = onRequest(RUNTIME_OPTS, async (req, res) => {
   }
 
   try {
-    const { researchGoal, model = 'gemini-2.5-flash', documents, ingestedFilesData } = req.body;
+    const { researchGoal, model = 'gemini-3.6-flash', documents, ingestedFilesData } = req.body;
 
     if (!researchGoal) {
       res.status(400).json({ error: 'Research goal is required' });
@@ -866,7 +866,7 @@ export const chat = onRequest(RUNTIME_OPTS, async (req, res) => {
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-2.5-flash' } = req.body;
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = req.body;
 
     const imageParts: any[] = [];
     if (attachedFiles && Array.isArray(attachedFiles)) {

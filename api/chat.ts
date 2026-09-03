@@ -174,7 +174,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-2.5-flash' } = req.body;
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = req.body;
 
     // Prepare attached images
     const imageParts: any[] = [];

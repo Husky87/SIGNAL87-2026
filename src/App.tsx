@@ -256,7 +256,7 @@ export default function App() {
     setIsUploadOpen(true);
   };
 
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.6-flash');
   const [showMobileModelMenu, setShowMobileModelMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -1074,7 +1074,7 @@ export default function App() {
           {showMobileModelMenu && (
             <div className="absolute top-16 left-4 right-4 bg-[var(--card)] border border-[var(--rule)] rounded-2xl py-1.5 z-50 animate-in fade-in duration-150">
               {[
-                { id: 'gemini-2.5-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
+                { id: 'gemini-3.6-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
                 { id: 'gemini-2.5-pro', name: 'Signal87 Deep', desc: 'Deep synthesis & reasoning' },
                 { id: 'gemini-2.5-flash-lite', name: 'Signal87 Fast', desc: 'Ultra-low latency responses' }
               ].map((m) => (

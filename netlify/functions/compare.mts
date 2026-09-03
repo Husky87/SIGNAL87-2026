@@ -45,7 +45,7 @@ Provide a JSON output comparing the documents with the following structure:
   "repeatedLanguage": ["bullet 1", "bullet 2"],
   "riskTrends": ["bullet 1", "bullet 2"]
 }`,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'

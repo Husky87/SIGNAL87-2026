@@ -150,9 +150,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div
-                onClick={() => onChangeModel('gemini-2.5-flash')}
+                onClick={() => onChangeModel('gemini-3.6-flash')}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
- selectedModel === 'gemini-2.5-flash'
+ selectedModel === 'gemini-3.6-flash'
  ? 'border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8]'
  : 'border-[#37393b] bg-[#28292a] hover:bg-[#37393b]'
  }`}

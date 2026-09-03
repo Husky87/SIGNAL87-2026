@@ -109,7 +109,7 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-2.5-flash' } = await req.json();
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = await req.json();
 
     // Prepare attached images
     const imageParts: any[] = [];

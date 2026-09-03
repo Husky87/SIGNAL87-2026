@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { researchGoal, documentIds, model = 'gemini-2.5-flash', documents, ingestedFilesData } = req.body;
+    const { researchGoal, documentIds, model = 'gemini-3.6-flash', documents, ingestedFilesData } = req.body;
 
     if (!researchGoal) {
       return res.status(400).json({ error: 'Research goal is required' });
