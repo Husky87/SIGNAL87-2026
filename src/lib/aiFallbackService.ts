@@ -26,6 +26,26 @@ export interface NormalizedAiResponse {
   fallbackReason?: string;
 }
 
+/**
+ * Maps deprecated/retired Gemini model IDs to their current equivalents.
+ * Protects against stale clients (cached PWA JS, old hardcoded values,
+ * stored documents/settings) that still request a model Google has retired.
+ */
+const DEPRECATED_MODEL_MAP: Record<string, string> = {
+  'gemini-2.5-flash': 'gemini-3.6-flash',
+  'gemini-2.5-flash-lite': 'gemini-3.5-flash-lite',
+};
+
+function resolveModel(requestedModel: string | undefined, defaultModel: string): string {
+  const model = requestedModel || defaultModel;
+  const remapped = DEPRECATED_MODEL_MAP[model];
+  if (remapped) {
+    console.warn(`Requested deprecated model "${model}" — remapping to "${remapped}".`);
+    return remapped;
+  }
+  return model;
+}
+
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   return new GoogleGenAI({
@@ -96,7 +116,7 @@ export function mapMessagesToGeminiFormat(messages: OpenAiMessage[]) {
 export async function generateWithFallback(
   options: GenerateWithFallbackOptions
 ): Promise<NormalizedAiResponse> {
-  const geminiModel = options.model || 'gemini-3.6-flash';
+  const geminiModel = resolveModel(options.model, 'gemini-3.6-flash');
   const openaiModel = options.fallbackModel || 'gpt-4o-mini';
   const temperature = options.temperature ?? 0.2;
   const timeoutMs = options.timeoutMs ?? 25000;
@@ -129,6 +149,7 @@ export async function generateWithFallback(
 
   // 1. Primary Attempt with requested Gemini model
   let primaryError: any = null;
+
   if (process.env.GEMINI_API_KEY) {
     try {
       const responseText = await callGemini(geminiModel);
@@ -151,6 +172,7 @@ export async function generateWithFallback(
 
     // 2. Retry with secondary Gemini model (gemini-3.5-flash-lite) if 503/429/error
     const secondaryModel = geminiModel === 'gemini-3.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-3.5-flash-lite';
+
     try {
       // Small 600ms backoff
       await new Promise((r) => setTimeout(r, 600));
@@ -171,6 +193,7 @@ export async function generateWithFallback(
 
   // 3. Fallback Call to OpenAI Chat Completions API if available
   const initialReason = primaryError?.message || 'GEMINI_API_KEY missing or service unavailable';
+
   if (process.env.OPENAI_API_KEY) {
     try {
       return await executeOpenAIFallback(normalizedMessages, options, openaiModel, initialReason);
@@ -180,8 +203,8 @@ export async function generateWithFallback(
   }
 
   // 4. Nothing answered. Return an explicit failure rather than a plausible-looking
-  //    payload — this is a legal research tool, so a fabricated answer is worse
-  //    than no answer.
+  // payload — this is a legal research tool, so a fabricated answer is worse
+  // than no answer.
   console.error('No AI provider answered. Returning an explicit analysis-unavailable payload.');
 
   if (options.responseMimeType === 'application/json') {
