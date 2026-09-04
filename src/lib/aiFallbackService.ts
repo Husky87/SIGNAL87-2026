@@ -9,8 +9,8 @@ export interface GenerateWithFallbackOptions {
   prompt?: string;
   messages?: OpenAiMessage[];
   systemInstruction?: string;
-  model?: string; // Default Gemini model, e.g. 'gemini-3.6-flash'
-  fallbackModel?: string; // Default OpenAI model, e.g. 'gpt-4o-mini' or 'gpt-4o'
+  model?: string; // Gemini model to use if/when Gemini fallback is attempted, e.g. 'gemini-3.6-flash'
+  fallbackModel?: string; // OpenAI model, now the PRIMARY provider, e.g. 'gpt-4o-mini' or 'gpt-4o'
   temperature?: number;
   responseMimeType?: string;
   responseSchema?: any;
@@ -108,10 +108,70 @@ export function mapMessagesToGeminiFormat(messages: OpenAiMessage[]) {
   };
 }
 
+async function callOpenAI(
+  normalizedMessages: OpenAiMessage[],
+  options: GenerateWithFallbackOptions,
+  openaiModel: string
+): Promise<string> {
+  const openAiKey = process.env.OPENAI_API_KEY;
+
+  if (!openAiKey) {
+    throw new Error('OPENAI_API_KEY is missing.');
+  }
+
+  const bodyPayload: Record<string, any> = {
+    model: openaiModel,
+    messages: normalizedMessages.map((m) => ({ ...m })),
+    temperature: options.temperature ?? 0.2
+  };
+
+  if (options.responseMimeType === 'application/json') {
+    bodyPayload.response_format = { type: 'json_object' };
+    const lastMsg = bodyPayload.messages[bodyPayload.messages.length - 1];
+    if (lastMsg) {
+      lastMsg.content = `${lastMsg.content}\n\nPlease output the response as a valid JSON object.`;
+    }
+  }
+
+  const timeoutMs = options.timeoutMs ?? 25000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAiKey}`
+      },
+      body: JSON.stringify(bodyPayload),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    let errText;
+    try {
+      errText = await response.text();
+    } catch (e) {
+      errText = 'Could not read error text';
+    }
+    console.error(`OpenAI call failed with status ${response.status}: ${errText}`);
+    throw new Error(`OpenAI API call failed [HTTP ${response.status}]: ${errText}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 /**
- * Multi-provider fallback utility for AI generation.
- * Tries Gemini first and automatically falls back to OpenAI (ChatGPT API)
- * if Gemini hits rate limits (429), errors (500/503), or times out.
+ * Multi-provider generation utility.
+ * Tries OpenAI (ChatGPT API) first. Falls back to Gemini — first the requested/
+ * default model, then a secondary Gemini model — if OpenAI errors, rate-limits,
+ * or times out.
  */
 export async function generateWithFallback(
   options: GenerateWithFallbackOptions
@@ -147,8 +207,31 @@ export async function generateWithFallback(
     return response.text || '';
   };
 
-  // 1. Primary Attempt with requested Gemini model
+  // 1. Primary Attempt: OpenAI
   let primaryError: any = null;
+
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const responseText = await callOpenAI(normalizedMessages, options, openaiModel);
+      if (responseText) {
+        return {
+          text: responseText,
+          provider: 'openai',
+          modelUsed: openaiModel,
+          fallbackTriggered: false
+        };
+      }
+    } catch (err: any) {
+      primaryError = err;
+      const errorMsg = err?.message || String(err);
+      console.warn(`OpenAI primary model (${openaiModel}) failed: ${errorMsg}. Falling back to Gemini...`);
+    }
+  } else {
+    console.warn('OPENAI_API_KEY not set — skipping OpenAI primary, going straight to Gemini fallback.');
+  }
+
+  // 2. Fallback: Gemini primary model
+  const initialReason = primaryError?.message || 'OPENAI_API_KEY missing or service unavailable';
 
   if (process.env.GEMINI_API_KEY) {
     try {
@@ -158,19 +241,19 @@ export async function generateWithFallback(
           text: responseText,
           provider: 'gemini',
           modelUsed: geminiModel,
-          fallbackTriggered: false
+          fallbackTriggered: true,
+          fallbackReason: initialReason
         };
       }
     } catch (err: any) {
-      primaryError = err;
       const errorMsg = err?.message || String(err);
       const statusCode = err?.status || err?.response?.status;
       console.warn(
-        `Gemini primary model (${geminiModel}) failed [Status: ${statusCode || 'N/A'}]: ${errorMsg}. Retrying with secondary Gemini model...`
+        `Gemini fallback model (${geminiModel}) failed [Status: ${statusCode || 'N/A'}]: ${errorMsg}. Retrying with secondary Gemini model...`
       );
     }
 
-    // 2. Retry with secondary Gemini model (gemini-3.5-flash-lite) if 503/429/error
+    // 3. Fallback: secondary Gemini model
     const secondaryModel = geminiModel === 'gemini-3.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-3.5-flash-lite';
 
     try {
@@ -183,22 +266,11 @@ export async function generateWithFallback(
           provider: 'gemini',
           modelUsed: secondaryModel,
           fallbackTriggered: true,
-          fallbackReason: `Primary model ${geminiModel} failed (${primaryError?.message || '503/Rate limit'}). Recovered using ${secondaryModel}.`
+          fallbackReason: `OpenAI failed (${initialReason}); primary Gemini model ${geminiModel} also failed. Recovered using ${secondaryModel}.`
         };
       }
     } catch (secErr: any) {
-      console.warn(`Gemini secondary model (${secondaryModel}) also failed. Checking OpenAI fallback...`);
-    }
-  }
-
-  // 3. Fallback Call to OpenAI Chat Completions API if available
-  const initialReason = primaryError?.message || 'GEMINI_API_KEY missing or service unavailable';
-
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      return await executeOpenAIFallback(normalizedMessages, options, openaiModel, initialReason);
-    } catch (openAiErr: any) {
-      console.error('OpenAI fallback also encountered an error:', openAiErr?.message || openAiErr);
+      console.warn(`Gemini secondary model (${secondaryModel}) also failed.`);
     }
   }
 
@@ -233,8 +305,8 @@ export async function generateWithFallback(
   // rejected API key, an exhausted quota, or an unknown model name all presented
   // as transient congestion, sending the user off to wait for nothing.
   const missingKeys = [
-    !process.env.GEMINI_API_KEY && 'GEMINI_API_KEY',
-    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY'
+    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
+    !process.env.GEMINI_API_KEY && 'GEMINI_API_KEY'
   ].filter(Boolean);
 
   const diagnosis = missingKeys.length
@@ -253,65 +325,5 @@ export async function generateWithFallback(
     modelUsed: 'analysis-unavailable',
     fallbackTriggered: true,
     fallbackReason: initialReason
-  };
-}
-
-async function executeOpenAIFallback(
-  normalizedMessages: OpenAiMessage[],
-  options: GenerateWithFallbackOptions,
-  openaiModel: string,
-  reason: string
-): Promise<NormalizedAiResponse> {
-  const openAiKey = process.env.OPENAI_API_KEY;
-
-  if (!openAiKey) {
-    console.error('OPENAI_API_KEY environment variable is not set. Cannot perform fallback to OpenAI.');
-    throw new Error(`Gemini failed (${reason}) and OPENAI_API_KEY is missing for fallback.`);
-  }
-
-  const bodyPayload: Record<string, any> = {
-    model: openaiModel,
-    messages: normalizedMessages.map((m) => ({ ...m })),
-    temperature: options.temperature ?? 0.2
-  };
-
-  if (options.responseMimeType === 'application/json') {
-    bodyPayload.response_format = { type: 'json_object' };
-    const lastMsg = bodyPayload.messages[bodyPayload.messages.length - 1];
-    if (lastMsg) {
-      lastMsg.content = `${lastMsg.content}\n\nPlease output the response as a valid JSON object.`;
-    }
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openAiKey}`
-    },
-    body: JSON.stringify(bodyPayload)
-  });
-
-  if (!response.ok) {
-    let errText;
-    try {
-      errText = await response.text();
-    } catch (e) {
-      errText = 'Could not read error text';
-    }
-    console.error(`OpenAI Fallback failed with status ${response.status}: ${errText}`);
-    console.error(`Payload: ${JSON.stringify(bodyPayload)}`);
-    throw new Error(`OpenAI API fallback call failed [HTTP ${response.status}]: ${errText}`);
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '';
-
-  return {
-    text: responseText,
-    provider: 'openai',
-    modelUsed: openaiModel,
-    fallbackTriggered: true,
-    fallbackReason: reason
   };
 }
