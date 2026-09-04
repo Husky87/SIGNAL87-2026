@@ -26,6 +26,26 @@ export interface NormalizedAiResponse {
   fallbackReason?: string;
 }
 
+/**
+ * Maps deprecated/retired Gemini model IDs to their current equivalents.
+ * Protects against stale clients (cached PWA JS, old hardcoded values,
+ * stored documents/settings) that still request a model Google has retired.
+ */
+const DEPRECATED_MODEL_MAP: Record<string, string> = {
+  'gemini-2.5-flash': 'gemini-3.6-flash',
+  'gemini-2.5-flash-lite': 'gemini-3.5-flash-lite',
+};
+
+function resolveModel(requestedModel: string | undefined, defaultModel: string): string {
+  const model = requestedModel || defaultModel;
+  const remapped = DEPRECATED_MODEL_MAP[model];
+  if (remapped) {
+    console.warn(`Requested deprecated model "${model}" — remapping to "${remapped}".`);
+    return remapped;
+  }
+  return model;
+}
+
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   return new GoogleGenAI({
@@ -96,7 +116,7 @@ export function mapMessagesToGeminiFormat(messages: OpenAiMessage[]) {
 export async function generateWithFallback(
   options: GenerateWithFallbackOptions
 ): Promise<NormalizedAiResponse> {
-  const geminiModel = options.model || 'gemini-3.6-flash';
+  const geminiModel = resolveModel(options.model, 'gemini-3.6-flash');
   const openaiModel = options.fallbackModel || 'gpt-4o-mini';
   const temperature = options.temperature ?? 0.2;
   const timeoutMs = options.timeoutMs ?? 25000;
