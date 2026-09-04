@@ -149,8 +149,8 @@ export async function generateWithFallback(
       );
     }
 
-    // 2. Retry with secondary Gemini model (gemini-2.5-flash-lite) if 503/429/error
-    const secondaryModel = geminiModel === 'gemini-2.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-2.5-flash-lite';
+    // 2. Retry with secondary Gemini model (gemini-3.5-flash-lite) if 503/429/error
+    const secondaryModel = geminiModel === 'gemini-3.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-3.5-flash-lite';
     try {
       // Small 600ms backoff
       await new Promise((r) => setTimeout(r, 600));

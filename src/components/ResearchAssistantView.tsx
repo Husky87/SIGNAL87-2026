@@ -256,7 +256,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
   const getModelLabel = (model: string) => {
     switch (model) {
-      case 'gemini-2.5-flash-lite': return 'Signal87 Fast';
+      case 'gemini-3.5-flash-lite': return 'Signal87 Fast';
       case 'gemini-3.6-flash': return 'Signal87 Standard';
       case 'gemini-2.5-pro': return 'Signal87 Deep';
       default: return 'Signal87 Standard';
@@ -982,7 +982,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 {[
                   { id: 'gemini-3.6-flash', name: 'Signal87 Standard', desc: 'Fast & intelligent for legal research' },
                   { id: 'gemini-2.5-pro', name: 'Signal87 Deep', desc: 'Deep synthesis & reasoning' },
-                  { id: 'gemini-2.5-flash-lite', name: 'Signal87 Fast', desc: 'Ultra-low latency responses' }
+                  { id: 'gemini-3.5-flash-lite', name: 'Signal87 Fast', desc: 'Ultra-low latency responses' }
                 ].map((m) => (
                   <button
                     key={m.id}
