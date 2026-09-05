@@ -21,15 +21,14 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, que
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-function resolveAuthDomain() {
-  if (typeof window === 'undefined') return firebaseConfig.authDomain;
-  const host = window.location.hostname;
-  if (host === 'signal87.ai' || host === 'www.signal87.ai') return host;
-  return firebaseConfig.authDomain;
-}
-
+// authDomain must stay the default *.firebaseapp.com domain, not the custom
+// signal87.ai domain. Firebase's redirect sign-in (used on Safari/iOS, see
+// prefersRedirectSignIn below) bounces the browser through
+// "<authDomain>/__/auth/handler" — a path Firebase Hosting auto-serves, but
+// that this app's actual host (Vercel) has never heard of. Pointing
+// authDomain at signal87.ai sent that redirect straight into a Vercel 404.
 const app = !getApps().length
-  ? initializeApp({ ...firebaseConfig, authDomain: resolveAuthDomain() })
+  ? initializeApp(firebaseConfig)
   : getApp();
 
 /**
