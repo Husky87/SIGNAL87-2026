@@ -53,7 +53,7 @@
   --verify: var(--ok);
   --verify-bg: var(--teal-soft);
   --alert: var(--warn);
-  --serif: var(--f);
+  --serif: Georgia, Cambria, 'Times New Roman', Times, serif;
   --sans: var(--f);
   --mono: var(--f);
 }
