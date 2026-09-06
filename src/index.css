@@ -55,7 +55,7 @@
   --alert: var(--warn);
   --serif: Georgia, Cambria, 'Times New Roman', Times, serif;
   --sans: var(--f);
-  --mono: var(--f);
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas, monospace;
 }
 
 @layer base {
@@ -94,13 +94,13 @@
   /* One typeface: neutralize any leftover font-mono utility usage from the
      previous system instead of hunting every call site. */
   .font-mono {
-    font-family: var(--f) !important;
+    font-family: var(--mono) !important;
   }
 
   /* Same guarantee for inline styles, which the class rule above can't reach —
      catches any literal monospace font stack set via style={{ fontFamily }}. */
   [style*="monospace" i] {
-    font-family: var(--f) !important;
+    font-family: var(--mono) !important;
   }
 
   /* Simple reset for button min-height */

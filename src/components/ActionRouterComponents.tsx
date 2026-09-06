@@ -303,7 +303,7 @@ export const GeminiMarkdownRenderer: React.FC<{
   };
 
   return (
-    <div className="text-[15.5px] sm:text-[16px] leading-[1.75] text-[var(--ink)] tracking-normal space-y-1" style={{ fontFamily: 'var(--serif)' }}>
+    <div className="text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] tracking-normal space-y-1" style={{ fontFamily: 'var(--serif)' }}>
       {blocks.map((block, idx) => {
         if (block.type === 'excel_card') {
           return (
@@ -351,7 +351,7 @@ export const GeminiMarkdownRenderer: React.FC<{
           const cleanText = parseInlineStyles(block.content || '', citations, onSelectDocument, documents);
           if (block.level === 1) {
             return (
-              <h1 key={idx} className="font-sans text-xl sm:text-2xl font-semibold text-[var(--ink)] mt-6 mb-2.5 tracking-tight">
+              <h1 key={idx} className="font-sans text-xl sm:text-2xl font-bold text-[var(--ink)] mt-6 mb-2.5 tracking-tight">
                 {cleanText}
               </h1>
             );
@@ -383,7 +383,7 @@ export const GeminiMarkdownRenderer: React.FC<{
               {block.items?.map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-2.5 max-w-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)] mt-2 flex-shrink-0" />
-                  <div className="flex-1 text-[var(--ink)] leading-[1.75] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
+                  <div className="flex-1 text-[var(--ink)] leading-[1.6] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
                 </li>
               ))}
             </ul>
@@ -420,7 +420,7 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
 
         return (
-          <p key={idx} className="mb-4 text-[15.5px] sm:text-[16px] leading-[1.75] text-[var(--ink)] break-words">
+          <p key={idx} className="mb-4 text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] break-words">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
