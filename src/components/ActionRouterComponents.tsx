@@ -24,7 +24,29 @@ export const parseInlineStyles = (
   onSelectDocument?: (doc: any) => void,
   documents?: any[]
 ) => {
-  const clean = text.replace(/^#+\s*/, '');
+  // Convert LaTeX-style math delimiters the model occasionally emits
+  // (e.g. "$\rightarrow$") into plain Unicode symbols. Matched narrowly —
+  // a dollar sign immediately followed by a backslash command — so real
+  // currency amounts like "$45,000" are never touched.
+  const withMathSymbols = text.replace(
+    /\$\\(rightarrow|leftarrow|times|leq|geq|pm|approx|neq|cdot|div)\$/g,
+    (_match, cmd: string) => {
+      const symbols: Record<string, string> = {
+        rightarrow: '→',
+        leftarrow: '←',
+        times: '×',
+        leq: '≤',
+        geq: '≥',
+        pm: '±',
+        approx: '≈',
+        neq: '≠',
+        cdot: '·',
+        div: '÷',
+      };
+      return symbols[cmd] || _match;
+    }
+  );
+  const clean = withMathSymbols.replace(/^#+\s*/, '');
   // Matches single citation markers like [3] as well as multi-source groups
   // like [3, 4, 11] — both are resolved (or dropped) by the handler below.
   const parts = clean.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[\d+(?:\s*,\s*\d+)*\]|\[CIT-\d+\]|\[SPA-\d+\.\d+\])/g);
