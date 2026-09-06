@@ -379,7 +379,7 @@ export const GeminiMarkdownRenderer: React.FC<{
 
         if (block.type === 'list') {
           return (
-            <ul key={idx} className="my-2.5 space-y-2 pl-1 max-w-full">
+            <ul key={idx} className="my-2.5 space-y-1 pl-1 max-w-full">
               {block.items?.map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-2.5 max-w-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)] mt-2 flex-shrink-0" />
