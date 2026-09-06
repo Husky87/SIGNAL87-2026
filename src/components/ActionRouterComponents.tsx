@@ -25,7 +25,9 @@ export const parseInlineStyles = (
   documents?: any[]
 ) => {
   const clean = text.replace(/^#+\s*/, '');
-  const parts = clean.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[\d+\]|\[CIT-\d+\]|\[SPA-\d+\.\d+\])/g);
+  // Matches single citation markers like [3] as well as multi-source groups
+  // like [3, 4, 11] — both are resolved (or dropped) by the handler below.
+  const parts = clean.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[\d+(?:\s*,\s*\d+)*\]|\[CIT-\d+\]|\[SPA-\d+\.\d+\])/g);
 
   return parts.map((part, idx) => {
     if (part.startsWith('`') && part.endsWith('`')) {
@@ -55,61 +57,80 @@ export const parseInlineStyles = (
     }
     if (part.startsWith('[') && part.endsWith(']')) {
       const label = part.slice(1, -1);
-      let citationIndex = -1;
-      if (/^\d+$/.test(label)) {
-        citationIndex = parseInt(label, 10) - 1;
+
+      // Resolve every number in the marker (single "[3]" or a multi-source
+      // group like "[3, 4, 11]") to a real, in-range citation. Anything that
+      // doesn't resolve is dropped rather than shown as a bare bracket —
+      // dangling reference numbers with no backing citation should never
+      // reach the screen.
+      let indices: number[] = [];
+      if (/^\d+(\s*,\s*\d+)*$/.test(label)) {
+        indices = label.split(',').map((n) => parseInt(n.trim(), 10) - 1);
       } else if (label.startsWith('CIT-')) {
-        citationIndex = parseInt(label.replace('CIT-', ''), 10) - 1;
+        indices = [parseInt(label.replace('CIT-', ''), 10) - 1];
       } else if (label.startsWith('SPA-')) {
-        if (label.includes('8.2')) citationIndex = 0;
-        else if (label.includes('8.4')) citationIndex = 1;
-        else if (label.includes('8.7')) citationIndex = 2;
+        if (label.includes('8.2')) indices = [0];
+        else if (label.includes('8.4')) indices = [1];
+        else if (label.includes('8.7')) indices = [2];
       }
 
-      if (citations && citations.length > 0) {
-        const indexToUse = citationIndex >= 0 && citationIndex < citations.length ? citationIndex : 0;
-        const cite = citations[indexToUse];
-        return (
-          <button
-            key={idx}
-            onClick={() => {
-              if (onSelectDocument) {
-                const matched = documents?.find(
-                  (d) =>
-                    d.id === cite.docId ||
-                    d.title.toLowerCase().includes(cite.docTitle.toLowerCase()) ||
-                    cite.docTitle.toLowerCase().includes(d.title.toLowerCase())
-                );
-                if (matched) {
-                  onSelectDocument(matched);
-                } else {
-                  onSelectDocument({
-                    id: cite.docId || `doc-${Date.now()}`,
-                    title: cite.docTitle || 'Document',
-                    type: 'PDF',
-                    sizeBytes: 1024 * 1024 * 2.4,
-                    uploadDate: new Date().toLocaleDateString(),
-                    tags: ['Citation', 'Verified'],
-                    owner: 'Signal87 AI',
-                    organization: 'Signal87 Enterprise',
-                    status: 'Ready',
-                    aiIndexed: true,
-                    embeddingsComplete: true,
-                    versionHistory: [],
-                    permissions: 'Project Only',
-                    summary: cite.snippet || 'Grounded citation reference for this synthesis.',
-                    category: 'Legal',
-                  });
-                }
-              }
-            }}
-            className="text-[#20B8CD] hover:opacity-80 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
-            title={cite.paragraphRef ? `View: ${cite.docTitle} (${cite.paragraphRef})` : `View: ${cite.docTitle}`}
-          >
-            {part}
-          </button>
-        );
+      const validIndices = citations && citations.length > 0
+        ? indices.filter((n) => n >= 0 && n < citations.length)
+        : [];
+
+      if (validIndices.length === 0) {
+        // No real citation backs this marker — remove it entirely instead
+        // of leaving an orphaned "[3, 4, 11]" in the rendered text.
+        return null;
       }
+
+      return (
+        <React.Fragment key={idx}>
+          {validIndices.map((citationIndex) => {
+            const cite = citations![citationIndex];
+            return (
+              <button
+                key={citationIndex}
+                onClick={() => {
+                  if (onSelectDocument) {
+                    const matched = documents?.find(
+                      (d) =>
+                        d.id === cite.docId ||
+                        d.title.toLowerCase().includes(cite.docTitle.toLowerCase()) ||
+                        cite.docTitle.toLowerCase().includes(d.title.toLowerCase())
+                    );
+                    if (matched) {
+                      onSelectDocument(matched);
+                    } else {
+                      onSelectDocument({
+                        id: cite.docId || `doc-${Date.now()}`,
+                        title: cite.docTitle || 'Document',
+                        type: 'PDF',
+                        sizeBytes: 1024 * 1024 * 2.4,
+                        uploadDate: new Date().toLocaleDateString(),
+                        tags: ['Citation', 'Verified'],
+                        owner: 'Signal87 AI',
+                        organization: 'Signal87 Enterprise',
+                        status: 'Ready',
+                        aiIndexed: true,
+                        embeddingsComplete: true,
+                        versionHistory: [],
+                        permissions: 'Project Only',
+                        summary: cite.snippet || 'Grounded citation reference for this synthesis.',
+                        category: 'Legal',
+                      });
+                    }
+                  }
+                }}
+                className="text-[#20B8CD] hover:opacity-80 font-bold text-xs cursor-pointer align-super mx-0.5 select-none hover:underline"
+                title={cite.paragraphRef ? `View: ${cite.docTitle} (${cite.paragraphRef})` : `View: ${cite.docTitle}`}
+              >
+                [{citationIndex + 1}]
+              </button>
+            );
+          })}
+        </React.Fragment>
+      );
     }
     return part;
   });
@@ -399,7 +420,7 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
 
         return (
-          <p key={idx} className="mb-3 text-[14.5px] leading-[1.65] text-[#F3F3EE] break-words">
+          <p key={idx} className="mb-3 text-[14.5px] sm:text-[15px] leading-[1.65] text-[#F3F3EE] break-words">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
