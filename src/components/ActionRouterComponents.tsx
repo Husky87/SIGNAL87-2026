@@ -148,7 +148,7 @@ export const GeminiMarkdownRenderer: React.FC<{
   const blocks = useMemo(() => {
     const rawLines = text.split('\n');
     const result: Array<{
-      type: 'heading' | 'paragraph' | 'list' | 'table' | 'code' | 'excel_card';
+      type: 'heading' | 'paragraph' | 'list' | 'table' | 'code' | 'excel_card' | 'hr';
       level?: number;
       content?: string;
       items?: string[];
@@ -163,6 +163,14 @@ export const GeminiMarkdownRenderer: React.FC<{
       const line = rawLines[i].trim();
 
       if (!line) {
+        i++;
+        continue;
+      }
+
+      // Horizontal rule (---, ***, ___) — previously fell through to the
+      // paragraph catch-all and printed as literal dashes.
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+        result.push({ type: 'hr' });
         i++;
         continue;
       }
@@ -305,6 +313,10 @@ export const GeminiMarkdownRenderer: React.FC<{
   return (
     <div className="text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] tracking-normal space-y-1">
       {blocks.map((block, idx) => {
+        if (block.type === 'hr') {
+          return <hr key={idx} className="my-5 border-t border-[var(--rule)]" />;
+        }
+
         if (block.type === 'excel_card') {
           return (
             <div key={idx} className="my-4 p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] flex items-center justify-between gap-4">
