@@ -404,9 +404,9 @@ export const GeminiMarkdownRenderer: React.FC<{
 
         if (block.type === 'table') {
           return (
-            <div key={idx} className="overflow-x-auto my-3 border border-[var(--rule)] rounded-[4px] bg-[var(--surface)] max-w-full">
+            <div key={idx} className="overflow-x-auto my-3 rounded-[6px] max-w-full">
               <table className="w-full border-collapse text-left text-xs sm:text-sm">
-                <thead className="bg-[var(--surface-2)] text-[var(--ink)] font-semibold border-b border-[var(--rule)]">
+                <thead className="text-[var(--muted)]">
                   <tr>
                     {block.tableHeaders?.map((th, hIdx) => (
                       <th key={hIdx} className="p-2.5 text-[11px] font-mono uppercase tracking-[0.09em] text-[var(--muted)] break-words" style={{ fontFamily: 'var(--mono)' }}>
@@ -415,9 +415,9 @@ export const GeminiMarkdownRenderer: React.FC<{
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--rule)]">
+                <tbody>
                   {block.tableRows?.map((row, rIdx) => (
-                    <tr key={rIdx} className="hover:bg-[var(--surface-2)] transition-colors">
+                    <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-[var(--surface-2)]' : ''}>
                       {row.map((cell, cIdx) => (
                         <td key={cIdx} className="p-2.5 text-[var(--ink)] break-words">
                           {parseInlineStyles(cell, citations, onSelectDocument, documents)}
