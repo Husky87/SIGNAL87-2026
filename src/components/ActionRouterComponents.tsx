@@ -303,7 +303,7 @@ export const GeminiMarkdownRenderer: React.FC<{
   };
 
   return (
-    <div className="text-[15.5px] sm:text-[16px] leading-[1.65] text-[#F3F3EE] font-sans tracking-normal space-y-1">
+    <div className="text-[15.5px] sm:text-[16px] leading-[1.75] text-[#F3F3EE] font-sans tracking-normal space-y-1">
       {blocks.map((block, idx) => {
         if (block.type === 'excel_card') {
           return (
@@ -379,11 +379,11 @@ export const GeminiMarkdownRenderer: React.FC<{
 
         if (block.type === 'list') {
           return (
-            <ul key={idx} className="my-2.5 space-y-1.5 pl-1 max-w-full">
+            <ul key={idx} className="my-2.5 space-y-2 pl-1 max-w-full">
               {block.items?.map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-2.5 max-w-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#20B8CD] mt-2 flex-shrink-0" />
-                  <div className="flex-1 text-[#F3F3EE] leading-[1.65] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
+                  <div className="flex-1 text-[#F3F3EE] leading-[1.75] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
                 </li>
               ))}
             </ul>
@@ -420,7 +420,7 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
 
         return (
-          <p key={idx} className="mb-3 text-[15.5px] sm:text-[16px] leading-[1.65] text-[#F3F3EE] break-words">
+          <p key={idx} className="mb-4 text-[15.5px] sm:text-[16px] leading-[1.75] text-[#F3F3EE] break-words">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
