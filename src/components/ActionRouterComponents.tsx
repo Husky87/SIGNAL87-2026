@@ -303,7 +303,7 @@ export const GeminiMarkdownRenderer: React.FC<{
   };
 
   return (
-    <div className="text-[14.5px] sm:text-[15px] leading-[1.65] text-[#F3F3EE] font-sans tracking-normal space-y-1">
+    <div className="text-[15.5px] sm:text-[16px] leading-[1.65] text-[#F3F3EE] font-sans tracking-normal space-y-1">
       {blocks.map((block, idx) => {
         if (block.type === 'excel_card') {
           return (
@@ -420,7 +420,7 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
 
         return (
-          <p key={idx} className="mb-3 text-[14.5px] sm:text-[15px] leading-[1.65] text-[#F3F3EE] break-words">
+          <p key={idx} className="mb-3 text-[15.5px] sm:text-[16px] leading-[1.65] text-[#F3F3EE] break-words">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
