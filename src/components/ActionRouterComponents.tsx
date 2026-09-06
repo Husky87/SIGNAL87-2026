@@ -303,7 +303,7 @@ export const GeminiMarkdownRenderer: React.FC<{
   };
 
   return (
-    <div className="text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] tracking-normal space-y-1" style={{ fontFamily: 'var(--serif)' }}>
+    <div className="text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] tracking-normal space-y-1">
       {blocks.map((block, idx) => {
         if (block.type === 'excel_card') {
           return (
@@ -316,7 +316,7 @@ export const GeminiMarkdownRenderer: React.FC<{
                   <div className="text-[10px] font-mono font-bold text-[var(--teal)] uppercase tracking-[0.09em]" style={{ fontFamily: 'var(--mono)' }}>
                     EXCEL DATASET GENERATED
                   </div>
-                  <div className="text-sm font-semibold text-[var(--ink)]" style={{ fontFamily: 'var(--serif)' }}>
+                  <div className="text-sm font-semibold text-[var(--ink)]">
                     {block.excelData.filename || 'analysis_export.xlsx'}
                   </div>
                 </div>

@@ -53,7 +53,7 @@
   --verify: var(--ok);
   --verify-bg: var(--teal-soft);
   --alert: var(--warn);
-  --serif: Georgia, Cambria, 'Times New Roman', Times, serif;
+  --serif: var(--f);
   --sans: var(--f);
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas, monospace;
 }
