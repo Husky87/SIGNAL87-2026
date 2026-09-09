@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 export interface OpenAiMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -19,46 +17,20 @@ export interface GenerateWithFallbackOptions {
 
 export interface NormalizedAiResponse {
   text: string;
-  provider: 'gemini' | 'openai' | 'none';
+  provider: 'openai' | 'grok' | 'none';
   modelUsed: string;
   fallbackTriggered: boolean;
   fallbackReason?: string;
 }
 
-const DEPRECATED_MODEL_MAP: Record<string, string> = {
-  'gemini-2.5-flash': 'gemini-3.6-flash',
-  'gemini-2.5-flash-lite': 'gemini-3.5-flash-lite',
-  'gemini-2.5-pro': 'gemini-3.6-flash'
-};
-
-function resolveGeminiModel(requestedModel: string | undefined, defaultModel: string): string {
-  const model = requestedModel || defaultModel;
-  const remapped = DEPRECATED_MODEL_MAP[model];
-  if (remapped) {
-    console.warn(`Requested deprecated model "${model}" — remapping to "${remapped}".`);
-    return remapped;
-  }
-  return model;
-}
-
-/** UI still sends gemini-* IDs. Map them onto OpenAI now that OpenAI is primary. */
-function mapToOpenAiModel(requested?: string, fallback?: string): string {
-  if (requested === 'gpt-4o' || requested === 'gemini-2.5-pro') return 'gpt-4o';
-  if (requested === 'gpt-4o-mini' || requested === 'gemini-3.5-flash-lite') return 'gpt-4o-mini';
+function mapToOpenAiModel(requested?: string): string {
   if (requested?.startsWith('gpt-')) return requested;
-  return fallback || 'gpt-4o';
+  return 'gpt-4o';
 }
 
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  return new GoogleGenAI({
-    apiKey: apiKey || 'DUMMY_KEY',
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build'
-      }
-    }
-  });
+function mapToGrokModel(requested?: string): string {
+  if (requested?.startsWith('grok-')) return requested;
+  return 'grok-4.6';
 }
 
 export function normalizeOpenAiMessages(options: GenerateWithFallbackOptions): OpenAiMessage[] {
@@ -71,201 +43,128 @@ export function normalizeOpenAiMessages(options: GenerateWithFallbackOptions): O
   }
 
   const msgs: OpenAiMessage[] = [];
-  if (options.systemInstruction) {
-    msgs.push({ role: 'system', content: options.systemInstruction });
-  }
-  if (options.prompt) {
-    msgs.push({ role: 'user', content: options.prompt });
-  }
+  if (options.systemInstruction) msgs.push({ role: 'system', content: options.systemInstruction });
+  if (options.prompt) msgs.push({ role: 'user', content: options.prompt });
   return msgs;
 }
 
-export function mapMessagesToGeminiFormat(messages: OpenAiMessage[]) {
-  const systemMsgs = messages.filter((m) => m.role === 'system').map((m) => m.content);
-  const systemInstruction = systemMsgs.length > 0 ? systemMsgs.join('\n\n') : undefined;
-  const chatMsgs = messages.filter((m) => m.role !== 'system');
-
-  if (chatMsgs.length === 1 && chatMsgs[0].role === 'user') {
-    return { contents: chatMsgs[0].content, systemInstruction };
-  }
-
-  const contents = chatMsgs.map((m) => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
-
-  return { contents, systemInstruction };
-}
-
-async function callOpenAI(
-  normalizedMessages: OpenAiMessage[],
-  options: GenerateWithFallbackOptions,
-  openaiModel: string
-): Promise<string> {
-  const openAiKey = process.env.OPENAI_API_KEY;
-  if (!openAiKey) throw new Error('OPENAI_API_KEY is missing.');
+async function callOpenAI(messages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is missing.');
 
   const bodyPayload: Record<string, any> = {
-    model: openaiModel,
-    messages: normalizedMessages.map((m) => ({ ...m })),
+    model,
+    messages,
     temperature: options.temperature ?? 0.2
   };
 
   if (options.responseMimeType === 'application/json') {
     bodyPayload.response_format = { type: 'json_object' };
     const lastMsg = bodyPayload.messages[bodyPayload.messages.length - 1];
-    if (lastMsg) {
-      lastMsg.content = `${lastMsg.content}\n\nPlease output the response as a valid JSON object.`;
-    }
+    if (lastMsg) lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
   }
 
   const timeoutMs = options.timeoutMs ?? 25000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  let response: Response;
   try {
-    response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openAiKey}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(bodyPayload),
       signal: controller.signal
     });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`OpenAI API call failed [HTTP ${response.status}]: ${detail}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
   } finally {
     clearTimeout(timeoutId);
   }
-
-  if (!response.ok) {
-    let errText = 'Could not read error text';
-    try {
-      errText = await response.text();
-    } catch {}
-    throw new Error(`OpenAI API call failed [HTTP ${response.status}]: ${errText}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
 }
 
-export async function generateWithFallback(
-  options: GenerateWithFallbackOptions
-): Promise<NormalizedAiResponse> {
-  const geminiModel = resolveGeminiModel(options.model, 'gemini-3.6-flash');
-  const openaiModel = mapToOpenAiModel(options.model, options.fallbackModel);
-  const temperature = options.temperature ?? 0.2;
-  const timeoutMs = options.timeoutMs ?? 25000;
-  const normalizedMessages = normalizeOpenAiMessages(options);
+async function callGrok(messages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) throw new Error('XAI_API_KEY is missing.');
 
-  const callGemini = async (modelToUse: string): Promise<string> => {
-    const ai = getGeminiClient();
-    const { contents, systemInstruction } = mapMessagesToGeminiFormat(normalizedMessages);
-    const geminiPromise = ai.models.generateContent({
-      model: modelToUse,
-      contents: contents as any,
-      config: {
-        systemInstruction,
-        temperature,
-        ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
-        ...(options.responseSchema ? { responseSchema: options.responseSchema } : {})
-      }
+  const fallbackMessages = [...messages];
+  if (options.responseMimeType === 'application/json') {
+    const lastMsg = fallbackMessages[fallbackMessages.length - 1];
+    if (lastMsg) lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
+  }
+
+  const timeoutMs = options.timeoutMs ?? 25000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, messages: fallbackMessages, temperature: options.temperature ?? 0.2, stream: false }),
+      signal: controller.signal
     });
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`Gemini API request (${modelToUse}) timed out`)), timeoutMs);
-    });
-    const response = await Promise.race([geminiPromise, timeoutPromise]);
-    return response.text || '';
-  };
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`Grok API call failed [HTTP ${response.status}]: ${detail}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function generateWithFallback(options: GenerateWithFallbackOptions): Promise<NormalizedAiResponse> {
+  const messages = normalizeOpenAiMessages(options);
+  const openaiModel = mapToOpenAiModel(options.model);
+  const grokModel = mapToGrokModel(options.fallbackModel);
 
   let primaryError: any = null;
 
   if (process.env.OPENAI_API_KEY) {
     try {
-      const responseText = await callOpenAI(normalizedMessages, options, openaiModel);
-      if (responseText) {
-        return {
-          text: responseText,
-          provider: 'openai',
-          modelUsed: openaiModel,
-          fallbackTriggered: false
-        };
-      }
+      const text = await callOpenAI(messages, options, openaiModel);
+      if (text) return { text, provider: 'openai', modelUsed: openaiModel, fallbackTriggered: false };
+      primaryError = new Error('OpenAI returned an empty response.');
     } catch (err: any) {
       primaryError = err;
-      console.warn(`OpenAI primary (${openaiModel}) failed: ${err?.message || err}. Falling back to Gemini...`);
+      console.warn(`OpenAI primary (${openaiModel}) failed. Falling back to Grok: ${err?.message || err}`);
     }
+  } else {
+    primaryError = new Error('OPENAI_API_KEY is missing.');
   }
 
-  const initialReason = primaryError?.message || 'OPENAI_API_KEY missing or service unavailable';
+  const initialReason = primaryError?.message || 'OpenAI service unavailable';
 
-  if (process.env.GEMINI_API_KEY) {
+  if (process.env.XAI_API_KEY) {
     try {
-      const responseText = await callGemini(geminiModel);
-      if (responseText) {
-        return {
-          text: responseText,
-          provider: 'gemini',
-          modelUsed: geminiModel,
-          fallbackTriggered: true,
-          fallbackReason: initialReason
-        };
-      }
+      const text = await callGrok(messages, options, grokModel);
+      if (text) return { text, provider: 'grok', modelUsed: grokModel, fallbackTriggered: true, fallbackReason: initialReason };
     } catch (err: any) {
-      console.warn(`Gemini fallback (${geminiModel}) failed: ${err?.message || err}`);
-    }
-
-    const secondaryModel =
-      geminiModel === 'gemini-3.5-flash-lite' ? 'gemini-3.6-flash' : 'gemini-3.5-flash-lite';
-    try {
-      await new Promise((r) => setTimeout(r, 600));
-      const responseText = await callGemini(secondaryModel);
-      if (responseText) {
-        return {
-          text: responseText,
-          provider: 'gemini',
-          modelUsed: secondaryModel,
-          fallbackTriggered: true,
-          fallbackReason: `OpenAI failed (${initialReason}); Gemini ${geminiModel} also failed. Recovered using ${secondaryModel}.`
-        };
-      }
-    } catch {
-      console.warn(`Gemini secondary (${secondaryModel}) also failed.`);
+      console.warn(`Grok fallback (${grokModel}) failed: ${err?.message || err}`);
     }
   }
 
   const missingKeys = [
     !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
-    !process.env.GEMINI_API_KEY && 'GEMINI_API_KEY'
-  ].filter(Boolean);
+    !process.env.XAI_API_KEY && 'XAI_API_KEY'
+  ].filter(Boolean) as string[];
 
   if (options.responseMimeType === 'application/json') {
     return {
-      text: JSON.stringify({
-        summary: `Automated analysis did not run. Reason: ${initialReason}.`,
-        entities: [],
-        riskHighlights: [],
-        suggestedTags: [],
-        analysisSkipped: true,
-        analysisSkippedReason: initialReason
-      }),
-      provider: 'none',
-      modelUsed: 'analysis-unavailable',
-      fallbackTriggered: true,
-      fallbackReason: initialReason
+      text: JSON.stringify({ summary: `Automated analysis did not run. Reason: ${initialReason}.`, entities: [], riskHighlights: [], suggestedTags: [], analysisSkipped: true, analysisSkippedReason: initialReason }),
+      provider: 'none', modelUsed: 'analysis-unavailable', fallbackTriggered: true, fallbackReason: initialReason
     };
   }
 
   const diagnosis = missingKeys.length
     ? `No AI provider is configured. Missing: ${missingKeys.join(' and ')}.`
-    : `Every configured AI provider rejected the request. Last error: ${initialReason}`;
+    : `The configured AI providers rejected the request. Last primary error: ${initialReason}`;
 
   return {
     text: `## Analysis unavailable\n\nYour question was **not** answered.\n\n**Why:** ${diagnosis}`,
-    provider: 'none',
-    modelUsed: 'analysis-unavailable',
-    fallbackTriggered: true,
-    fallbackReason: initialReason
+    provider: 'none', modelUsed: 'analysis-unavailable', fallbackTriggered: true, fallbackReason: initialReason
   };
 }
