@@ -21,25 +21,19 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, que
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// authDomain must stay the default *.firebaseapp.com domain, not the custom
-// signal87.ai domain. Firebase's redirect sign-in (used on Safari/iOS, see
-// prefersRedirectSignIn below) bounces the browser through
-// "<authDomain>/__/auth/handler" — a path Firebase Hosting auto-serves, but
-// that this app's actual host (Vercel) has never heard of. Pointing
-// authDomain at signal87.ai sent that redirect straight into a Vercel 404.
+// Keep Firebase's helper domain configuration stable. Redirect auth requires
+// additional same-origin setup when the app is hosted outside Firebase.
 const app = !getApps().length
   ? initializeApp(firebaseConfig)
   : getApp();
 
 /**
- * Auth defaults to IndexedDB for persistence, which private browsing and
- * hardened storage settings block — the SDK then throws "Database is closing"
- * with no error code, and sign-in fails outright.
- *
- * Declaring the chain explicitly lets Firebase fall through to localStorage,
- * then sessionStorage, then memory. Memory means the session ends when the tab
- * closes, which is the correct trade in a private window: signing in still
- * works instead of erroring.
+ * Use a persistence fallback chain so private/hardened browser profiles can
+ * still start the application when IndexedDB is unavailable. The popup/redirect
+ * resolver is intentionally NOT initialized here: Firebase documents that the
+ * resolver can create an auth iframe during app startup, which is unnecessary
+ * until a user actually signs in and is especially fragile with Firefox's
+ * third-party-storage protections.
  */
 function createAuth() {
   try {
@@ -49,20 +43,16 @@ function createAuth() {
         browserLocalPersistence,
         browserSessionPersistence,
         inMemoryPersistence
-      ],
-      popupRedirectResolver: browserPopupRedirectResolver
+      ]
     });
   } catch {
-    // Already initialised (hot reload, or another import got here first).
     return getAuth(app);
   }
 }
 
 export const auth = createAuth();
 
-// Sign-in asks for identity only — email and profile, which Firebase requests for us.
-// Nothing here may call addScope(): any Google API scope beyond identity puts the app
-// back into Google's OAuth verification review, which is why Drive import was dropped.
+// Identity only. Do not add Google API scopes here.
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
@@ -96,8 +86,6 @@ export const signInWithGoogleRedirect = async () => {
   return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
 };
 
-// Keep the click as a direct user gesture. Closing another UI first makes
-// Safari treat the popup as blocked and dump the user back on the landing page.
 export const signInWithGoogle = async () => {
   if (prefersRedirectSignIn()) {
     return signInWithGoogleRedirect();
@@ -120,36 +108,21 @@ export const signInWithEmail = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
 
-// Notice custom databaseId in config!
-// This project's Firestore instance is a *named* database, not the default one.
-// Omitting the id makes the SDK target '(default)', which does not exist here —
-// every read and write then fails with "Database '(default)' not found" and the
-// app silently falls back to localStorage, so nothing is ever persisted.
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
-
 export const storage = getStorage(app);
 
-// Uploads the original file bytes so the real document can be re-rendered
-// after a reload — blob: URLs only live for the browser tab that created them.
 export async function uploadDocumentFile(file: File, docId: string): Promise<string> {
   const uid = auth.currentUser?.uid;
-  if (!uid) {
-    throw new Error('Not signed in');
-  }
+  if (!uid) throw new Error('Not signed in');
   const storageRef = ref(storage, `users/${uid}/documents/${docId}/${file.name}`);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 }
 
 /**
- * All production Firebase functions now verify the Firebase ID token. The UI
- * historically called /api/* directly without an Authorization header,
- * which turned every authenticated AI request into a 401. Keep the request
- * sites simple and centralize token attachment here so new API callers cannot
- * accidentally omit auth.
- *
- * Only same-origin /api requests are modified. We never intercept third-party
- * requests, and we preserve an explicitly supplied Authorization header.
+ * Attach Firebase ID tokens to authenticated same-origin API calls centrally.
+ * Third-party requests and explicitly supplied Authorization headers are left
+ * untouched.
  */
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch.bind(window);
