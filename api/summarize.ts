@@ -7,10 +7,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY && !process.env.XAI_API_KEY) {
     return res.status(500).json({
       error: 'AI service is not configured',
-      details: 'Neither GEMINI_API_KEY nor OPENAI_API_KEY is set in the environment'
+      details: 'Neither OPENAI_API_KEY nor XAI_API_KEY is set in the environment'
     });
   }
 
@@ -39,14 +39,13 @@ Requirements for the summary:
 3. Highlight any risks, important decisions, or action items
 4. Use professional, clear language suitable for executives
 5. Focus on what matters most for business decision-making
+6. Use only the supplied document content; do not invent facts.
 
 Generate only the summary text, no additional commentary.`;
 
     const aiResult = await generateWithFallback({
       prompt,
-      systemInstruction: `You are an expert document summarization system for Signal87 AI. Generate clear, thorough executive summaries that capture the essence and critical details of documents. Your summaries should be immediately useful to decision-makers and should highlight key risks, opportunities, and required actions.`,
-      model: 'gemini-3.6-flash',
-      fallbackModel: 'gpt-4o',
+      systemInstruction: `You are an expert document summarization system for Signal87 AI. Generate clear, thorough executive summaries that capture the essence and critical details of documents. Use only the supplied source content and clearly acknowledge when the source does not establish a claim.`,
       temperature: 0.3
     });
 
