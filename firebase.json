@@ -28,10 +28,19 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+      { "source": "/api/health", "function": "health" },
+      { "source": "/api/chat", "function": "chat" },
+      { "source": "/api/research", "function": "research" },
+      { "source": "/api/compare", "function": "compare" },
+      { "source": "/api/analyze", "function": "analyze" },
+      { "source": "/api/summarize", "function": "summarize" },
+      { "source": "/api/documents/process", "function": "documentsProcess" },
+      { "source": "/api/auth/welcome-email", "function": "authWelcomeEmail" },
+      { "source": "/api/export-document", "function": "exportDocument", "region": "us-east1" },
+      { "source": "/privacy", "destination": "/privacy.html" },
+      { "source": "/terms", "destination": "/terms.html" },
+      { "source": "/team", "destination": "/team.html" },
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }
