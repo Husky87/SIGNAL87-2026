@@ -7,10 +7,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY && !process.env.XAI_API_KEY) {
     return res.status(500).json({
       error: 'AI service is not configured',
-      details: 'Neither GEMINI_API_KEY nor OPENAI_API_KEY is set in the environment'
+      details: 'Neither OPENAI_API_KEY nor XAI_API_KEY is set in the environment'
     });
   }
 
@@ -25,15 +25,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const aiResult = await generateWithFallback({
       prompt,
-      systemInstruction: `Extract a concise 2-sentence executive summary, 4 key entities with types, and 2 risk highlights in JSON format:
+      systemInstruction: `Extract a concise 2-sentence executive summary, 4 key entities with types, and 2 risk highlights in JSON format. Use only information present in the supplied document text. Never invent facts, figures, entities, or risks.
 {
   "summary": "...",
   "entities": [{"name": "...", "type": "Company|Person|Location|Law|Amount|Policy", "relevance": 90}],
   "riskHighlights": ["...", "..."],
   "suggestedTags": ["...", "..."]
 }`,
-      model: 'gemini-3.6-flash',
-      fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
     });
@@ -45,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       jsonResult = {
         summary: 'Document uploaded and indexed successfully.',
         entities: [{ name: title, type: 'Contract', relevance: 95 }],
-        riskHighlights: ['Verify section compliance dates'],
+        riskHighlights: ['Review the source document for compliance dates and obligations.'],
         suggestedTags: ['Uploaded', 'Indexed']
       };
     }
