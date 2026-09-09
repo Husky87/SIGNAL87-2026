@@ -5,15 +5,10 @@
       "rules": "firestore.rules"
     }
   ],
-  "storage": {
-    "rules": "storage.rules"
-  },
+  "storage": { "rules": "storage.rules" },
   "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "runtime": "nodejs20"
-    }
+    { "source": "functions", "codebase": "default", "runtime": "nodejs20" },
+    { "source": "functions-export", "codebase": "exports", "runtime": "nodejs20" }
   ],
   "hosting": {
     "public": "dist",
@@ -27,6 +22,7 @@
       { "source": "/api/summarize", "function": "summarize" },
       { "source": "/api/documents/process", "function": "documentsProcess" },
       { "source": "/api/auth/welcome-email", "function": "authWelcomeEmail" },
+      { "source": "/api/export-document", "function": "exportDocument", "region": "us-east1" },
       { "source": "/privacy", "destination": "/privacy.html" },
       { "source": "/terms", "destination": "/terms.html" },
       { "source": "/team", "destination": "/team.html" },
