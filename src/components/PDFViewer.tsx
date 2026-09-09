@@ -46,9 +46,6 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     setLoading(true);
     setPdfFile(null);
 
-    // Only use cached data when it is actually a PDF. Older versions of the
-    // upload flow cached the original DOCX/XLSX bytes under the document id,
-    // which caused pdf.js to report "Invalid PDF structure".
     if (docId && fileDataCache.has(docId)) {
       const cachedBuffer = fileDataCache.get(docId);
       if (cachedBuffer) {
@@ -77,9 +74,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         .then((arrayBuffer) => {
           if (!mounted) return;
           const header = new TextDecoder().decode(new Uint8Array(arrayBuffer).subarray(0, 5));
-          if (header !== '%PDF-') {
-            throw new Error(`The preview source is not a valid PDF (${fileName}).`);
-          }
+          if (header !== '%PDF-') throw new Error(`The preview source is not a valid PDF (${fileName}).`);
           if (docId) fileDataCache.set(docId, arrayBuffer);
           setPdfFile({ data: new Uint8Array(arrayBuffer) });
           setLoading(false);
@@ -109,9 +104,15 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     };
 
     updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(element);
 
+    // ResizeObserver is supported by modern Firefox, but a browser extension,
+    // hardened profile, or older embedded Firefox can remove it. The viewer
+    // should still render using the initial width instead of crashing the tree.
+    const Observer = typeof ResizeObserver !== 'undefined' ? ResizeObserver : null;
+    if (!Observer) return;
+
+    const observer = new Observer(updateWidth);
+    observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
@@ -139,35 +140,19 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         </div>
       )}
 
-      {/* If our renderer fails for any reason, hand the file to the browser's own
-          PDF viewer rather than leaving the reader at a dead end. Page controls
-          and in-document search belong to the renderer above, so they go away —
-          but the document is still readable, which is the part that matters. */}
       {error && fileUrl && (
         <div className="w-full space-y-3">
           <div className="flex items-start gap-2.5 p-3 bg-[var(--card)] border border-[var(--rule)] rounded-xl text-left">
             <AlertCircle size={16} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <div className="text-[13px] font-medium text-[var(--ink)]">
-                Showing this document in your browser's viewer
-              </div>
+              <div className="text-[13px] font-medium text-[var(--ink)]">Showing this document in your browser's viewer</div>
               <p className="text-[11.5px] text-[var(--slate)] m-0 break-words">{error}</p>
             </div>
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--teal-ink)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5"
-            >
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--teal-ink)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5">
               <Download size={13} /> Download
             </a>
           </div>
-          <iframe
-            src={fileUrl}
-            title={fileName}
-            className="w-full rounded-xl border border-[var(--rule)] bg-white"
-            style={{ height: '70vh' }}
-          />
+          <iframe src={fileUrl} title={fileName} className="w-full rounded-xl border border-[var(--rule)] bg-white" style={{ height: '70vh' }} />
         </div>
       )}
 
@@ -181,28 +166,9 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
       {pdfFile && !error && (
         <div className="w-full flex justify-center min-w-0 overflow-visible">
-          <div
-            className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8] shadow-sm"
-            style={{
-              transform: `scale(${zoomLevel / 100})`,
-              transformOrigin: 'top center',
-              width: `${basePageWidth}px`,
-            }}
-          >
-            <Document
-              file={pdfFile}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              loading={null}
-              error={null}
-            >
-              <Page
-                pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)}
-                width={pageWidth}
-                renderTextLayer={true}
-                renderAnnotationLayer={false}
-                className="w-full"
-              />
+          <div className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8] shadow-sm" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', width: `${basePageWidth}px` }}>
+            <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError} loading={null} error={null}>
+              <Page pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)} width={pageWidth} renderTextLayer={true} renderAnnotationLayer={false} className="w-full" />
             </Document>
           </div>
         </div>
