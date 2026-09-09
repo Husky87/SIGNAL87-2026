@@ -7,10 +7,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY && !process.env.XAI_API_KEY) {
     return res.status(500).json({
       error: 'AI service is not configured',
-      details: 'Neither GEMINI_API_KEY nor OPENAI_API_KEY is set in the environment'
+      details: 'Neither OPENAI_API_KEY nor XAI_API_KEY is set in the environment'
     });
   }
 
@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const aiResult = await generateWithFallback({
       prompt,
-      systemInstruction: `You are a multi-document legal, financial, and policy comparative analyst for Signal87 AI.
+      systemInstruction: `You are a multi-document legal, financial, and policy comparative analyst for Signal87 AI. Use only the supplied documents. Do not invent facts, clauses, conflicts, dates, figures, or risks. If something cannot be established from the documents, say so.
 Provide a JSON output comparing the documents with the following structure:
 {
   "summary": "Overall comparison summary string",
@@ -43,8 +43,6 @@ Provide a JSON output comparing the documents with the following structure:
   "repeatedLanguage": ["bullet 1", "bullet 2"],
   "riskTrends": ["bullet 1", "bullet 2"]
 }`,
-      model: 'gemini-3.6-flash',
-      fallbackModel: 'gpt-4o',
       temperature: 0.1,
       responseMimeType: 'application/json'
     });
@@ -55,12 +53,12 @@ Provide a JSON output comparing the documents with the following structure:
     } catch (e) {
       jsonResult = {
         summary: aiResult.text,
-        similarities: ['Common alignment on policy goals'],
-        differences: ['Varying timelines and penalty thresholds'],
-        missingClauses: ['Notice period clarity'],
-        conflicts: ['Contradictory compliance windows'],
-        repeatedLanguage: ['Standard indemnification boilerplate'],
-        riskTrends: ['Increased regulatory liability']
+        similarities: [],
+        differences: [],
+        missingClauses: [],
+        conflicts: [],
+        repeatedLanguage: [],
+        riskTrends: []
       };
     }
 
