@@ -26,5 +26,8 @@ jobs:
       - name: Typecheck
         run: npm run lint
 
+      - name: AI fallback routing tests
+        run: npm run test:ai-fallback
+
       - name: Build
         run: npm run build
