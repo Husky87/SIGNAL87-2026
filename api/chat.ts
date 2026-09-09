@@ -1,24 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
 import { buildChatMessages } from '../src/lib/chatPayload.js';
 
-/**
- * Strips a trailing ```citation_manifest fenced block from the model's answer.
- * The model's [1]/[2]/[3] markers in prose carry no information about which
- * real document they refer to on their own — the manifest is how it reports
- * that back, using the exact "DOCUMENT N" / "INGESTED ACTIVE FILE N" labels
- * it was given in the prompt context. Kept identical to
- * functions/src/index.ts's copy — see that file for the deploy target this
- * mirrors.
- */
 function extractCitationManifest(text: string): { cleanedText: string; entries: Array<{ source?: string }> } {
   const match = text.match(/```citation_manifest\s*([\s\S]*?)```/i);
   if (!match || match.index === undefined) return { cleanedText: text, entries: [] };
-
   const cleanedText = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
-
   try {
     const parsed = JSON.parse(match[1].trim());
     return { cleanedText, entries: Array.isArray(parsed) ? parsed : [] };
@@ -27,363 +15,159 @@ function extractCitationManifest(text: string): { cleanedText: string; entries: 
   }
 }
 
-/**
- * Resolves each manifest entry back to a real document the request actually
- * supplied as context. A label that doesn't resolve — hallucinated, or
- * pointing past the end of the list — is dropped rather than guessed at.
- */
-function resolveCitations(
-  entries: Array<{ source?: string }>,
-  readableDocs: any[],
-  readableAttached: any[]
-): Array<{ docId: string; docTitle: string; snippet?: string }> {
+function resolveCitations(entries: Array<{ source?: string }>, readableDocs: any[], readableAttached: any[]) {
   const seen = new Set<string>();
   const citations: Array<{ docId: string; docTitle: string; snippet?: string }> = [];
-
   for (const entry of entries) {
     const source = String(entry?.source || '').trim();
     const docMatch = source.match(/^DOCUMENT\s+(\d+)$/i);
     const attachedMatch = source.match(/^INGESTED ACTIVE FILE\s+(\d+)$/i);
-
-    let doc: { id?: string; title: string; summary?: string } | null = null;
-    if (docMatch) {
-      doc = readableDocs[parseInt(docMatch[1], 10) - 1] || null;
-    } else if (attachedMatch) {
-      const f = readableAttached[parseInt(attachedMatch[1], 10) - 1];
-      if (f) doc = { id: f.fileName, title: f.fileName, summary: f.summaryInfo };
+    let doc: any = null;
+    if (docMatch) doc = readableDocs[parseInt(docMatch[1], 10) - 1] || null;
+    if (attachedMatch) {
+      const file = readableAttached[parseInt(attachedMatch[1], 10) - 1];
+      if (file) doc = { id: file.fileName, title: file.fileName, summary: file.summaryInfo };
     }
-
     if (!doc) continue;
-    const key = doc.id || doc.title;
+    const key = String(doc.id || doc.title);
     if (seen.has(key)) continue;
     seen.add(key);
-
-    citations.push({
-      docId: doc.id || doc.title,
-      docTitle: doc.title,
-      ...(doc.summary ? { snippet: String(doc.summary).substring(0, 120) + '...' } : {})
-    });
-
-    if (citations.length >= 5) break;
+    citations.push({ docId: key, docTitle: String(doc.title || key), ...(doc.summary ? { snippet: String(doc.summary).slice(0, 120) + '...' } : {}) });
+    if (citations.length >= 10) break;
   }
-
   return citations;
 }
 
-// Server-side Gemini initialization
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  return new GoogleGenAI({
-    apiKey: apiKey || 'DUMMY_KEY',
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build'
-      }
-    }
-  });
-}
+const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI Platform Assistant: precise, direct, evidence-grounded, and useful.
 
-// Official Signal87 AI Platform Assistant System Instruction
-const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI Platform Assistant—an intelligent, efficient, and precise interactive co-pilot embedded within the Signal87 AI platform. Your purpose is to assist users with platform navigation, execute document processing tasks, provide instant answers, and guide them through core platform capabilities.
+DOCUMENT GROUNDING IS MANDATORY.
+- Every factual claim about supplied documents must come only from the supplied extracted text.
+- If the supplied documents do not establish an answer, say so. Never invent dates, amounts, parties, clauses, page numbers, confidence scores, or citations.
+- Distinguish document facts from reasonable inferences.
+- For quantitative questions, show the figures and calculations used.
+- For comparisons, identify contradictions instead of silently resolving them.
+- Match answer length to the question. A simple lookup should be concise.
+- You may answer general platform questions without document evidence.
 
-# CORE RESPONSIBILITIES & FEATURES
+CITATIONS.
+- When using document evidence, place [1], [2], etc. directly after the relevant claim.
+- At the very end, output a fenced block labeled citation_manifest containing a JSON array mapping each marker to the literal context label used for its source, such as DOCUMENT 2 or INGESTED ACTIVE FILE 1.
+- If no document evidence was used, output an empty citation_manifest array.
+- Never cite a document that was not actually used.
 
-1. QUICK ANSWERS & SUPPORT
-   - Provide direct, concise answers about platform functionality, settings, and features.
-   - Explain complex technical or operational workflows in simple, actionable steps.
-   - When answering "how-to" questions, use numbered step-by-step instructions.
-
-2. DOCUMENT & DATA ANALYSIS (MULTIMODAL)
-   - When a user uploads or references a document (PDF, CSV, DOCX, TXT), analyze its contents immediately.
-   - Automatically provide a brief 2-sentence summary of the document upon receipt or analysis.
-   - Offer 2 to 3 logical next steps or actions (e.g., "Extract key metrics," "Draft an executive summary," or "Compare with existing platform data").
-   - Format key data, tables, and financial/operational metrics cleanly using Markdown tables and bullet points.
-   - When a question touches several documents at once, write one synthesized answer that draws from all of them — do not repeat an identical summary/next-steps template once per document.
-
-3. ACTION ORIENTATION & NAVIGATION
-   - Guide users directly to platform settings, API integrations, and workflow tools.
-   - Wrap UI elements or settings paths in inline code formatting (e.g., \`Settings > Integrations > API Keys\`).
-
-# GROUNDING — THE MOST IMPORTANT RULE
-
-Every factual claim about the user's documents must come from the document text supplied in this
-request. Nothing else is a source.
-
-- If no document text was supplied, you cannot answer questions about their documents. Say plainly
-  that nothing is attached and ask them to attach the document. Never fall back on prior knowledge,
-  and never produce a plausible-looking value to fill the gap. A wrong date, party, or amount in a
-  contract is worse than no answer.
-- If the supplied documents do not contain what was asked, say which documents you checked and that
-  the answer is not in them. Do not extrapolate.
-- Quote or closely paraphrase the wording you are relying on, so the user can find it themselves.
-- Never state a confidence level, a percentage, a section number, or a page reference unless it comes
-  from the document text in front of you.
-
-# ANSWER LENGTH — MATCH THE QUESTION
-
-This is the single most important rule. Read what is actually being asked and answer at that size.
-
-- A factual lookup — a name, a date, an amount, a party, a clause reference — gets a direct answer in one or two sentences. No headings. No summary. No "next steps". No tables. If the user asks when a contract was signed, reply with the date and where it came from, and stop.
-- A comparison, an explanation, or a request to extract several things gets structure: short sections, bullets, and a table when the data is genuinely tabular.
-- Never pad a short answer to look thorough, and never compress a genuinely complex answer to look brisk. The sections described below are available to you, not required of you.
-
-# WHEN THE QUESTION IS QUANTITATIVE
-
-If the question asks for numbers, totals, percentages, counts, or trends:
-- Extract the specific figures first, and state them plainly.
-- Show the calculation when you have performed one, so the result can be checked.
-- Give percentage changes and comparisons where they are meaningful.
-- Say so explicitly when data needed for the answer is missing or ambiguous, rather than estimating around it.
-
-# WHEN THE QUESTION ASKS WHY OR HOW
-
-If the question asks for cause, mechanism, or explanation:
-- Start from the fact base in the documents, then reason forward: fact, inference, conclusion.
-- Distinguish what the documents state from what you are inferring, and label the difference.
-- Note contradictions between documents rather than silently resolving them.
-- Where a different reading is defensible, say what it is.
-
-# BEHAVIOR & TONAL GUIDELINES
-
-- Tone: Professional, confident, direct, and collaborative. Avoid overly fluffy introductions or conversational filler.
-- Clarity First: Prioritize bullet points, bold key phrases, and structured sections to make responses instantly scannable.
-- Proactivity: Anticipate user needs after answering a query by offering a relevant follow-up action or platform feature.
-- Boundaries: If a user asks a question outside the scope of the platform or uploaded document context, politely clarify your focus as the Signal87 AI Assistant and guide them back to actionable topics.
-
-# RESPONSE FORMATTING RULES
-
-- Headings: Use ## or ### for section headers.
-- Lists: Use clean bullet points for features, lists, and takeaways.
-- Data Presentation: Render structured data in Markdown tables where appropriate.
-- Code/Paths: Wrap UI elements or settings paths in inline code formatting (e.g., \`Settings > Integrations > API Keys\`).
-- Citations: DO NOT output full document names, file names, or snippets in the middle of your response. Instead, use short inline numeric bracket citations at the exact point of reference (e.g., [1], [2], or [3]). All full document details, sources, and reference snippets must be kept strictly at the end of your answer.
-- Citation manifest: After your answer, on its own line, output a fenced code block labeled exactly \`\`\`citation_manifest containing a JSON array that maps every bracket number you used to the exact document label it came from — the literal "DOCUMENT N" or "INGESTED ACTIVE FILE N" label given to you in the context above, never a made-up or paraphrased title. Example: \`\`\`citation_manifest\n[{"marker": 1, "source": "DOCUMENT 2"}, {"marker": 2, "source": "INGESTED ACTIVE FILE 1"}]\n\`\`\`. If you did not cite anything, output an empty array \`[]\`. Only list a source here if you actually drew from it to answer — never list a document just because it was available.
-- Identifiers: NEVER output internal document IDs, database keys, or system metadata (e.g., "doc-1786393760868-ji34c"). Refer to documents only by their plain title.`;
+Never output internal IDs, database keys, or system metadata.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-
-  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error: 'AI service is not configured',
-      details: 'Neither GEMINI_API_KEY nor OPENAI_API_KEY is set in the environment'
-    });
+  if (!process.env.OPENAI_API_KEY && !process.env.XAI_API_KEY) {
+    return res.status(500).json({ error: 'AI service is not configured', details: 'Neither OPENAI_API_KEY nor XAI_API_KEY is set in the environment' });
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, model = 'gemini-3.6-flash' } = req.body;
-
-    // Prepare attached images
-    const imageParts: any[] = [];
-    if (attachedFiles && Array.isArray(attachedFiles)) {
-      for (const file of attachedFiles) {
-        if (file.dataUrl && file.dataUrl.startsWith('data:image/')) {
-          const [metadata, base64Data] = file.dataUrl.split(',');
-          const mimeType = metadata.match(/data:(.*?);/)?.[1] || 'image/jpeg';
-          imageParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType
-            }
-          });
-        }
-      }
-    }
-
-    if (!prompt && (!messages || !Array.isArray(messages) || messages.length === 0)) {
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles } = req.body || {};
+    if (!prompt && (!Array.isArray(messages) || messages.length === 0)) {
       return res.status(400).json({ error: 'Prompt or messages array is required' });
     }
 
-    // Only documents whose stored text is real prose become evidence. Anything
-    // whose extraction failed still carries the raw PDF container as its text,
-    // and feeding that to the model produced confident answers drawn from noise.
     const allDocs: any[] = Array.isArray(documents) ? documents : [];
-    const readableDocs = allDocs.filter((doc: any) =>
-      hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
-    );
+    const readableDocs = allDocs.filter((doc: any) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary));
     const unreadableDocs = allDocs.filter((doc: any) => !readableDocs.includes(doc));
-
-    let docContext = '';
-    if (readableDocs.length > 0) {
-      docContext = readableDocs
-        .map((doc: any, index: number) => {
-          const body = doc.fullText || doc.contentPreview || doc.summary;
-          return `--- DOCUMENT ${index + 1}: ${doc.title} ---\n${body}\n`;
-        })
-        .join('\n\n');
-    }
-
-    // Prepare attached parsed files context
-    // Attaching a document copies its stored text into this payload, so a
-    // document whose extraction failed arrives here as noise or as an empty
-    // body wrapped in a header. Unfiltered, the model saw a file that said
-    // nothing and reported that no document was attached at all.
     const allAttached: any[] = Array.isArray(ingestedFilesData) ? ingestedFilesData : [];
-    const readableAttached = allAttached.filter((f: any) => hasUsableText(f.extractedText));
-    const unreadableAttached = allAttached.filter((f: any) => !readableAttached.includes(f));
+    const readableAttached = allAttached.filter((file: any) => hasUsableText(file.extractedText));
+    const unreadableAttached = allAttached.filter((file: any) => !readableAttached.includes(file));
 
-    let attachedFilesContext = '';
-    if (readableAttached.length > 0) {
-      attachedFilesContext = readableAttached
-        .map((f: any, idx: number) => {
-          return `=== INGESTED ACTIVE FILE ${idx + 1}: ${f.fileName} (${f.summaryInfo || ''}) ===\n[RAW EXTRACTED CONTENT FOR DIRECT ANALYSIS]:\n${f.extractedText}\n=== END OF FILE ${f.fileName} ===`;
-        })
-        .join('\n\n');
+    let context = '';
+    if (readableDocs.length) {
+      context += 'REPOSITORY DOCUMENTS:\n' + readableDocs.map((doc: any, i: number) =>
+        `--- DOCUMENT ${i + 1}: ${doc.title} ---\n${doc.fullText || doc.contentPreview || doc.summary}\n--- END DOCUMENT ${i + 1} ---`
+      ).join('\n\n');
+    }
+    if (readableAttached.length) {
+      context += `${context ? '\n\n' : ''}ACTIVE ATTACHED FILES:\n` + readableAttached.map((file: any, i: number) =>
+        `=== INGESTED ACTIVE FILE ${i + 1}: ${file.fileName} ===\n${file.extractedText}\n=== END FILE ===`
+      ).join('\n\n');
+    }
+    if (unreadableDocs.length || unreadableAttached.length) {
+      const names = [...unreadableDocs.map((d: any) => d.title), ...unreadableAttached.map((f: any) => f.fileName)];
+      context += `${context ? '\n\n' : ''}UNREADABLE FILES — their contents are unavailable; do not answer questions about them:\n${names.map((n) => `- ${n}`).join('\n')}`;
+    }
+    if (!context) {
+      context = 'NO DOCUMENTS ARE AVAILABLE. If the question asks about document contents, say that no document is attached and ask the user to attach it. Do not answer from prior knowledge.';
     }
 
-    let unreadableNotice = '';
-    if (unreadableDocs.length > 0 || unreadableAttached.length > 0) {
-      unreadableNotice =
-        `THE FOLLOWING DOCUMENTS COULD NOT BE READ — no text was extracted from them, so you have ` +
-        `no access to their contents and must not answer questions about what they say. Name them and ` +
-        `tell the user the document needs to be re-uploaded so its text can be extracted:\n` +
-        [...unreadableDocs.map((d: any) => d.title), ...unreadableAttached.map((f: any) => f.fileName)]
-          .map((t: string) => `- ${t}`)
-          .join('\n');
-    }
+    const userPrompt = prompt || messages[messages.length - 1]?.content || '';
+    const groundedPrompt = `${context}\n\nUSER QUESTION:\n${userPrompt}`;
+    const modelMessages = buildChatMessages({ systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION, messages, groundedPrompt });
 
-    const userPrompt = prompt || (messages ? messages[messages.length - 1]?.content : '');
+    const imageData = (Array.isArray(attachedFiles) ? attachedFiles : [])
+      .filter((file: any) => typeof file.dataUrl === 'string' && file.dataUrl.startsWith('data:image/'))
+      .slice(0, 5);
 
-    let fullPrompt = userPrompt;
-    if (attachedFilesContext) {
-      fullPrompt = `ACTIVE ATTACHED DOCUMENTS INGESTED INTO MEMORY:\n${attachedFilesContext}\n\n` + fullPrompt;
-    }
-    if (docContext) {
-      fullPrompt = `REPOSITORY KNOWLEDGE BASE CONTEXT:\n${docContext}\n\n` + fullPrompt;
-    }
-    if (unreadableNotice) {
-      fullPrompt = `${unreadableNotice}\n\n` + fullPrompt;
-    }
+    let aiResult: any;
+    if (imageData.length === 0) {
+      aiResult = await generateWithFallback({ messages: modelMessages, temperature: 0.2, timeoutMs: 45000 });
+    } else {
+      const multimodalMessages: any[] = modelMessages.map((message) => ({ ...message }));
+      const last = multimodalMessages[multimodalMessages.length - 1];
+      last.content = [
+        { type: 'text', text: String(last.content || '') },
+        ...imageData.map((file: any) => ({ type: 'image_url', image_url: { url: file.dataUrl } }))
+      ];
 
-    // State the absence explicitly. With no context the model simply saw a bare
-    // question and answered it from memory — which is how a request for the date
-    // on the only uploaded contract came back with an invented one.
-    if (!docContext && !attachedFilesContext && !unreadableNotice) {
-      fullPrompt =
-        'NO DOCUMENTS ARE AVAILABLE FOR THIS QUESTION. The user has attached nothing and the repository context is empty. ' +
-        'You therefore cannot answer any question about the contents of their documents. Say that no document is attached ' +
-        'and ask them to attach one. Do not answer from prior knowledge.\n\n' + fullPrompt;
-    }
-
-    // Handle multimodal input
-    if (imageParts.length > 0) {
-      if (process.env.GEMINI_API_KEY) {
-        const ai = getGeminiClient();
-        const parts: any[] = [{ text: fullPrompt }, ...imageParts];
-
-        const response = await ai.models.generateContent({
-          model: model,
-          contents: [{ role: 'user', parts }],
-          config: { systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION }
-        });
-
-        return res.json({
-          text: response.text,
-          provider: 'gemini',
-          modelUsed: model,
-          fallbackTriggered: false
-        });
-      }
-
-      if (process.env.OPENAI_API_KEY) {
-        const imageContent = imageParts.map((part) => ({
-          type: 'image_url' as const,
-          image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-        }));
-        const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      const callVision = async (baseUrl: string, apiKey: string, model: string) => {
+        const response = await fetch(`${baseUrl}/chat/completions`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-              { role: 'system', content: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION },
-              { role: 'user', content: [{ type: 'text', text: fullPrompt }, ...imageContent] }
-            ]
-          })
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ model, messages: multimodalMessages, temperature: 0.2, stream: false })
         });
-        if (!openaiRes.ok) {
-          const detail = await openaiRes.text();
-          return res.status(502).json({ error: 'Image analysis failed', details: detail.slice(0, 300) });
-        }
-        const openaiJson = await openaiRes.json();
-        return res.json({
-          text: openaiJson.choices?.[0]?.message?.content || '',
-          provider: 'openai',
-          modelUsed: 'gpt-4o',
-          fallbackTriggered: true
-        });
-      }
+        if (!response.ok) throw new Error(`${baseUrl.includes('openai') ? 'OpenAI' : 'Grok'} vision call failed [HTTP ${response.status}]: ${await response.text().catch(() => '')}`);
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        if (!text) throw new Error('Vision provider returned an empty response.');
+        return text;
+      };
 
-      return res.status(500).json({
-        error: 'AI service is not configured',
-        details: 'Image questions need GEMINI_API_KEY or OPENAI_API_KEY'
-      });
+      let text = '';
+      let provider: 'openai' | 'grok' = 'openai';
+      let modelUsed = 'gpt-4o';
+      let fallbackTriggered = false;
+      let fallbackReason: string | undefined;
+      try {
+        if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is missing.');
+        text = await callVision('https://api.openai.com/v1', process.env.OPENAI_API_KEY, 'gpt-4o');
+      } catch (primaryError: any) {
+        fallbackTriggered = true;
+        fallbackReason = primaryError?.message || 'OpenAI vision unavailable';
+        if (!process.env.XAI_API_KEY) throw primaryError;
+        text = await callVision('https://api.x.ai/v1', process.env.XAI_API_KEY, 'grok-4.6');
+        provider = 'grok';
+        modelUsed = 'grok-4.6';
+      }
+      aiResult = { text, provider, modelUsed, fallbackTriggered, fallbackReason };
     }
 
-    // Text-only input. The conversation history is kept for continuity, but the
-    // final user turn is fullPrompt — the question with its documents attached.
-    const openAiPayloadMessages = buildChatMessages({
-      systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION,
-      messages,
-      groundedPrompt: fullPrompt
-    });
-
-    const startTime = Date.now();
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('AI generation timed out upstream')), 50000)
-    );
-    const aiResult = await Promise.race([
-      generateWithFallback({
-        messages: openAiPayloadMessages,
-        systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION,
-        model: model,
-        fallbackModel: 'gpt-4o',
-        temperature: 0.2
-      }),
-      timeoutPromise
-    ]);
-
-    const latencyMs = Date.now() - startTime;
-
-    // Cite only what the model actually reported drawing from, verified against
-    // the real documents it was given — not an arbitrary slice of whatever was
-    // in scope. A citation that can't be resolved to a real document (a
-    // hallucinated or paraphrased label) is dropped rather than guessed at.
-    const { cleanedText, entries } = extractCitationManifest(aiResult.text || '');
-    const citations = resolveCitations(entries, readableDocs, readableAttached);
-
+    const citationResult = extractCitationManifest(aiResult.text || '');
+    const citations = resolveCitations(citationResult.entries, readableDocs, readableAttached);
     return res.json({
-      text: cleanedText,
-      provider: aiResult.provider,
-      fallbackTriggered: aiResult.fallbackTriggered,
+      text: citationResult.cleanedText || aiResult.text,
       citations,
+      provider: aiResult.provider,
+      modelUsed: aiResult.modelUsed,
+      fallbackTriggered: aiResult.fallbackTriggered,
+      fallbackReason: aiResult.fallbackReason,
       verificationTrace: {
-        steps: [
-          'Received query and mapped doc identifiers to repository vector space',
-          `Parsed ${documents?.length || 0} document contexts and ${ingestedFilesData?.length || 0} active attachments`,
-          `Executed synthesis using ${aiResult.modelUsed} (${aiResult.provider.toUpperCase()})`,
-          ...(aiResult.fallbackTriggered ? [`Fallback triggered from Gemini to OpenAI (${aiResult.fallbackReason})`] : []),
-          citations.length > 0
-            ? `Matched ${citations.length} cited source${citations.length === 1 ? '' : 's'} to workspace documents`
-            : 'No cited sources could be confirmed against workspace documents'
-        ],
-        modelsUsed: [aiResult.modelUsed],
         provider: aiResult.provider,
-        contextTokensProcessed: Math.floor(fullPrompt.length / 4) + 250,
-        latencyMs
+        model: aiResult.modelUsed,
+        groundedDocuments: readableDocs.length,
+        groundedAttachments: readableAttached.length,
+        unreadableDocuments: unreadableDocs.length + unreadableAttached.length
       }
     });
   } catch (error: any) {
     console.error('Error in /api/chat:', error);
-    return res.status(500).json({
-      error: 'Failed to process AI chat request',
-      details: error.message || String(error)
-    });
+    return res.status(500).json({ error: 'AI request failed', details: error?.message || String(error) });
   }
 }
