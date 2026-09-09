@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/lib/aiFallbackService.ts",
+    "functions/src/lib/aiFallbackService.ts",
+    "tests/ai-fallback-routing.test.ts",
+    "tests/firebase-ai-fallback-routing.test.ts"
+  ],
+  "exclude": ["node_modules"]
+}
