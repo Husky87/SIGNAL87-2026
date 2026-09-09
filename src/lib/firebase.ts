@@ -141,5 +141,59 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   return getDownloadURL(storageRef);
 }
 
+/**
+ * All production Firebase functions now verify the Firebase ID token. The UI
+ * historically called /api/* directly without an Authorization header,
+ * which turned every authenticated AI request into a 401. Keep the request
+ * sites simple and centralize token attachment here so new API callers cannot
+ * accidentally omit auth.
+ *
+ * Only same-origin /api requests are modified. We never intercept third-party
+ * requests, and we preserve an explicitly supplied Authorization header.
+ */
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    let url = '';
+    try {
+      url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    } catch {
+      url = '';
+    }
+
+    const sameOriginApi = (() => {
+      try {
+        const parsed = new URL(url, window.location.origin);
+        return parsed.origin === window.location.origin && parsed.pathname.startsWith('/api/');
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!sameOriginApi) return originalFetch(input, init);
+
+    const headers = new Headers(
+      init?.headers || (input instanceof Request ? input.headers : undefined)
+    );
+    if (!headers.has('Authorization')) {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          headers.set('Authorization', `Bearer ${token}`);
+        } catch (error) {
+          console.warn('Unable to attach Firebase auth token to API request:', error);
+        }
+      }
+    }
+
+    return originalFetch(input, { ...init, headers });
+  };
+}
+
 export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider };
 export type { User };
