@@ -30,14 +30,9 @@ export interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId?: string | null;
-    email?: string | null;
     emailVerified?: boolean | null;
     isAnonymous?: boolean | null;
     tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
   };
 }
 
@@ -46,19 +41,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth?.currentUser?.uid,
-      email: auth?.currentUser?.email,
       emailVerified: auth?.currentUser?.emailVerified,
       isAnonymous: auth?.currentUser?.isAnonymous,
-      tenantId: auth?.currentUser?.tenantId,
-      providerInfo: auth?.currentUser?.providerData?.map((provider) => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
+      tenantId: auth?.currentUser?.tenantId
     },
     operationType,
     path
   };
-  console.warn('Firestore Notice (operating in resilient offline/local mode):', JSON.stringify(errInfo));
+  console.warn('Firestore operation failed:', JSON.stringify(errInfo));
 }
 
 function currentUid(): string | null {
@@ -105,9 +95,7 @@ export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
   try {
     const querySnapshot = await getDocs(userCollection(DOCS_COLLECTION));
     const docsList: DocumentItem[] = [];
-    querySnapshot.forEach((docSnap) => {
-      docsList.push({ id: docSnap.id, ...docSnap.data() } as DocumentItem);
-    });
+    querySnapshot.forEach((docSnap) => docsList.push({ id: docSnap.id, ...docSnap.data() } as DocumentItem));
     return docsList;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, userPath(DOCS_COLLECTION));
@@ -117,9 +105,9 @@ export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
 
 export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<string> {
   const docPath = userPath(DOCS_COLLECTION, docItem.id);
+  const uid = currentUid();
+  if (!uid) throw new Error('Not signed in');
   try {
-    const uid = currentUid();
-    if (!uid) return docItem.id;
     await setDoc(userDocRef(DOCS_COLLECTION, docItem.id), {
       title: docItem.title,
       type: docItem.type,
@@ -146,17 +134,18 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
     return docItem.id;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
-    return docItem.id;
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
 export async function deleteDocumentFromFirestore(docId: string): Promise<void> {
   const docPath = userPath(DOCS_COLLECTION, docId);
+  if (!currentUid()) throw new Error('Not signed in');
   try {
-    if (!currentUid()) return;
     await deleteDoc(userDocRef(DOCS_COLLECTION, docId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, docPath);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -165,9 +154,7 @@ export async function fetchProjectsFromFirestore(): Promise<Project[]> {
   try {
     const querySnapshot = await getDocs(userCollection(PROJECTS_COLLECTION));
     const projectsList: Project[] = [];
-    querySnapshot.forEach((docSnap) => {
-      projectsList.push({ id: docSnap.id, ...docSnap.data() } as Project);
-    });
+    querySnapshot.forEach((docSnap) => projectsList.push({ id: docSnap.id, ...docSnap.data() } as Project));
     return projectsList;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, userPath(PROJECTS_COLLECTION));
@@ -177,8 +164,8 @@ export async function fetchProjectsFromFirestore(): Promise<Project[]> {
 
 export async function saveProjectToFirestore(project: Project): Promise<void> {
   const docPath = userPath(PROJECTS_COLLECTION, project.id);
+  if (!currentUid()) throw new Error('Not signed in');
   try {
-    if (!currentUid()) return;
     await setDoc(userDocRef(PROJECTS_COLLECTION, project.id), {
       name: project.name,
       description: project.description,
@@ -189,6 +176,7 @@ export async function saveProjectToFirestore(project: Project): Promise<void> {
     }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -200,16 +188,7 @@ export async function fetchChatMessagesFromFirestore(): Promise<ChatMessage[]> {
     const msgs: ChatMessage[] = [];
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
-      msgs.push({
-        id: docSnap.id,
-        role: data.role,
-        text: data.text,
-        timestamp: data.timestamp,
-        citations: data.citations,
-        verificationTrace: data.verificationTrace,
-        reasoningSteps: data.reasoningSteps,
-        isDeepResearch: data.isDeepResearch
-      });
+      msgs.push({ id: docSnap.id, role: data.role, text: data.text, timestamp: data.timestamp, citations: data.citations, verificationTrace: data.verificationTrace, reasoningSteps: data.reasoningSteps, isDeepResearch: data.isDeepResearch });
     });
     return msgs;
   } catch (error) {
@@ -220,9 +199,9 @@ export async function fetchChatMessagesFromFirestore(): Promise<ChatMessage[]> {
 
 export async function saveChatMessageToFirestore(msg: ChatMessage): Promise<void> {
   const docPath = userPath(CHAT_COLLECTION, msg.id);
+  const uid = currentUid();
+  if (!uid) throw new Error('Not signed in');
   try {
-    const uid = currentUid();
-    if (!uid) return;
     await setDoc(userDocRef(CHAT_COLLECTION, msg.id), {
       role: msg.role,
       text: msg.text,
@@ -236,6 +215,7 @@ export async function saveChatMessageToFirestore(msg: ChatMessage): Promise<void
     }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -244,9 +224,7 @@ export async function fetchSavedItemsFromFirestore(): Promise<SavedItem[]> {
   try {
     const querySnapshot = await getDocs(userCollection(SAVED_ITEMS_COLLECTION));
     const list: SavedItem[] = [];
-    querySnapshot.forEach((docSnap) => {
-      list.push({ id: docSnap.id, ...docSnap.data() } as SavedItem);
-    });
+    querySnapshot.forEach((docSnap) => list.push({ id: docSnap.id, ...docSnap.data() } as SavedItem));
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, userPath(SAVED_ITEMS_COLLECTION));
@@ -256,40 +234,33 @@ export async function fetchSavedItemsFromFirestore(): Promise<SavedItem[]> {
 
 export async function saveSavedItemToFirestore(item: SavedItem): Promise<void> {
   const docPath = userPath(SAVED_ITEMS_COLLECTION, item.id);
+  const uid = currentUid();
+  if (!uid) throw new Error('Not signed in');
   try {
-    const uid = currentUid();
-    if (!uid) return;
     if (item.type === 'note') {
       await setDoc(userDocRef(SAVED_ITEMS_COLLECTION, item.id), {
-        type: 'note',
-        title: item.title,
-        body: item.body,
-        linkedDocId: item.linkedDocId || null,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-        userId: uid
+        type: 'note', title: item.title, body: item.body, linkedDocId: item.linkedDocId || null,
+        createdAt: item.createdAt, updatedAt: item.updatedAt, userId: uid
       }, { merge: true });
     } else {
       await setDoc(userDocRef(SAVED_ITEMS_COLLECTION, item.id), {
-        type: 'answer',
-        text: item.text,
-        citations: item.citations || [],
-        question: item.question,
-        timestamp: item.timestamp,
-        userId: uid
+        type: 'answer', text: item.text, citations: item.citations || [], question: item.question,
+        timestamp: item.timestamp, userId: uid
       }, { merge: true });
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
 export async function deleteSavedItemFromFirestore(id: string): Promise<void> {
   const docPath = userPath(SAVED_ITEMS_COLLECTION, id);
+  if (!currentUid()) throw new Error('Not signed in');
   try {
-    if (!currentUid()) return;
     await deleteDoc(userDocRef(SAVED_ITEMS_COLLECTION, id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, docPath);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
