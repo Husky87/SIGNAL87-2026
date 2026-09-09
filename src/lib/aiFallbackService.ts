@@ -13,6 +13,7 @@ export interface GenerateWithFallbackOptions {
   responseMimeType?: string;
   responseSchema?: any;
   timeoutMs?: number;
+  maxOutputTokens?: number;
 }
 
 export interface NormalizedAiResponse {
@@ -23,10 +24,6 @@ export interface NormalizedAiResponse {
   fallbackReason?: string;
 }
 
-/**
- * Signal87 intentionally keeps model selection server-side.
- * Legacy UI model ids are normalized to the current OpenAI primary model.
- */
 function mapToOpenAiModel(requested?: string): string {
   if (requested?.startsWith('gpt-')) return requested;
   return 'gpt-4o';
@@ -47,12 +44,8 @@ export function normalizeOpenAiMessages(options: GenerateWithFallbackOptions): O
   }
 
   const msgs: OpenAiMessage[] = [];
-  if (options.systemInstruction) {
-    msgs.push({ role: 'system', content: options.systemInstruction });
-  }
-  if (options.prompt) {
-    msgs.push({ role: 'user', content: options.prompt });
-  }
+  if (options.systemInstruction) msgs.push({ role: 'system', content: options.systemInstruction });
+  if (options.prompt) msgs.push({ role: 'user', content: options.prompt });
   return msgs;
 }
 
@@ -67,15 +60,14 @@ async function callOpenAI(
   const bodyPayload: Record<string, any> = {
     model,
     messages: normalizedMessages,
-    temperature: options.temperature ?? 0.2
+    temperature: options.temperature ?? 0.2,
+    max_tokens: options.maxOutputTokens ?? 1400
   };
 
   if (options.responseMimeType === 'application/json') {
     bodyPayload.response_format = { type: 'json_object' };
     const lastMsg = bodyPayload.messages[bodyPayload.messages.length - 1];
-    if (lastMsg) {
-      lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
-    }
+    if (lastMsg) lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
   }
 
   const timeoutMs = options.timeoutMs ?? 25000;
@@ -85,19 +77,14 @@ async function callOpenAI(
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(bodyPayload),
       signal: controller.signal
     });
-
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
       throw new Error(`OpenAI API call failed [HTTP ${response.status}]: ${detail}`);
     }
-
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
   } finally {
@@ -116,9 +103,7 @@ async function callGrok(
   const messages = [...normalizedMessages];
   if (options.responseMimeType === 'application/json') {
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg) {
-      lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
-    }
+    if (lastMsg) lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
   }
 
   const timeoutMs = options.timeoutMs ?? 25000;
@@ -128,24 +113,20 @@ async function callGrok(
   try {
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
         messages,
         temperature: options.temperature ?? 0.2,
+        max_tokens: options.maxOutputTokens ?? 1400,
         stream: false
       }),
       signal: controller.signal
     });
-
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
       throw new Error(`Grok API call failed [HTTP ${response.status}]: ${detail}`);
     }
-
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
   } finally {
@@ -153,26 +134,16 @@ async function callGrok(
   }
 }
 
-export async function generateWithFallback(
-  options: GenerateWithFallbackOptions
-): Promise<NormalizedAiResponse> {
+export async function generateWithFallback(options: GenerateWithFallbackOptions): Promise<NormalizedAiResponse> {
   const normalizedMessages = normalizeOpenAiMessages(options);
   const openaiModel = mapToOpenAiModel(options.model);
   const grokModel = mapToGrokModel(options.fallbackModel);
-
   let primaryError: any = null;
 
   if (process.env.OPENAI_API_KEY) {
     try {
       const responseText = await callOpenAI(normalizedMessages, options, openaiModel);
-      if (responseText) {
-        return {
-          text: responseText,
-          provider: 'openai',
-          modelUsed: openaiModel,
-          fallbackTriggered: false
-        };
-      }
+      if (responseText) return { text: responseText, provider: 'openai', modelUsed: openaiModel, fallbackTriggered: false };
       primaryError = new Error('OpenAI returned an empty response.');
     } catch (err: any) {
       primaryError = err;
@@ -183,55 +154,28 @@ export async function generateWithFallback(
   }
 
   const initialReason = primaryError?.message || 'OpenAI service unavailable';
-
   if (process.env.XAI_API_KEY) {
     try {
       const responseText = await callGrok(normalizedMessages, options, grokModel);
-      if (responseText) {
-        return {
-          text: responseText,
-          provider: 'grok',
-          modelUsed: grokModel,
-          fallbackTriggered: true,
-          fallbackReason: initialReason
-        };
-      }
+      if (responseText) return { text: responseText, provider: 'grok', modelUsed: grokModel, fallbackTriggered: true, fallbackReason: initialReason };
     } catch (err: any) {
       console.warn(`Grok fallback (${grokModel}) failed: ${err?.message || err}`);
     }
   }
 
-  const missingKeys = [
-    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
-    !process.env.XAI_API_KEY && 'XAI_API_KEY'
-  ].filter(Boolean) as string[];
-
+  const missingKeys = [!process.env.OPENAI_API_KEY && 'OPENAI_API_KEY', !process.env.XAI_API_KEY && 'XAI_API_KEY'].filter(Boolean) as string[];
   if (options.responseMimeType === 'application/json') {
     return {
-      text: JSON.stringify({
-        summary: `Automated analysis did not run. Reason: ${initialReason}.`,
-        entities: [],
-        riskHighlights: [],
-        suggestedTags: [],
-        analysisSkipped: true,
-        analysisSkippedReason: initialReason
-      }),
-      provider: 'none',
-      modelUsed: 'analysis-unavailable',
-      fallbackTriggered: true,
-      fallbackReason: initialReason
+      text: JSON.stringify({ summary: `Automated analysis did not run. Reason: ${initialReason}.`, entities: [], riskHighlights: [], suggestedTags: [], analysisSkipped: true, analysisSkippedReason: initialReason }),
+      provider: 'none', modelUsed: 'analysis-unavailable', fallbackTriggered: true, fallbackReason: initialReason
     };
   }
 
   const diagnosis = missingKeys.length
     ? `No AI provider is configured. Missing: ${missingKeys.join(' and ')}.`
     : `The configured AI providers rejected the request. Last primary error: ${initialReason}`;
-
   return {
     text: `## Analysis unavailable\n\nYour question was **not** answered.\n\n**Why:** ${diagnosis}`,
-    provider: 'none',
-    modelUsed: 'analysis-unavailable',
-    fallbackTriggered: true,
-    fallbackReason: initialReason
+    provider: 'none', modelUsed: 'analysis-unavailable', fallbackTriggered: true, fallbackReason: initialReason
   };
 }
