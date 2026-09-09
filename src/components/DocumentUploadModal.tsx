@@ -6,7 +6,7 @@ import {
 import { DocumentItem } from '../types';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { fileDataCache } from '../lib/pdfGenerator';
-import { uploadDocumentFile } from '../lib/firebase';
+import { auth, uploadDocumentFile } from '../lib/firebase';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -14,12 +14,8 @@ interface DocumentUploadModalProps {
   onUploadSuccess: (newDoc: DocumentItem, parsedFile?: ParsedFileResult) => void;
   documents: DocumentItem[];
   onSelectExistingDocument?: (doc: DocumentItem) => void;
-  // Files dropped directly onto the Files browser (outside this modal) get
-  // fed straight into the same upload pipeline once the modal opens.
   initialFiles?: File[];
   onInitialFilesConsumed?: () => void;
-  // Called once every queued file finishes, right before the modal
-  // auto-closes, so the app can navigate back to where the results live.
   onAllUploadsComplete?: () => void;
   targetFolderId?: string | null;
 }
@@ -32,6 +28,28 @@ interface FileProgressItem {
   status: 'queued' | 'uploading' | 'processing' | 'ready' | 'error';
   stepMessage: string;
   category?: 'Legal' | 'Legislative' | 'Financial' | 'Research';
+}
+
+const STORAGE_TIMEOUT_MS = 120000;
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
+function detectDocumentType(title: string): DocumentItem['type'] {
+  const extension = title.split('.').pop()?.toLowerCase() || '';
+  if (extension === 'doc' || extension === 'docx') return 'docx' as DocumentItem['type'];
+  if (extension === 'xlsx' || extension === 'xls') return 'xlsx' as DocumentItem['type'];
+  if (extension === 'csv') return 'csv' as DocumentItem['type'];
+  if (extension === 'pdf') return 'pdf' as DocumentItem['type'];
+  if (extension === 'pptx') return 'pptx' as DocumentItem['type'];
+  if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) return 'image' as DocumentItem['type'];
+  return 'txt' as DocumentItem['type'];
+}
+
+function inferCategory(title: string, text: string): FileProgressItem['category'] {
+  const haystack = `${title} ${text.slice(0, 4000)}`.toLowerCase();
+  if (/invoice|balance sheet|income statement|financial|budget|expense|revenue|10-k|10q|bank statement/.test(haystack)) return 'Financial';
+  if (/bill|statute|legislation|legislative|regulation|ordinance|committee|senate|house of representatives/.test(haystack)) return 'Legislative';
+  if (/contract|agreement|lease|nda|indemnity|indemnification|legal|litigation|terms/.test(haystack)) return 'Legal';
+  return 'Research';
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
@@ -47,7 +65,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   useEffect(() => {
     if (isOpen && initialFiles && initialFiles.length > 0) {
       handleFilesSelected(initialFiles);
-      if (onInitialFilesConsumed) onInitialFilesConsumed();
+      onInitialFilesConsumed?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialFiles]);
@@ -61,140 +79,153 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       setUploadingFiles((prev) => prev.map((item) => item.id === fileId ? { ...item, ...updates } : item));
     };
 
-    updateItem({ progress: 10, status: 'uploading', stepMessage: 'Uploading document payload...' });
-    await new Promise((r) => setTimeout(r, 200));
-    updateItem({ progress: 35, status: 'uploading', stepMessage: 'Parsing file structure & metadata...' });
-
-    let parsedResult: ParsedFileResult | undefined;
-    let extractedText = `Uploaded enterprise document "${title}".`;
-    if (fileObj) {
-      parsedResult = await parseFileContent(fileObj);
-      extractedText = parsedResult.extractedText || extractedText;
-      if (extractedText.startsWith('[Error parsing') || extractedText.startsWith('Cannot extract text')) {
-        updateItem({ status: 'error', progress: 0, stepMessage: extractedText.slice(0, 160) });
-        return;
-      }
-    } else {
-      await new Promise((r) => setTimeout(r, 250));
-    }
-
-    updateItem({ progress: 55, status: 'processing', stepMessage: 'Reading your document...' });
-    await new Promise((r) => setTimeout(r, 300));
-    updateItem({ progress: 75, status: 'processing', stepMessage: 'Making it searchable...' });
-
-    let backendData: any = {};
     try {
-      const res = await fetch('/api/documents/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, textContent: extractedText.slice(0, 100000), spreadsheetData: parsedResult?.spreadsheetData })
-      });
-      if (res.ok) backendData = await res.json();
-    } catch (apiErr) {
-      console.warn('Backend API fallback:', apiErr);
-    }
+      updateItem({ progress: 10, status: 'uploading', stepMessage: 'Uploading document payload...' });
+      await new Promise((r) => setTimeout(r, 200));
+      updateItem({ progress: 35, status: 'uploading', stepMessage: 'Parsing file structure & metadata...' });
 
-    updateItem({ progress: 90, status: 'processing', stepMessage: 'Saving to secure storage...' });
+      let parsedResult: ParsedFileResult | undefined;
+      let extractedText = `Uploaded enterprise document "${title}".`;
+      if (fileObj) {
+        parsedResult = await parseFileContent(fileObj);
+        extractedText = parsedResult.extractedText || extractedText;
+        if (extractedText.startsWith('[Error parsing') || extractedText.startsWith('Cannot extract text')) {
+          throw new Error(extractedText.slice(0, 500));
+        }
+      } else {
+        await new Promise((r) => setTimeout(r, 250));
+      }
 
-    const docId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const category = inferCategory(title, extractedText);
+      updateItem({ progress: 55, status: 'processing', stepMessage: 'Reading your document...', category });
+      await new Promise((r) => setTimeout(r, 300));
+      updateItem({ progress: 75, status: 'processing', stepMessage: 'Making it searchable...' });
 
-    // blob: URLs only live for this browser tab — upload to Firebase Storage so the
-    // real file survives a reload instead of falling back to a reconstructed preview.
-    // Firebase's uploadBytes retries network/5xx failures for up to 2 minutes by
-    // default before rejecting, which reads as a dead progress bar — bound it so
-    // a Storage problem degrades to the local-preview fallback instead of hanging.
-    let fileUrl = fileObj ? URL.createObjectURL(fileObj) : undefined;
-    if (fileObj) {
+      let backendData: any = {};
       try {
+        const res = await fetch('/api/documents/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, textContent: extractedText.slice(0, 100000), spreadsheetData: parsedResult?.spreadsheetData })
+        });
+        if (!res.ok) {
+          const message = await res.text().catch(() => 'Document processing failed');
+          throw new Error(`Document processing failed (${res.status}): ${message.slice(0, 240)}`);
+        }
+        backendData = await res.json();
+      } catch (apiErr) {
+        // AI enrichment is useful but the source file can still be persisted safely.
+        // Do not mark the upload failed merely because enrichment is temporarily down.
+        console.warn('Document AI processing unavailable; continuing with local extraction:', apiErr);
+      }
+
+      updateItem({ progress: 88, status: 'processing', stepMessage: 'Saving to secure storage...' });
+      const docId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+      let fileUrl = '';
+      if (fileObj) {
+        if (!auth.currentUser) throw new Error('Your session expired. Please sign in again and retry the upload.');
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Storage upload timed out')), 15000)
+          setTimeout(() => reject(new Error('Secure storage upload timed out after 120 seconds.')), STORAGE_TIMEOUT_MS)
         );
-        fileUrl = await Promise.race([uploadDocumentFile(fileObj, docId), timeoutPromise]);
-      } catch (storageErr) {
-        console.warn('Firebase Storage upload failed or timed out, using local preview only:', storageErr);
+        try {
+          fileUrl = await Promise.race([uploadDocumentFile(fileObj, docId), timeoutPromise]);
+        } catch (storageErr) {
+          throw new Error(`Could not save the original file to secure storage: ${storageErr instanceof Error ? storageErr.message : String(storageErr)}`);
+        }
       }
-    }
 
-    const extension = title.split('.').pop()?.toLowerCase() || '';
-    const detectedType = extension === 'docx' ? 'docx' : extension === 'xlsx' || extension === 'xls' ? 'xlsx' : extension === 'csv' ? 'csv' : extension === 'pdf' ? 'pdf' : 'txt';
+      const detectedType = detectDocumentType(title);
+      updateItem({ progress: 95, status: 'processing', stepMessage: 'Generating summary...' });
 
-    updateItem({ progress: 95, status: 'processing', stepMessage: 'Generating summary...' });
-
-    let aiSummary = '';
-    try {
-      const summaryRes = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentText: extractedText,
-          documentTitle: title,
-          documentType: detectedType
-        })
-      });
-      if (summaryRes.ok) {
-        const summaryData = await summaryRes.json();
-        aiSummary = summaryData.summary || '';
+      let aiSummary = '';
+      try {
+        const summaryRes = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documentText: extractedText, documentTitle: title, documentType: detectedType })
+        });
+        if (summaryRes.ok) {
+          const summaryData = await summaryRes.json();
+          aiSummary = summaryData.summary || '';
+        } else {
+          console.warn('Summary generation returned', summaryRes.status);
+        }
+      } catch (err) {
+        console.warn('Failed to generate AI summary; keeping document available:', err);
       }
-    } catch (err) {
-      console.warn('Failed to generate AI summary:', err);
+
+      const now = new Date().toISOString();
+      const owner = auth.currentUser?.email || 'Unknown user';
+      const organization = auth.currentUser?.displayName || 'Signal87 AI';
+      const fallbackTags = ['Uploaded', category || 'Research'];
+      const newDoc: DocumentItem & { fullText?: string } = {
+        id: docId,
+        title,
+        type: detectedType,
+        sizeBytes,
+        uploadDate: now,
+        tags: backendData.suggestedTags?.length ? backendData.suggestedTags : fallbackTags,
+        owner,
+        organization,
+        status: 'ready',
+        aiIndexed: Boolean(backendData && Object.keys(backendData).length),
+        embeddingsComplete: Boolean(backendData && Object.keys(backendData).length),
+        versionHistory: [{ version: 1, updatedAt: now, updatedBy: owner, changeNote: 'Initial upload' }],
+        permissions: 'Organization',
+        summary: aiSummary || backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
+        entities: backendData.entities || [{ name: title, type: 'Document', relevance: 90 }],
+        riskHighlights: backendData.riskHighlights || [],
+        contentPreview: extractedText,
+        fullText: extractedText,
+        category: category || 'Research',
+        projectIds: [],
+        fileUrl,
+        folderId: targetFolderId || undefined
+      };
+
+      if (fileObj) {
+        try { fileDataCache.set(newDoc.id, await fileObj.arrayBuffer()); }
+        catch (err) { console.warn('Failed to cache uploaded file buffer:', err); }
+      }
+
+      updateItem({ progress: 100, status: 'ready', stepMessage: 'Ready' });
+      onUploadSuccess(newDoc as DocumentItem, parsedResult);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      updateItem({ progress: 0, status: 'error', stepMessage: message.slice(0, 180) });
     }
-
-    updateItem({ progress: 98, status: 'processing', stepMessage: 'Finalizing...' });
-    await new Promise((r) => setTimeout(r, 100));
-
-    const newDoc: DocumentItem & { fullText?: string } = {
-      id: docId,
-      title,
-      type: detectedType as DocumentItem['type'],
-      sizeBytes,
-      uploadDate: new Date().toISOString(),
-      tags: backendData.suggestedTags || ['Uploaded', 'Ready', 'Legal'],
-      owner: 'ceo@signal87.ai', organization: 'Signal87 Executive', status: 'ready',
-      aiIndexed: true, embeddingsComplete: true,
-      versionHistory: [{ version: 1, updatedAt: new Date().toISOString(), updatedBy: 'ceo@signal87.ai', changeNote: 'Initial deposit' }],
-      permissions: 'Organization',
-      summary: aiSummary || backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
-      entities: backendData.entities || [{ name: title, type: 'Contract', relevance: 90 }],
-      riskHighlights: backendData.riskHighlights || ['Standard compliance verification complete'],
-      contentPreview: extractedText, fullText: extractedText, category: 'Legal', projectIds: [], fileUrl,
-      folderId: targetFolderId || undefined
-    };
-
-    // Cache only the original bytes for ingestion/recovery. PDFViewer now validates
-    // the cache header and will never feed DOCX/XLSX bytes into pdf.js.
-    if (fileObj) {
-      try { fileDataCache.set(newDoc.id, await fileObj.arrayBuffer()); }
-      catch (err) { console.warn('Failed to cache uploaded file buffer:', err); }
-    }
-
-    updateItem({ progress: 100, status: 'ready', stepMessage: 'Ready' });
-    onUploadSuccess(newDoc as DocumentItem, parsedResult);
   };
 
   const handleFilesSelected = async (files: File[]) => {
     if (files.length === 0) return;
-    const newItems: FileProgressItem[] = files.map((file, idx) => ({
+    const validFiles = files.filter((file) => file.size > 0 && file.size <= MAX_FILE_SIZE_BYTES);
+    const rejected = files.filter((file) => file.size === 0 || file.size > MAX_FILE_SIZE_BYTES);
+    const newItems: FileProgressItem[] = validFiles.map((file, idx) => ({
       id: `up-${Date.now()}-${idx}`, name: file.name, sizeBytes: file.size, progress: 0,
-      status: 'queued', stepMessage: 'Queued for processing', category: 'Legal'
+      status: 'queued', stepMessage: 'Queued for processing'
     }));
-    setUploadingFiles((prev) => [...prev, ...newItems]);
-    setIsProcessing(true);
+    const rejectedItems: FileProgressItem[] = rejected.map((file, idx) => ({
+      id: `rejected-${Date.now()}-${idx}`, name: file.name, sizeBytes: file.size, progress: 0,
+      status: 'error', stepMessage: file.size > MAX_FILE_SIZE_BYTES ? 'File exceeds the 50MB upload limit' : 'File is empty'
+    }));
+    setUploadingFiles((prev) => [...prev, ...newItems, ...rejectedItems]);
+    setIsProcessing(validFiles.length > 0);
     let finished = 0;
-    for (let i = 0; i < files.length; i++) {
-      await simulateProgress(newItems[i].id, files[i]);
+    for (let i = 0; i < validFiles.length; i++) {
+      await simulateProgress(newItems[i].id, validFiles[i]);
       finished++;
       setCompletedCount((prev) => prev + 1);
-      setOverallProgress(Math.round((finished / files.length) * 100));
+      setOverallProgress(Math.round((finished / Math.max(validFiles.length, 1)) * 100));
     }
     setIsProcessing(false);
 
-    // Let the "Upload Complete 100%" state register, then take the user
-    // back to where the files actually live instead of leaving the modal
-    // sitting open over whatever screen it was triggered from.
-    setTimeout(() => {
-      if (onAllUploadsComplete) onAllUploadsComplete();
-      handleCloseModal();
-    }, 1200);
+    if (validFiles.length > 0) {
+      setTimeout(() => {
+        onAllUploadsComplete?.();
+        handleCloseModal();
+      }, 1200);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
