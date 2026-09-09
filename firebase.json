@@ -5,28 +5,33 @@
       "rules": "firestore.rules"
     }
   ],
-  "storage": { "rules": "storage.rules" },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "functions": [
-    { "source": "functions", "codebase": "default", "runtime": "nodejs20" },
-    { "source": "functions-export", "codebase": "exports", "runtime": "nodejs20" }
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "functions-export",
+      "codebase": "exports",
+      "runtime": "nodejs20"
+    }
   ],
   "hosting": {
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
-      { "source": "/api/health", "function": "health" },
-      { "source": "/api/chat", "function": "chat" },
-      { "source": "/api/research", "function": "research" },
-      { "source": "/api/compare", "function": "compare" },
-      { "source": "/api/analyze", "function": "analyze" },
-      { "source": "/api/summarize", "function": "summarize" },
-      { "source": "/api/documents/process", "function": "documentsProcess" },
-      { "source": "/api/auth/welcome-email", "function": "authWelcomeEmail" },
-      { "source": "/api/export-document", "function": "exportDocument", "region": "us-east1" },
-      { "source": "/privacy", "destination": "/privacy.html" },
-      { "source": "/terms", "destination": "/terms.html" },
-      { "source": "/team", "destination": "/team.html" },
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }

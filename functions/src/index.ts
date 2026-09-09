@@ -4,6 +4,35 @@ import { GoogleGenAI } from '@google/genai';
 import { generateWithFallback } from './lib/aiFallbackService.js';
 import { hasUsableText } from './lib/extractedText.js';
 import { buildChatMessages } from './lib/chatPayload.js';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+
+if (getApps().length === 0) {
+  initializeApp();
+}
+
+/**
+ * Verifies the caller sent a valid Firebase ID token. Every AI-calling
+ * endpoint was previously open to anyone on the internet with no auth check
+ * at all — this closes that gap. Returns the verified uid on success, or
+ * writes a 401 and returns null, in which case the caller must return
+ * immediately without doing any further work.
+ */
+async function requireAuth(req: any, res: any): Promise<string | null> {
+  const header = req.headers.authorization || '';
+  const match = header.match(/^Bearer (.+)$/);
+  if (!match) {
+    res.status(401).json({ error: 'Missing or malformed Authorization header' });
+    return null;
+  }
+  try {
+    const decoded = await getAuth().verifyIdToken(match[1]);
+    return decoded.uid;
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid or expired auth token' });
+    return null;
+  }
+}
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
@@ -132,6 +161,9 @@ export const authWelcomeEmail = onRequest({ timeoutSeconds: 30, cors: false }, a
 // /api/summarize
 // ---------------------------------------------------------------------------
 export const summarize = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -201,6 +233,9 @@ Generate only the summary text, no additional commentary.`;
 // /api/compare
 // ---------------------------------------------------------------------------
 export const compare = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -281,6 +316,9 @@ Provide a JSON output comparing the documents with the following structure:
 // /api/documents/process
 // ---------------------------------------------------------------------------
 export const documentsProcess = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -343,6 +381,9 @@ export const documentsProcess = onRequest(RUNTIME_OPTS, async (req, res) => {
 // /api/analyze
 // ---------------------------------------------------------------------------
 export const analyze = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -621,6 +662,9 @@ function extractSection(responseText: string, sectionName: string): string {
 // /api/research
 // ---------------------------------------------------------------------------
 export const research = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -851,6 +895,9 @@ If the question asks for cause, mechanism, or explanation:
 - Identifiers: NEVER output internal document IDs, database keys, or system metadata (e.g., "doc-1786393760868-ji34c"). Refer to documents only by their plain title.`;
 
 export const chat = onRequest(RUNTIME_OPTS, async (req, res) => {
+  const uid = await requireAuth(req, res);
+  if (!uid) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method Not Allowed' });

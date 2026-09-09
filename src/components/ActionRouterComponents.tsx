@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { exportResult } from "../lib/exportDocument";
 import {
   Copy,
   Check,
@@ -676,12 +677,113 @@ export const ActionRouterCard: React.FC<{
         )}
 
         <button
-          onClick={() => onExportPDF('Signal87 AI Brief', msg.text)}
+          onClick={async () => {
+            const source = document.querySelector(
+              `[data-export-message-id="${msg.id}"]`
+            ) as HTMLElement | null;
+
+            if (!source) {
+              window.alert("Could not find the answer to export.");
+              return;
+            }
+
+            try {
+              setExporting("pdf");
+
+              await exportResult({
+                element: source,
+                format: "pdf",
+                title: userPrompt?.trim() || "Signal87 AI Brief",
+                filename: "Signal87-AI-Brief",
+              });
+            } catch (error) {
+              console.error("PDF export failed:", error);
+              window.alert("PDF export failed. Please try again.");
+            } finally {
+              setExporting(null);
+            }
+          }}
           className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
           title="Export PDF"
         >
           <Download size={13} />
-          <span>Export PDF</span>
+          <span>
+            {exporting === "pdf" ? "Exporting..." : "PDF"}
+          </span>
+        </button>
+
+        <button
+          onClick={async () => {
+            const source = document.querySelector(
+              `[data-export-message-id="${msg.id}"]`
+            ) as HTMLElement | null;
+
+            if (!source) {
+              window.alert("Could not find the answer to export.");
+              return;
+            }
+
+            try {
+              setExporting("word");
+
+              await exportResult({
+                element: source,
+                format: "word",
+                title: userPrompt?.trim() || "Signal87 AI Brief",
+                filename: "Signal87-AI-Brief",
+              });
+            } catch (error) {
+              console.error("Word export failed:", error);
+              window.alert("Word export failed. Please try again.");
+            } finally {
+              setExporting(null);
+            }
+          }}
+          disabled={!!exporting}
+          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+          title="Export Word document"
+        >
+          <Download size={13} />
+          <span>
+            {exporting === "word" ? "Exporting..." : "Word"}
+          </span>
+        </button>
+
+        <button
+          onClick={async () => {
+            const source = document.querySelector(
+              `[data-export-message-id="${msg.id}"]`
+            ) as HTMLElement | null;
+
+            if (!source) {
+              window.alert("Could not find the answer to export.");
+              return;
+            }
+
+            try {
+              setExporting("excel");
+
+              await exportResult({
+                element: source,
+                format: "excel",
+                title: userPrompt?.trim() || "Signal87 AI Brief",
+                filename: "Signal87-AI-Brief",
+              });
+            } catch (error) {
+              console.error("Excel export failed:", error);
+              window.alert("Excel export failed. Please try again.");
+            } finally {
+              setExporting(null);
+            }
+          }}
+          disabled={!!exporting}
+          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--ink-2)] hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+          title="Export Excel workbook"
+        >
+          <FileSpreadsheet size={13} />
+          <span>
+            {exporting === "excel" ? "Exporting..." : "Excel"}
+          </span>
         </button>
 
         {onSaveAnswer && (
