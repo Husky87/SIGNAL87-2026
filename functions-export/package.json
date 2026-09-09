@@ -1,0 +1,17 @@
+{
+  "name": "signal87-export-functions",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "lib/index.js",
+  "scripts": { "build": "tsc" },
+  "dependencies": {
+    "firebase-functions": "^6.1.0",
+    "firebase-admin": "^13.0.0",
+    "@sparticuz/chromium": "^138.0.2",
+    "puppeteer-core": "^24.17.0",
+    "html-to-docx": "^1.8.0",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": { "typescript": "~5.8.2" }
+}
