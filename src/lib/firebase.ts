@@ -10,7 +10,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult,
+  getRedirectResult as firebaseGetRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -108,6 +108,19 @@ export const signInWithEmail = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
 
+/**
+ * Complete a redirect-based OAuth flow with the same resolver that started it.
+ *
+ * Auth is initialized without a popup/redirect resolver on purpose so mobile
+ * browsers do not pay the resolver's iframe startup cost. That means every
+ * redirect operation must pass browserPopupRedirectResolver explicitly. The
+ * previous export leaked Firebase's raw getRedirectResult(), so App.tsx called
+ * it without a resolver and could return to the landing page instead of
+ * completing the signed-in session.
+ */
+export const getRedirectResult = (authInstance = auth) =>
+  firebaseGetRedirectResult(authInstance, browserPopupRedirectResolver);
+
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
 export const storage = getStorage(app);
 
@@ -168,5 +181,5 @@ if (typeof window !== 'undefined') {
   };
 }
 
-export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider };
+export { signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider };
 export type { User };
