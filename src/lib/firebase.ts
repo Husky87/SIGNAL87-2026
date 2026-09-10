@@ -128,7 +128,7 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Not signed in');
   const storageRef = ref(storage, `users/${uid}/documents/${docId}/${file.name}`);
-  await uploadBytes(storageRef, storageRef as any);
+  await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 }
 
