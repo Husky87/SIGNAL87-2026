@@ -64,14 +64,6 @@ function markRedirectPending() {
   }
 }
 
-function prefersRedirectSignIn() {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Android/i.test(ua);
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  return isSafari || isIOS;
-}
-
 function isPopupFailure(error: unknown) {
   const code = (error as { code?: string } | null)?.code || '';
   return (
@@ -81,15 +73,20 @@ function isPopupFailure(error: unknown) {
   );
 }
 
+/**
+ * Mobile browsers are particularly sensitive to Firebase redirect auth when
+ * the app is hosted on a custom domain. Firebase documents that redirect auth
+ * can depend on cross-origin storage, which Safari and newer browser privacy
+ * protections can block. Use popup first so the Google result is returned
+ * directly to the live Auth instance on mobile as well as desktop. If the
+ * browser blocks the popup, fall back to the existing redirect flow.
+ */
 export const signInWithGoogleRedirect = async () => {
   markRedirectPending();
   return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
 };
 
 export const signInWithGoogle = async () => {
-  if (prefersRedirectSignIn()) {
-    return signInWithGoogleRedirect();
-  }
   try {
     return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
   } catch (error) {
@@ -110,13 +107,8 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 /**
  * Complete a redirect-based OAuth flow with the same resolver that started it.
- *
- * Auth is initialized without a popup/redirect resolver on purpose so mobile
- * browsers do not pay the resolver's iframe startup cost. That means every
- * redirect operation must pass browserPopupRedirectResolver explicitly. The
- * previous export leaked Firebase's raw getRedirectResult(), so App.tsx called
- * it without a resolver and could return to the landing page instead of
- * completing the signed-in session.
+ * Auth is initialized without a popup/redirect resolver on purpose, so every
+ * redirect operation must pass browserPopupRedirectResolver explicitly.
  */
 export const getRedirectResult = (authInstance = auth) =>
   firebaseGetRedirectResult(authInstance, browserPopupRedirectResolver);
