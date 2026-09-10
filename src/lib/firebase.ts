@@ -64,6 +64,15 @@ function markRedirectPending() {
   }
 }
 
+function prefersRedirectSignIn() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Android/i.test(ua);
+  return isIOS || isSafari;
+}
+
 function isPopupFailure(error: unknown) {
   const code = (error as { code?: string } | null)?.code || '';
   return (
@@ -74,12 +83,11 @@ function isPopupFailure(error: unknown) {
 }
 
 /**
- * Mobile browsers are particularly sensitive to Firebase redirect auth when
- * the app is hosted on a custom domain. Firebase documents that redirect auth
- * can depend on cross-origin storage, which Safari and newer browser privacy
- * protections can block. Use popup first so the Google result is returned
- * directly to the live Auth instance on mobile as well as desktop. If the
- * browser blocks the popup, fall back to the existing redirect flow.
+ * Safari/iOS uses the full-page redirect flow. The production custom domain
+ * proxies Firebase's /__/auth and /__/firebase helpers to the Firebase project,
+ * so the redirect can complete without relying on third-party storage.
+ * Desktop browsers use popup auth for the fastest in-place sign-in, with a
+ * redirect fallback if the browser blocks the popup.
  */
 export const signInWithGoogleRedirect = async () => {
   markRedirectPending();
@@ -87,6 +95,10 @@ export const signInWithGoogleRedirect = async () => {
 };
 
 export const signInWithGoogle = async () => {
+  if (prefersRedirectSignIn()) {
+    return signInWithGoogleRedirect();
+  }
+
   try {
     return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
   } catch (error) {
