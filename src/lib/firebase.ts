@@ -47,7 +47,8 @@ function markRedirectPending() {
   try {
     sessionStorage.setItem('s87_auth_redirect', '1');
   } catch {
-    /* private browsing may block sessionStorage */
+    // Some private-browsing modes block sessionStorage. Firebase can still
+    // complete the redirect, and the auth-state observer remains authoritative.
   }
 }
 
@@ -56,12 +57,26 @@ export const signInWithGoogleRedirect = () => {
   return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
 };
 
-// Keep the Firebase call synchronous from the button event. Firefox can treat
-// an authentication popup differently when it is opened after an async hop.
-// Explicitly supplying the resolver also makes this independent of how Auth
-// was initialized by a previous module instance.
-export const signInWithGoogle = () =>
-  signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+/**
+ * Use a popup when possible, then fall back to a full-page redirect only when
+ * the browser blocks or cannot support the popup. This preserves the best UX
+ * on desktop while keeping Safari, Firefox, and mobile browsers usable.
+ */
+export const signInWithGoogle = async () => {
+  try {
+    return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+  } catch (error: any) {
+    const code = error?.code;
+    const shouldRedirect =
+      code === 'auth/popup-blocked' ||
+      code === 'auth/popup-closed-by-user' ||
+      code === 'auth/operation-not-supported-in-this-environment' ||
+      code === 'auth/unauthorized-domain';
+
+    if (!shouldRedirect) throw error;
+    return signInWithGoogleRedirect();
+  }
+};
 
 export const signUpWithEmail = async (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
