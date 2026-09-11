@@ -51,13 +51,17 @@ function markRedirectPending() {
   }
 }
 
-export const signInWithGoogleRedirect = async () => {
+export const signInWithGoogleRedirect = () => {
   markRedirectPending();
-  return signInWithRedirect(auth, googleProvider);
+  return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
 };
 
-export const signInWithGoogle = async () =>
-  signInWithPopup(auth, googleProvider);
+// Keep the Firebase call synchronous from the button event. Firefox can treat
+// an authentication popup differently when it is opened after an async hop.
+// Explicitly supplying the resolver also makes this independent of how Auth
+// was initialized by a previous module instance.
+export const signInWithGoogle = () =>
+  signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
 
 export const signUpWithEmail = async (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
