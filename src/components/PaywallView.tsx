@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, LogOut } from 'lucide-react';
+import { Check, LogOut, Clock3 } from 'lucide-react';
 import { Signal87Logo } from './Signal87Logo';
 
 interface PaywallViewProps {
@@ -41,14 +41,17 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             ))}
           </ul>
 
-          <a
-            href="mailto:billing@signal87.ai?subject=Signal87%20Subscription"
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center transition-all min-h-[44px]"
+          <button
+            type="button"
+            disabled
+            className="w-full py-2.5 bg-[var(--teal)]/45 text-white/75 font-medium text-[13.5px] rounded-full inline-flex items-center justify-center gap-2 min-h-[44px] cursor-not-allowed"
+            aria-disabled="true"
           >
-            Upgrade — billing coming soon
-          </a>
+            <Clock3 size={15} />
+            Billing setup coming soon
+          </button>
           <p className="text-[12px] text-[var(--muted)] text-center">
-            Online checkout is being finalized. Email us and we'll activate your account directly.
+            Online checkout is still being finalized. We’ll enable upgrades here as soon as billing is ready.
           </p>
         </div>
 
