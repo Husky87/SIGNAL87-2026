@@ -1,12 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
-  initializeAuth,
-  indexedDBLocalPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence,
-  inMemoryPersistence,
-  browserPopupRedirectResolver,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -23,23 +17,10 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-function createAuth() {
-  try {
-    return initializeAuth(app, {
-      persistence: [
-        indexedDBLocalPersistence,
-        browserLocalPersistence,
-        browserSessionPersistence,
-        inMemoryPersistence
-      ],
-      popupRedirectResolver: browserPopupRedirectResolver
-    });
-  } catch {
-    return getAuth(app);
-  }
-}
+// Use Firebase's supported browser defaults. This avoids partially initialized
+// Auth instances when a browser rejects one of the custom persistence layers.
+export const auth = getAuth(app);
 
-export const auth = createAuth();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
@@ -47,35 +28,20 @@ function markRedirectPending() {
   try {
     sessionStorage.setItem('s87_auth_redirect', '1');
   } catch {
-    // Some private-browsing modes block sessionStorage. Firebase can still
-    // complete the redirect, and the auth-state observer remains authoritative.
+    // Authentication state remains authoritative if sessionStorage is blocked.
   }
 }
 
 export const signInWithGoogleRedirect = () => {
   markRedirectPending();
-  return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
+  return signInWithRedirect(auth, googleProvider);
 };
 
-/**
- * Use a popup when possible, then fall back to a full-page redirect only when
- * the browser blocks or cannot support the popup. Authentication configuration
- * errors are deliberately rethrown so they are visible instead of causing an
- * unexplained navigation loop.
- */
-export const signInWithGoogle = async () => {
-  try {
-    return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
-  } catch (error: any) {
-    const code = error?.code;
-    const shouldRedirect =
-      code === 'auth/popup-blocked' ||
-      code === 'auth/operation-not-supported-in-this-environment';
-
-    if (!shouldRedirect) throw error;
-    return signInWithGoogleRedirect();
-  }
-};
+// Google popup is the primary production flow. Firebase documents popup auth
+// as the preferred alternative on browsers that block third-party redirect
+// storage, including Safari and Firefox.
+export const signInWithGoogle = () =>
+  signInWithPopup(auth, googleProvider);
 
 export const signUpWithEmail = async (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
