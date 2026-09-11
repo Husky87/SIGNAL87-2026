@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { Check, Clock3, LogOut, LoaderCircle } from 'lucide-react';
-import { Signal87Logo } from './Signal87Logo';
 
 interface PaywallViewProps {
   userEmail?: string | null;
@@ -46,10 +44,16 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center px-5 py-12">
+    <main className="min-h-[100dvh] bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center px-5 py-12">
       <div className="max-w-[440px] w-full space-y-8 text-center">
-        <div className="flex justify-center">
-          <Signal87Logo size={32} showText={true} />
+        <div className="flex justify-center items-center gap-3">
+          <div
+            aria-hidden="true"
+            className="w-8 h-8 rounded-xl bg-[#18181b] flex items-center justify-center"
+          >
+            <span className="text-[#7dd3fc] text-[10px] font-black tracking-[-0.18em]">////</span>
+          </div>
+          <span className="font-semibold text-[18px] tracking-tight">Signal87</span>
         </div>
 
         <div className="space-y-2">
@@ -65,7 +69,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
           <ul className="space-y-2.5">
             {PLAN_FEATURES.map((feature) => (
               <li key={feature} className="flex items-center gap-2.5 text-[14px] text-[var(--ink)]">
-                <Check size={15} className="flex-shrink-0 text-[var(--teal)]" />
+                <span aria-hidden="true" className="text-[var(--teal)] font-bold">✓</span>
                 <span>{feature}</span>
               </li>
             ))}
@@ -77,14 +81,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             disabled={isCheckoutLoading}
             className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 disabled:cursor-wait text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center gap-2 transition-all min-h-[44px]"
           >
-            {isCheckoutLoading ? (
-              <>
-                <LoaderCircle size={15} className="animate-spin" />
-                Opening secure checkout…
-              </>
-            ) : (
-              'Upgrade with Stripe'
-            )}
+            {isCheckoutLoading ? 'Opening secure checkout…' : 'Upgrade with Stripe'}
           </button>
 
           {checkoutError ? (
@@ -92,19 +89,20 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
               {checkoutError}
             </p>
           ) : (
-            <p className="text-[12px] text-[var(--muted)] text-center flex items-center justify-center gap-1.5">
-              <Clock3 size={12} /> Secure billing powered by Stripe.
+            <p className="text-[12px] text-[var(--muted)] text-center">
+              Secure billing powered by Stripe.
             </p>
           )}
         </div>
 
         <button
+          type="button"
           onClick={onSignOut}
           className="text-[13px] text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer inline-flex items-center gap-1.5 mx-auto"
         >
-          <LogOut size={14} /> Sign out
+          Sign out
         </button>
       </div>
-    </div>
+    </main>
   );
 };
