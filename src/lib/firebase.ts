@@ -31,7 +31,8 @@ function createAuth() {
         browserLocalPersistence,
         browserSessionPersistence,
         inMemoryPersistence
-      ]
+      ],
+      popupRedirectResolver: browserPopupRedirectResolver
     });
   } catch {
     return getAuth(app);
@@ -42,45 +43,11 @@ export const auth = createAuth();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-function markRedirectPending() {
-  try {
-    sessionStorage.setItem('s87_auth_redirect', '1');
-  } catch {
-    /* private window */
-  }
-}
+export const signInWithGoogleRedirect = async () =>
+  signInWithRedirect(auth, googleProvider);
 
-function prefersRedirectSignIn() {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Android/i.test(ua);
-  return isIOS || isSafari;
-}
-
-function isPopupFailure(error: unknown) {
-  const code = (error as { code?: string } | null)?.code || '';
-  return code === 'auth/popup-blocked' ||
-    code === 'auth/popup-closed-by-user' ||
-    code === 'auth/cancelled-popup-request';
-}
-
-export const signInWithGoogleRedirect = async () => {
-  markRedirectPending();
-  return signInWithRedirect(auth, googleProvider, browserPopupRedirectResolver);
-};
-
-export const signInWithGoogle = async () => {
-  if (prefersRedirectSignIn()) return signInWithGoogleRedirect();
-
-  try {
-    return await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
-  } catch (error) {
-    if (isPopupFailure(error)) return signInWithGoogleRedirect();
-    throw error;
-  }
-};
+export const signInWithGoogle = async () =>
+  signInWithPopup(auth, googleProvider);
 
 export const signUpWithEmail = async (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
@@ -89,7 +56,7 @@ export const signInWithEmail = async (email: string, password: string) =>
   signInWithEmailAndPassword(auth, email, password);
 
 export const getRedirectResult = (authInstance = auth) =>
-  firebaseGetRedirectResult(authInstance, browserPopupRedirectResolver);
+  firebaseGetRedirectResult(authInstance);
 
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
 export const storage = getStorage(app);
