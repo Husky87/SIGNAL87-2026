@@ -43,8 +43,18 @@ export const auth = createAuth();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export const signInWithGoogleRedirect = async () =>
-  signInWithRedirect(auth, googleProvider);
+function markRedirectPending() {
+  try {
+    sessionStorage.setItem('s87_auth_redirect', '1');
+  } catch {
+    /* private browsing may block sessionStorage */
+  }
+}
+
+export const signInWithGoogleRedirect = async () => {
+  markRedirectPending();
+  return signInWithRedirect(auth, googleProvider);
+};
 
 export const signInWithGoogle = async () =>
   signInWithPopup(auth, googleProvider);
