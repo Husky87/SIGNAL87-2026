@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, LogOut, Clock3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Clock3, LogOut, LoaderCircle } from 'lucide-react';
 import { Signal87Logo } from './Signal87Logo';
 
 interface PaywallViewProps {
@@ -15,6 +15,36 @@ const PLAN_FEATURES = [
 ];
 
 export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }) => {
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const handleUpgrade = async () => {
+    if (isCheckoutLoading) return;
+
+    setIsCheckoutLoading(true);
+    setCheckoutError(null);
+
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail })
+      });
+
+      const data = await response.json() as { url?: string; error?: string };
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Unable to start checkout. Please try again.');
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      console.error('Stripe Checkout Error:', error);
+      setCheckoutError(error instanceof Error ? error.message : 'Unable to start checkout. Please try again.');
+      setIsCheckoutLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center px-5 py-12">
       <div className="max-w-[440px] w-full space-y-8 text-center">
@@ -43,16 +73,29 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
 
           <button
             type="button"
-            disabled
-            className="w-full py-2.5 bg-[var(--teal)]/45 text-white/75 font-medium text-[13.5px] rounded-full inline-flex items-center justify-center gap-2 min-h-[44px] cursor-not-allowed"
-            aria-disabled="true"
+            onClick={handleUpgrade}
+            disabled={isCheckoutLoading}
+            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 disabled:cursor-wait text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center gap-2 transition-all min-h-[44px]"
           >
-            <Clock3 size={15} />
-            Billing setup coming soon
+            {isCheckoutLoading ? (
+              <>
+                <LoaderCircle size={15} className="animate-spin" />
+                Opening secure checkout…
+              </>
+            ) : (
+              'Upgrade with Stripe'
+            )}
           </button>
-          <p className="text-[12px] text-[var(--muted)] text-center">
-            Online checkout is still being finalized. We’ll enable upgrades here as soon as billing is ready.
-          </p>
+
+          {checkoutError ? (
+            <p className="text-[12px] text-red-500 text-center" role="alert">
+              {checkoutError}
+            </p>
+          ) : (
+            <p className="text-[12px] text-[var(--muted)] text-center flex items-center justify-center gap-1.5">
+              <Clock3 size={12} /> Secure billing powered by Stripe.
+            </p>
+          )}
         </div>
 
         <button
