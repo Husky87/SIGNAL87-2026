@@ -59,8 +59,9 @@ export const signInWithGoogleRedirect = () => {
 
 /**
  * Use a popup when possible, then fall back to a full-page redirect only when
- * the browser blocks or cannot support the popup. This preserves the best UX
- * on desktop while keeping Safari, Firefox, and mobile browsers usable.
+ * the browser blocks or cannot support the popup. Authentication configuration
+ * errors are deliberately rethrown so they are visible instead of causing an
+ * unexplained navigation loop.
  */
 export const signInWithGoogle = async () => {
   try {
@@ -69,9 +70,7 @@ export const signInWithGoogle = async () => {
     const code = error?.code;
     const shouldRedirect =
       code === 'auth/popup-blocked' ||
-      code === 'auth/popup-closed-by-user' ||
-      code === 'auth/operation-not-supported-in-this-environment' ||
-      code === 'auth/unauthorized-domain';
+      code === 'auth/operation-not-supported-in-this-environment';
 
     if (!shouldRedirect) throw error;
     return signInWithGoogleRedirect();
