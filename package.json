@@ -22,7 +22,6 @@
     "icons": "node tests/make-icons.mjs",
     "test:mobile": "node tests/mobile.e2e.mjs",
     "test:back": "node tests/backdismiss.e2e.mjs",
-    "fonts": "node tests/make-fonts.mjs",
     "test:polish": "node tests/polish.e2e.mjs"
   },
   "dependencies": {
@@ -36,8 +35,7 @@
     "express": "^4.21.2",
     "file-saver": "^2.0.5",
     "firebase": "^12.16.0",
-    "jspdf": "^4.2.1",
-    "lucide-react": "^0.546.0",
+    "lucide-react": "0.468.0",
     "mammoth": "^1.12.0",
     "motion": "^12.23.24",
     "pdfjs-dist": "5.4.296",
@@ -56,7 +54,6 @@
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "typescript": "~5.8.2"
   }
 }
