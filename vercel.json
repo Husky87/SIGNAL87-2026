@@ -5,6 +5,10 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
+      "source": "/team",
+      "destination": "/team/index.html"
+    },
+    {
       "source": "/__/auth/:path*",
       "destination": "https://gen-lang-client-0608802366.firebaseapp.com/__/auth/:path*"
     },
