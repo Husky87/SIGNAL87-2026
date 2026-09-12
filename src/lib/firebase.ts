@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
+  initializeAuth,
   getAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
+  browserPopupRedirectResolver,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -17,21 +23,40 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Use Firebase's supported browser defaults. This avoids partially initialized
-// Auth instances when a browser rejects one of the custom persistence layers.
-export const auth = getAuth(app);
+function createAuth() {
+  try {
+    return initializeAuth(app, {
+      persistence: [
+        indexedDBLocalPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence,
+        inMemoryPersistence
+      ],
+      popupRedirectResolver: browserPopupRedirectResolver
+    });
+  } catch {
+    return getAuth(app);
+  }
+}
 
+export const auth = createAuth();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Keep the existing exported function name for the UI, but use popup auth for
-// every browser. Redirect auth was returning to the landing page before the
-// app could reliably consume getRedirectResult in Firefox private browsing,
-// which caused the sign-up modal to reappear after successful Google approval.
-export const signInWithGoogleRedirect = () =>
-  signInWithPopup(auth, googleProvider);
+function markRedirectPending() {
+  try {
+    sessionStorage.setItem('s87_auth_redirect', '1');
+  } catch {
+    // Some private-browsing contexts block sessionStorage.
+  }
+}
 
-export const signInWithGoogle = () =>
+export const signInWithGoogleRedirect = async () => {
+  markRedirectPending();
+  return signInWithRedirect(auth, googleProvider);
+};
+
+export const signInWithGoogle = async () =>
   signInWithPopup(auth, googleProvider);
 
 export const signUpWithEmail = async (email: string, password: string) =>
