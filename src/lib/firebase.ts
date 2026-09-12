@@ -24,22 +24,13 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-function markRedirectPending() {
-  try {
-    sessionStorage.setItem('s87_auth_redirect', '1');
-  } catch {
-    // Authentication state remains authoritative if sessionStorage is blocked.
-  }
-}
+// Keep the existing exported function name for the UI, but use popup auth for
+// every browser. Redirect auth was returning to the landing page before the
+// app could reliably consume getRedirectResult in Firefox private browsing,
+// which caused the sign-up modal to reappear after successful Google approval.
+export const signInWithGoogleRedirect = () =>
+  signInWithPopup(auth, googleProvider);
 
-export const signInWithGoogleRedirect = () => {
-  markRedirectPending();
-  return signInWithRedirect(auth, googleProvider);
-};
-
-// Google popup is the primary production flow. Firebase documents popup auth
-// as the preferred alternative on browsers that block third-party redirect
-// storage, including Safari and Firefox.
 export const signInWithGoogle = () =>
   signInWithPopup(auth, googleProvider);
 
