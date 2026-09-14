@@ -4,10 +4,10 @@ import { DocumentItem } from "../types";
 
 export function getTypeMeta(type?: string) {
   const t = (type || "").toLowerCase();
-  if (t.includes("pdf")) return { label: "PDF", color: "bg-red-50 text-red-600", icon: "📄", Icon: FileText, iconColor: "#dc2626" };
-  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Sheet", color: "bg-green-50 text-green-600", icon: "📊", Icon: FileSpreadsheet, iconColor: "#16a34a" };
-  if (t.includes("doc") || t.includes("word")) return { label: "Doc", color: "bg-blue-50 text-blue-600", icon: "📝", Icon: FileType, iconColor: "#2563eb" };
-  return { label: type || "File", color: "bg-gray-50 text-gray-600", icon: "📁", Icon: FileIcon, iconColor: "#4b5563" };
+  if (t.includes("pdf")) return { label: "PDF", color: "text-[var(--muted)]", icon: "", Icon: FileText, iconColor: "currentColor" };
+  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Sheet", color: "text-[var(--muted)]", icon: "", Icon: FileSpreadsheet, iconColor: "currentColor" };
+  if (t.includes("doc") || t.includes("word")) return { label: "Doc", color: "text-[var(--muted)]", icon: "", Icon: FileType, iconColor: "currentColor" };
+  return { label: type || "File", color: "text-[var(--muted)]", icon: "", Icon: FileIcon, iconColor: "currentColor" };
 }
 
 interface DocumentThumbnailProps {
@@ -34,7 +34,6 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
   const docName = doc?.title || doc?.name || propName || "Untitled Document";
   const docType = doc?.type || propType || "PDF";
   const meta = getTypeMeta(docType);
-  const Icon = meta.Icon;
   const previewText = (doc?.contentPreview || doc?.summary || "").replace(/\s+/g, " ").trim();
   const previewLines = previewText
     ? previewText.slice(0, 145).match(/.{1,42}(?:\s|$)/g)?.slice(0, 4) || []
@@ -51,18 +50,13 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
           onClick();
         }
       }}
-      className="group w-full h-full min-h-[250px] overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--card)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+      className="group w-full h-full min-h-[250px] overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--card)] transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
     >
-      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-gradient-to-br from-[var(--paper)] via-[var(--card)] to-[var(--raised)] px-5 pt-5">
-        <div className="absolute right-4 top-4 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="rounded-full bg-[var(--card)]/90 p-1.5 text-[var(--muted)] shadow-sm" title="Open document">
-            <Icon size={14} style={{ color: meta.iconColor }} />
-          </span>
-        </div>
-        <div className="mx-auto h-[122px] max-w-[210px] rounded-t-lg border border-[var(--rule)] bg-[var(--paper)] p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <Icon size={17} style={{ color: meta.iconColor }} />
-            <div className="h-2 w-20 rounded-full bg-[var(--rule)]" />
+      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-5">
+        <div className="mx-auto h-[122px] max-w-[210px] rounded-t-lg border border-[var(--rule)] bg-[var(--paper)] p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--muted)]">{meta.label}</span>
+            <span className="h-1.5 w-12 rounded-full bg-[var(--rule)]" />
           </div>
           {previewLines.length > 0 ? (
             <div className="space-y-2">
@@ -82,12 +76,9 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
       </div>
 
       <div className="flex min-h-[102px] flex-col justify-between p-4">
-        <div className="flex items-start gap-3">
-          <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${meta.color}`}>
-            <span>{meta.icon}</span>
-            <span>{meta.label}</span>
-          </span>
-          <h3 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-5 text-[var(--text)]" title={docName}>
+        <div className="min-w-0">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--muted)]">{meta.label}</div>
+          <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--text)]" title={docName}>
             {docName}
           </h3>
         </div>
