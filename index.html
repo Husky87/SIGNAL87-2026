@@ -97,31 +97,75 @@
   <body>
     <div id="root"></div>
     <script>
-      // Compatibility shim for older browsers that do not implement the
-      // September 2024 URL.parse() and URL.canParse() static APIs. Keep this
-      // before the application module so dependencies can safely use either API.
-      (function () {
-        if (typeof window === 'undefined' || !window.URL) return;
+      // Firefox and older Chromium/WebKit versions may not implement the
+      // newer static URL.parse() and URL.canParse() APIs. This must run before
+      // the application module and must be installed defensively because some
+      // browsers expose URL as a non-extensible host object.
+      (function installUrlCompatibility() {
+        var URLConstructor = window.URL;
+        if (!URLConstructor) return;
 
-        if (typeof window.URL.parse !== 'function') {
-          window.URL.parse = function (url, base) {
+        if (typeof URLConstructor.parse !== 'function') {
+          try {
+            Object.defineProperty(URLConstructor, 'parse', {
+              configurable: true,
+              writable: true,
+              value: function (url, base) {
+                try {
+                  var normalizedBase = base && typeof base.href === 'string' ? base.href : base;
+                  return new URLConstructor(url, normalizedBase);
+                } catch (_error) {
+                  return null;
+                }
+              }
+            });
+          } catch (_defineError) {
             try {
-              return new window.URL(url, base);
-            } catch {
-              return null;
+              URLConstructor.parse = function (url, base) {
+                try {
+                  var normalizedBase = base && typeof base.href === 'string' ? base.href : base;
+                  return new URLConstructor(url, normalizedBase);
+                } catch (_error) {
+                  return null;
+                }
+              };
+            } catch (_assignmentError) {
+              // Leave the native implementation untouched if the host object
+              // cannot be extended; the app will still load where supported.
             }
-          };
+          }
         }
 
-        if (typeof window.URL.canParse !== 'function') {
-          window.URL.canParse = function (url, base) {
+        if (typeof URLConstructor.canParse !== 'function') {
+          try {
+            Object.defineProperty(URLConstructor, 'canParse', {
+              configurable: true,
+              writable: true,
+              value: function (url, base) {
+                try {
+                  var normalizedBase = base && typeof base.href === 'string' ? base.href : base;
+                  new URLConstructor(url, normalizedBase);
+                  return true;
+                } catch (_error) {
+                  return false;
+                }
+              }
+            });
+          } catch (_defineError) {
             try {
-              new window.URL(url, base);
-              return true;
-            } catch {
-              return false;
+              URLConstructor.canParse = function (url, base) {
+                try {
+                  var normalizedBase = base && typeof base.href === 'string' ? base.href : base;
+                  new URLConstructor(url, normalizedBase);
+                  return true;
+                } catch (_error) {
+                  return false;
+                }
+              };
+            } catch (_assignmentError) {
+              // See the note above.
             }
-          };
+          }
         }
       })();
     </script>
