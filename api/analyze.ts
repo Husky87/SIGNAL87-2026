@@ -1,50 +1,27 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
+import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
 
 interface AnalysisRequest { query: string; documents?: Array<{ id: string; title: string; fullText?: string; contentPreview?: string; summary?: string }>; analysisType?: 'quantitative' | 'reasoning' | 'question' | 'auto'; includeReasoningSteps?: boolean; }
 interface AnalysisResponse { answer: string; analysisType: string; reasoningSteps: Array<{ step: number; description: string; findings?: string }>; quantitativeData?: { metrics: Record<string, number | string>; trends: string[]; calculations: string[] }; confidence: 'high' | 'medium' | 'low'; provider: string; fallbackTriggered: boolean; executionTimeMs: number; }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method Not Allowed' }); }
+  try { await requireFirebaseUser(req.headers.authorization); } catch (error: any) { return res.status(401).json({ error: 'Unauthorized', details: error?.message || 'Valid Firebase ID token required' }); }
   if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'AI service is not configured', details: 'OPENAI_API_KEY or GEMINI_API_KEY is required' });
   try {
-    const startTime = Date.now();
-    const body: AnalysisRequest = req.body;
-    const { query, documents = [], analysisType = 'auto', includeReasoningSteps = true } = body;
+    const startTime = Date.now(); const body: AnalysisRequest = req.body; const { query, documents = [], analysisType = 'auto', includeReasoningSteps = true } = body;
     if (!query?.trim()) return res.status(400).json({ error: 'Query is required' });
     const docContext = Array.isArray(documents) && documents.length > 0 ? documents.map((doc, idx) => `[Document ${idx + 1}: ${doc.title}]\n${doc.fullText || doc.contentPreview || doc.summary || 'No content available.'}`).join('\n\n---\n\n') : '';
-    let detectedType = analysisType;
-    if (analysisType === 'auto') {
-      detectedType = /^(how many|what (is|are) the|calculate|sum|average|total|percent|trend)/i.test(query) ? 'quantitative' : /why|explain|how does|what caused|reason/i.test(query) ? 'reasoning' : 'question';
-    }
-    const systemInstruction = detectedType === 'quantitative'
-      ? `You are Signal87's Quantitative Analysis Engine. Extract numerical data from supplied documents, perform calculations, identify trends, flag missing or ambiguous data, and show calculations. Never invent figures.`
-      : detectedType === 'reasoning'
-        ? `You are Signal87's Logical Reasoning Engine. Ground every factual claim in supplied documents. Distinguish fact, inference, and conclusion; identify contradictions and alternatives; never invent evidence.`
-        : `You are Signal87's Advanced Question-Answer Engine. Answer directly using only supplied document evidence. If documents do not contain the answer, say so clearly.`;
+    let detectedType = analysisType; if (analysisType === 'auto') detectedType = /^(how many|what (is|are) the|calculate|sum|average|total|percent|trend)/i.test(query) ? 'quantitative' : /why|explain|how does|what caused|reason/i.test(query) ? 'reasoning' : 'question';
+    const systemInstruction = detectedType === 'quantitative' ? `You are Signal87's Quantitative Analysis Engine. Extract numerical data from supplied documents, perform calculations, identify trends, flag missing or ambiguous data, and show calculations. Never invent figures.` : detectedType === 'reasoning' ? `You are Signal87's Logical Reasoning Engine. Ground every factual claim in supplied documents. Distinguish fact, inference, and conclusion; identify contradictions and alternatives; never invent evidence.` : `You are Signal87's Advanced Question-Answer Engine. Answer directly using only supplied document evidence. If documents do not contain the answer, say so clearly.`;
     const prompt = docContext ? `ANALYSIS QUERY: ${query}\n\nDOCUMENT REPOSITORY:\n${docContext}\n\nAnswer using only this document evidence.` : `NO DOCUMENTS WERE PROVIDED. Do not answer from general knowledge. Tell the user that no document is attached and ask them to attach the relevant document.\n\nUSER QUERY: ${query}`;
-    const aiResult = await generateWithFallback({ prompt, systemInstruction, temperature: 0.2 });
-    const reasoningSteps = buildReasoningSteps(aiResult.text, detectedType, includeReasoningSteps);
-    const quantitativeData = detectedType === 'quantitative' ? extractQuantitativeData(aiResult.text) : undefined;
+    const aiResult = await generateWithFallback({ prompt, systemInstruction, model: 'gpt-4o', fallbackModel: 'gemini-3.6-flash', temperature: 0.2 });
+    const reasoningSteps = buildReasoningSteps(aiResult.text, detectedType, includeReasoningSteps); const quantitativeData = detectedType === 'quantitative' ? extractQuantitativeData(aiResult.text) : undefined;
     return res.json({ answer: aiResult.text, analysisType: detectedType, reasoningSteps, quantitativeData, confidence: assessConfidence(aiResult.text, detectedType), provider: aiResult.provider, fallbackTriggered: aiResult.fallbackTriggered, executionTimeMs: Date.now() - startTime } satisfies AnalysisResponse);
   } catch (error: any) { console.error('Error in /api/analyze:', error); return res.status(500).json({ error: 'Analysis failed', details: error.message || String(error) }); }
 }
-
-function buildReasoningSteps(responseText: string, type: string, includeSteps: boolean) {
-  if (!includeSteps) return [];
-  const steps: Array<{ step: number; description: string; findings?: string }> = [];
-  let stepCount = 1;
-  if (type === 'quantitative') {
-    if (responseText.includes('Key Findings')) steps.push({ step: stepCount++, description: 'Extract numerical data from documents', findings: extractSection(responseText, 'Key Findings') });
-    if (responseText.includes('Trend Analysis')) steps.push({ step: stepCount++, description: 'Analyze patterns and trends', findings: extractSection(responseText, 'Trend Analysis') });
-    if (responseText.includes('Calculations')) steps.push({ step: stepCount++, description: 'Perform calculations and derive values', findings: extractSection(responseText, 'Calculations') });
-  } else if (type === 'reasoning') {
-    if (responseText.includes('Core Evidence')) steps.push({ step: stepCount++, description: 'Identify key evidence and facts', findings: extractSection(responseText, 'Core Evidence') });
-    if (responseText.includes('Logical Chain')) steps.push({ step: stepCount++, description: 'Build chain of logical reasoning', findings: extractSection(responseText, 'Logical Chain') });
-    if (responseText.includes('Implications')) steps.push({ step: stepCount++, description: 'Derive implications and consequences', findings: extractSection(responseText, 'Implications') });
-  } else steps.push({ step: 1, description: 'Answer question with evidence', findings: responseText.substring(0, 300) });
-  return steps.length ? steps : [{ step: 1, description: 'Analysis complete', findings: responseText.substring(0, 200) }];
-}
+function buildReasoningSteps(responseText: string, type: string, includeSteps: boolean) { if (!includeSteps) return []; const steps: Array<{ step: number; description: string; findings?: string }> = []; let stepCount = 1; if (type === 'quantitative') { if (responseText.includes('Key Findings')) steps.push({ step: stepCount++, description: 'Extract numerical data from documents', findings: extractSection(responseText, 'Key Findings') }); if (responseText.includes('Trend Analysis')) steps.push({ step: stepCount++, description: 'Analyze patterns and trends', findings: extractSection(responseText, 'Trend Analysis') }); if (responseText.includes('Calculations')) steps.push({ step: stepCount++, description: 'Perform calculations and derive values', findings: extractSection(responseText, 'Calculations') }); } else if (type === 'reasoning') { if (responseText.includes('Core Evidence')) steps.push({ step: stepCount++, description: 'Identify key evidence and facts', findings: extractSection(responseText, 'Core Evidence') }); if (responseText.includes('Logical Chain')) steps.push({ step: stepCount++, description: 'Build chain of logical reasoning', findings: extractSection(responseText, 'Logical Chain') }); if (responseText.includes('Implications')) steps.push({ step: stepCount++, description: 'Derive implications and consequences', findings: extractSection(responseText, 'Implications') }); } else steps.push({ step: 1, description: 'Answer question with evidence', findings: responseText.substring(0, 300) }); return steps.length ? steps : [{ step: 1, description: 'Analysis complete', findings: responseText.substring(0, 200) }]; }
 function extractQuantitativeData(responseText: string) { const metrics: Record<string, number | string> = {}; const trends: string[] = []; const calculations: string[] = []; (responseText.match(/(\d+(?:\.\d+)?)\s*(%|billion|million|thousand|dollars?|usd)/gi) || []).forEach((m, i) => metrics[`metric_${i + 1}`] = m); (responseText.match(/(increasing|decreasing|rising|falling|growing|declining|trending|up|down)/gi) || []).forEach(m => { if (!trends.includes(m.toLowerCase())) trends.push(m.toLowerCase()); }); (responseText.match(/(?:total|sum|average|mean|result|equals?|is).*?(\d+(?:\.\d+)?)/gi) || []).forEach(m => calculations.push(m)); return { metrics, trends, calculations }; }
 function assessConfidence(responseText: string, type: string): 'high' | 'medium' | 'low' { const n = ['might','may','unclear','uncertain','unknown','estimate','approximate'].filter(k => responseText.toLowerCase().includes(k)).length; const r = n / Math.max(responseText.length / 100, 1); if (type === 'quantitative') return r > 0.5 ? 'low' : r > 0.2 ? 'medium' : 'high'; if (type === 'reasoning') return r > 0.8 ? 'low' : r > 0.3 ? 'medium' : 'high'; return 'medium'; }
 function extractSection(responseText: string, sectionName: string): string { const match = responseText.match(new RegExp(`##\\s*${sectionName}[^]*?(?=##|$)`, 'i')); return match ? match[0].replace(new RegExp(`##\\s*${sectionName}`, 'i'), '').trim().substring(0, 300) : ''; }
