@@ -9,6 +9,8 @@
     "api/compare.ts",
     "api/summarize.ts",
     "api/documents/process.ts",
+    "api/auth/welcome-email.ts",
+    "api/create-checkout-session.ts",
     "functions/src/lib/aiFallbackService.ts",
     "tests/ai-fallback-routing.test.ts",
     "tests/firebase-ai-fallback-routing.test.ts"
