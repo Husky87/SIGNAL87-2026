@@ -81,11 +81,6 @@ export const parseInlineStyles = (
     if (part.startsWith('[') && part.endsWith(']')) {
       const label = part.slice(1, -1);
 
-      // Resolve every number in the marker (single "[3]" or a multi-source
-      // group like "[3, 4, 11]") to a real, in-range citation. Anything that
-      // doesn't resolve is dropped rather than shown as a bare bracket —
-      // dangling reference numbers with no backing citation should never
-      // reach the screen.
       let indices: number[] = [];
       if (/^\d+(\s*,\s*\d+)*$/.test(label)) {
         indices = label.split(',').map((n) => parseInt(n.trim(), 10) - 1);
@@ -102,8 +97,6 @@ export const parseInlineStyles = (
         : [];
 
       if (validIndices.length === 0) {
-        // No real citation backs this marker — remove it entirely instead
-        // of leaving an orphaned "[3, 4, 11]" in the rendered text.
         return null;
       }
 
@@ -190,15 +183,12 @@ export const GeminiMarkdownRenderer: React.FC<{
         continue;
       }
 
-      // Horizontal rule (---, ***, ___) — previously fell through to the
-      // paragraph catch-all and printed as literal dashes.
       if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
         result.push({ type: 'hr' });
         i++;
         continue;
       }
 
-      // Code Fence block
       if (line.startsWith('```')) {
         const lang = line.slice(3).trim();
         const codeLines: string[] = [];
@@ -208,12 +198,11 @@ export const GeminiMarkdownRenderer: React.FC<{
           i++;
         }
         if (i < rawLines.length && rawLines[i].trim().startsWith('```')) {
-          i++; // consume closing backticks
+          i++;
         }
 
         const codeContent = codeLines.join('\n');
 
-        // Check if code content is an excel_export JSON
         if (codeContent.includes('"excel_export"') || codeContent.includes('excel_export')) {
           try {
             const cleanJson = codeContent.replace(/^json\s*/i, '').trim();
@@ -238,7 +227,6 @@ export const GeminiMarkdownRenderer: React.FC<{
         continue;
       }
 
-      // Heading
       if (/^#+\s*/.test(line)) {
         const match = line.match(/^(#+)\s*(.*)/);
         if (match) {
@@ -252,7 +240,6 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
       }
 
-      // Markdown Table
       if (line.startsWith('|') && line.endsWith('|')) {
         const tableLines: string[] = [];
         while (i < rawLines.length && rawLines[i].trim().startsWith('|') && rawLines[i].trim().endsWith('|')) {
@@ -282,7 +269,6 @@ export const GeminiMarkdownRenderer: React.FC<{
         }
       }
 
-      // List Items
       const listMatch = line.match(/^([\*\-\+]|(\d+)\.)\s+(.*)/);
       if (listMatch) {
         const listItems: string[] = [];
@@ -303,7 +289,6 @@ export const GeminiMarkdownRenderer: React.FC<{
         continue;
       }
 
-      // Paragraph
       const paragraphLines: string[] = [];
       while (i < rawLines.length) {
         const l = rawLines[i].trim();
@@ -398,51 +383,31 @@ export const GeminiMarkdownRenderer: React.FC<{
               </h2>
             );
           }
-          if (block.level === 3) {
-            return (
-              <h3 key={idx} className="font-sans text-base sm:text-lg font-semibold text-[var(--ink)] mt-4 mb-1.5 tracking-tight">
-                {cleanText}
-              </h3>
-            );
-          }
           return (
-            <h4 key={idx} className="font-sans text-sm sm:text-base font-semibold text-[var(--ink)] mt-3 mb-1">
+            <h3 key={idx} className="font-sans text-base sm:text-lg font-semibold text-[var(--ink)] mt-4 mb-1.5">
               {cleanText}
-            </h4>
-          );
-        }
-
-        if (block.type === 'list') {
-          return (
-            <ul key={idx} className="my-2.5 space-y-1 pl-1 max-w-full">
-              {block.items?.map((item, itemIdx) => (
-                <li key={itemIdx} className="flex items-start gap-2.5 max-w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)] mt-2 flex-shrink-0" />
-                  <div className="flex-1 text-[var(--ink)] leading-[1.6] break-words">{parseInlineStyles(item, citations, onSelectDocument, documents)}</div>
-                </li>
-              ))}
-            </ul>
+            </h3>
           );
         }
 
         if (block.type === 'table') {
           return (
-            <div key={idx} className="overflow-x-auto my-3 rounded-[6px] max-w-full">
-              <table className="w-full border-collapse text-left text-xs sm:text-sm">
-                <thead className="text-[var(--muted)]">
-                  <tr>
-                    {block.tableHeaders?.map((th, hIdx) => (
-                      <th key={hIdx} className="p-2.5 text-[11px] font-mono uppercase tracking-[0.09em] text-[var(--muted)] break-words" style={{ fontFamily: 'var(--mono)' }}>
-                        {th}
+            <div key={idx} className="my-4 overflow-x-auto border border-[var(--rule)] rounded-[4px]">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[var(--surface-2)]">
+                    {(block.tableHeaders || []).map((header, hIdx) => (
+                      <th key={hIdx} className="text-left px-3 py-2 border-b border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap">
+                        {parseInlineStyles(header, citations, onSelectDocument, documents)}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {block.tableRows?.map((row, rIdx) => (
-                    <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-[var(--surface-2)]' : ''}>
+                  {(block.tableRows || []).map((row, rIdx) => (
+                    <tr key={rIdx} className="border-b border-[var(--rule)] last:border-b-0">
                       {row.map((cell, cIdx) => (
-                        <td key={cIdx} className="p-2.5 text-[var(--ink)] break-words">
+                        <td key={cIdx} className="px-3 py-2 align-top text-[var(--ink-2)]">
                           {parseInlineStyles(cell, citations, onSelectDocument, documents)}
                         </td>
                       ))}
@@ -454,101 +419,30 @@ export const GeminiMarkdownRenderer: React.FC<{
           );
         }
 
+        if (block.type === 'list') {
+          return (
+            <ul key={idx} className="list-disc pl-5 my-2 space-y-1">
+              {(block.items || []).map((item, itemIdx) => (
+                <li key={itemIdx} className="pl-1">
+                  {parseInlineStyles(item, citations, onSelectDocument, documents)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
         return (
-          <p key={idx} className="mb-4 text-[15.5px] sm:text-[16px] leading-[1.6] text-[var(--ink)] break-words">
+          <p key={idx} className="my-2.5 text-[var(--ink-2)]">
             {parseInlineStyles(block.content || '', citations, onSelectDocument, documents)}
           </p>
         );
       })}
-
-      {/* Verification Trace Card */}
-      {citations && citations.length > 0 && (
-        <div className="mt-4 p-3.5 bg-[var(--surface)] border border-[var(--rule)] rounded-[5px] space-y-2.5">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--verify)] flex-shrink-0" />
-            <span className="font-mono text-[10px] font-bold text-[var(--verify)] uppercase tracking-[0.09em]">
-              VERIFICATION TRACE
-            </span>
-          </div>
-
-          <div className="space-y-1.5 pt-1 border-t border-[var(--rule)]">
-            {citations.map((c, i) => {
-              const citeTag = `CIT-0${i + 1}`;
-              const docMeta = c.paragraphRef ? `${c.docTitle} · ${c.paragraphRef}` : c.docTitle;
-              const score = typeof c.confidence === 'number' ? `${c.confidence}%` : '';
-
-              const handleCiteClick = () => {
-                if (onSelectDocument) {
-                  const matched = documents?.find(
-                    (d) =>
-                      d.id === c.docId ||
-                      d.title.toLowerCase().includes(c.docTitle.toLowerCase()) ||
-                      c.docTitle.toLowerCase().includes(d.title.toLowerCase())
-                  );
-                  if (matched) {
-                    onSelectDocument(matched);
-                  } else {
-                    onSelectDocument({
-                      id: c.docId || `doc-${Date.now()}`,
-                      title: c.docTitle || 'Document',
-                      type: 'PDF',
-                      sizeBytes: 1024 * 1024 * 2.4,
-                      uploadDate: new Date().toLocaleDateString(),
-                      tags: ['Citation', 'Verified'],
-                      owner: 'Signal87 AI',
-                      organization: 'Signal87 Enterprise',
-                      status: 'Ready',
-                      aiIndexed: true,
-                      embeddingsComplete: true,
-                      versionHistory: [],
-                      permissions: 'Project Only',
-                      summary: c.snippet || 'Grounded citation reference for this synthesis.',
-                      category: 'Legal',
-                    });
-                  }
-                }
-              };
-
-              return (
-                <button
-                  key={i}
-                  onClick={handleCiteClick}
-                  className="w-full flex items-center justify-between text-xs font-mono py-1 px-1.5 hover:bg-[var(--surface-2)] rounded-[3px] transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="px-1.5 py-0.5 rounded-[3px] bg-[color-mix(in_srgb,var(--teal)_15%,transparent)] border-b-[1.5px] border-[var(--teal)] text-[var(--teal)] font-bold text-[10px] group-hover:bg-[var(--teal)] group-hover:text-white transition-colors" style={{ fontFamily: 'var(--mono)' }}>
-                      {citeTag}
-                    </span>
-                    <span className="text-[var(--ink-2)] text-[11px] truncate group-hover:text-[var(--teal)] group-hover:underline">
-                      {docMeta}
-                    </span>
-                  </div>
-                  <span className="text-[var(--verify)] font-bold text-[11px] flex-shrink-0 ml-2 group-hover:scale-105 transition-transform">
-                    {score}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-// Legacy exports kept for backwards compatibility
-export const StandardQAOutput = GeminiMarkdownRenderer;
-export const DataTableOutput = GeminiMarkdownRenderer;
-export function determineDeliverableType(
-  _prompt?: string,
-  _text?: string,
-  _isDeepResearch?: boolean
-): DeliverableType {
-  return 'qa';
-}
-
 /**
- * Main Action Router Component - Chambers Style
+ * Action router card: action-oriented UI attached to assistant responses.
  */
 export const ActionRouterCard: React.FC<{
   msg: ChatMessage;
@@ -575,241 +469,135 @@ export const ActionRouterCard: React.FC<{
   const [shareCopied, setShareCopied] = useState(false);
   const [isEditingExcel, setIsEditingExcel] = useState(false);
   const [spreadsheetData, setSpreadsheetData] = useState<any>(null);
+  const [exporting, setExporting] = useState<"pdf" | "word" | "excel" | null>(null);
 
-  const tableDataAsGrid = useMemo(() => {
-    if (!msg.excelExportData) return null;
-    const data = msg.excelExportData.data;
-    if (data.length === 0) return [];
-    
-    const headers = Object.keys(data[0]);
-    const grid = [
-      headers.map(h => ({ value: h })),
-      ...data.map((row: any) => headers.map(h => ({ value: String(row[h] || '') })))
-    ];
-    return grid;
-  }, [msg.excelExportData]);
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(msg.text);
-    setShareCopied(true);
-    setTimeout(() => setShareCopied(false), 2000);
-  };
-
-  const downloadExcelFromChat = (tableData: any, fileName = "research_export.xlsx") => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(tableData);
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, fileName);
-  };
-
-  const handleDownloadExcel = () => {
-    if (spreadsheetData) {
-      const headers = spreadsheetData[0].map((cell: any) => cell.value);
-      const data = spreadsheetData.slice(1).map((row: any) => {
-        const obj: any = {};
-        headers.forEach((h: string, i: number) => {
-          obj[h] = row[i]?.value;
-        });
-        return obj;
-      });
-      downloadExcelFromChat(data, msg.excelExportData?.filename || "research_export.xlsx");
-    } else if (msg.excelExportData) {
-      const { data, filename } = msg.excelExportData;
-      downloadExcelFromChat(data, filename || "research_export.xlsx");
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // Ignore clipboard failures in browsers that block clipboard access.
     }
   };
 
+  const exportAsPDF = async () => {
+    try {
+      setExporting("pdf");
+      onExportPDF(msg.title || 'Signal87 Export', msg.content || '');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const exportAsWord = async () => {
+    try {
+      setExporting("word");
+      await exportResult(msg.title || 'Signal87 Export', msg.content || '', 'word');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const exportAsExcel = async () => {
+    try {
+      setExporting("excel");
+      await exportResult(msg.title || 'Signal87 Export', msg.content || '', 'excel');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const excelData = msg.metadata?.excelData;
+
   return (
-    <div className="py-1">
-      {/* Response Content */}
-      {isEditingExcel && spreadsheetData ? (
-        <div className="my-4 border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-          <Spreadsheet data={spreadsheetData} onChange={setSpreadsheetData} />
-        </div>
-      ) : (
-        <GeminiMarkdownRenderer
-          text={msg.text}
-          citations={msg.citations}
-          onSelectDocument={onSelectDocument}
-          documents={documents}
-        />
+    <div className="flex flex-wrap items-center gap-2 mt-3">
+      <button
+        onClick={() => onCopy(msg.id, msg.content || '')}
+        className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+      >
+        {copiedMsgId === msg.id ? 'Copied' : 'Copy'}
+      </button>
+
+      <button
+        onClick={exportAsPDF}
+        disabled={exporting !== null}
+        className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50"
+      >
+        {exporting === "pdf" ? "Exporting..." : "PDF"}
+      </button>
+
+      <button
+        onClick={exportAsWord}
+        disabled={exporting !== null}
+        className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50"
+      >
+        {exporting === "word" ? "Exporting..." : "Word"}
+      </button>
+
+      <button
+        onClick={exportAsExcel}
+        disabled={exporting !== null}
+        className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50"
+      >
+        {exporting === "excel" ? "Exporting..." : "Excel"}
+      </button>
+
+      {excelData && (
+        <button
+          onClick={() => {
+            setSpreadsheetData(excelData);
+            setIsEditingExcel(true);
+          }}
+          className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <Edit2 size={13} /> Edit Excel
+        </button>
       )}
 
-      {/* Action Row */}
-      <div className="mt-3 pt-2 flex flex-wrap items-center gap-2 text-xs">
+      <button
+        onClick={handleShare}
+        className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"
+      >
+        <Share2 size={13} /> {shareCopied ? 'Copied' : 'Share'}
+      </button>
+
+      {onSaveAnswer && userPrompt && (
         <button
-          onClick={() => onCopy(msg.id, msg.text)}
-          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Copy response"
+          onClick={() => onSaveAnswer(msg, userPrompt)}
+          className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"
         >
-          {copiedMsgId === msg.id ? (
-            <Check size={13} className="text-[var(--teal)]" />
-          ) : (
-            <Copy size={13} />
-          )}
-          <span>{copiedMsgId === msg.id ? 'Copied' : 'Copy'}</span>
+          <Bookmark size={13} /> {isAnswerSaved ? 'Saved' : 'Save'}
         </button>
+      )}
 
-        {msg.excelExportData && (
-          <>
-            <button
-              onClick={() => {
-                if (!isEditingExcel && !spreadsheetData) {
-                  setSpreadsheetData(tableDataAsGrid);
-                }
-                setIsEditingExcel(!isEditingExcel);
-              }}
-              className={`px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] ${isEditingExcel ? 'text-[var(--teal)]' : 'text-[var(--ink-2)]'} hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5`}
-              title={isEditingExcel ? "Save Changes" : "Edit in Browser"}
-            >
-              {isEditingExcel ? <Save size={13} /> : <Edit2 size={13} />}
-              <span>{isEditingExcel ? 'Save' : 'Edit Table'}</span>
-            </button>
-            <button
-              onClick={handleDownloadExcel}
-              className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-              title="Download Excel"
-            >
-              <FileSpreadsheet size={13} />
-              <span>Download Excel</span>
-            </button>
-          </>
-        )}
-
-        <button
-          onClick={async () => {
-            const source = document.querySelector(
-              `[data-export-message-id="${msg.id}"]`
-            ) as HTMLElement | null;
-
-            if (!source) {
-              window.alert("Could not find the answer to export.");
-              return;
-            }
-
-            try {
-              setExporting("pdf");
-
-              await exportResult({
-                element: source,
-                format: "pdf",
-                title: userPrompt?.trim() || "Signal87 AI Brief",
-                filename: "Signal87-AI-Brief",
-              });
-            } catch (error) {
-              console.error("PDF export failed:", error);
-              window.alert("PDF export failed. Please try again.");
-            } finally {
-              setExporting(null);
-            }
-          }}
-          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Export PDF"
-        >
-          <Download size={13} />
-          <span>
-            {exporting === "pdf" ? "Exporting..." : "PDF"}
-          </span>
-        </button>
-
-        <button
-          onClick={async () => {
-            const source = document.querySelector(
-              `[data-export-message-id="${msg.id}"]`
-            ) as HTMLElement | null;
-
-            if (!source) {
-              window.alert("Could not find the answer to export.");
-              return;
-            }
-
-            try {
-              setExporting("word");
-
-              await exportResult({
-                element: source,
-                format: "word",
-                title: userPrompt?.trim() || "Signal87 AI Brief",
-                filename: "Signal87-AI-Brief",
-              });
-            } catch (error) {
-              console.error("Word export failed:", error);
-              window.alert("Word export failed. Please try again.");
-            } finally {
-              setExporting(null);
-            }
-          }}
-          disabled={!!exporting}
-          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Export Word document"
-        >
-          <Download size={13} />
-          <span>
-            {exporting === "word" ? "Exporting..." : "Word"}
-          </span>
-        </button>
-
-        <button
-          onClick={async () => {
-            const source = document.querySelector(
-              `[data-export-message-id="${msg.id}"]`
-            ) as HTMLElement | null;
-
-            if (!source) {
-              window.alert("Could not find the answer to export.");
-              return;
-            }
-
-            try {
-              setExporting("excel");
-
-              await exportResult({
-                element: source,
-                format: "excel",
-                title: userPrompt?.trim() || "Signal87 AI Brief",
-                filename: "Signal87-AI-Brief",
-              });
-            } catch (error) {
-              console.error("Excel export failed:", error);
-              window.alert("Excel export failed. Please try again.");
-            } finally {
-              setExporting(null);
-            }
-          }}
-          disabled={!!exporting}
-          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--ink-2)] hover:text-[var(--teal)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Export Excel workbook"
-        >
-          <FileSpreadsheet size={13} />
-          <span>
-            {exporting === "excel" ? "Exporting..." : "Excel"}
-          </span>
-        </button>
-
-        {onSaveAnswer && (
-          <button
-            onClick={() => onSaveAnswer(msg, userPrompt || 'AI Assistant Answer')}
-            className={`px-2.5 py-1.5 border rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
-              isAnswerSaved
-                ? 'bg-[var(--teal)] text-white border-[var(--teal)]'
-                : 'bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)]'
-            }`}
-            title={isAnswerSaved ? "Answer Saved" : "Save Answer"}
-          >
-            <Bookmark size={13} />
-            <span>{isAnswerSaved ? 'Saved' : 'Save Answer'}</span>
-          </button>
-        )}
-
-        <button
-          onClick={handleShare}
-          className="px-2.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink-2)] hover:text-[var(--ink)] border border-[var(--rule)] rounded-[3px] font-mono text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Share response"
-        >
-          <Share2 size={13} />
-          <span>{shareCopied ? 'Link Copied' : 'Share'}</span>
-        </button>
-      </div>
+      {isEditingExcel && spreadsheetData && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-auto bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-[var(--ink)]">Edit Excel</div>
+              <button
+                onClick={() => setIsEditingExcel(false)}
+                className="text-xs text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+            <Spreadsheet
+              data={spreadsheetData}
+              onChange={setSpreadsheetData}
+            />
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={() => setIsEditingExcel(false)}
+                className="px-3 py-1.5 bg-[var(--teal)] text-white text-xs font-semibold rounded-[3px] cursor-pointer"
+              >
+                <Save size={13} className="inline mr-1" /> Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
