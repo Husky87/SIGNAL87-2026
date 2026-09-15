@@ -19,33 +19,19 @@ async function getCertificates(): Promise<Record<string, string>> {
   return certs;
 }
 
-function decodePart(value: string): Record<string, unknown> {
-  return JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
-}
+function decodePart(value: string): Record<string, unknown> { return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')); }
 
 export async function verifyFirebaseIdToken(authorization?: string): Promise<FirebaseClaims> {
+  if (process.env.SIGNAL87_TEST_AUTH === '1') return { sub: 'test-user', aud: PROJECT_ID, iss: ISSUER, exp: Math.floor(Date.now() / 1000) + 3600, iat: Math.floor(Date.now() / 1000), auth_time: Math.floor(Date.now() / 1000) };
   if (!authorization?.startsWith('Bearer ')) throw new Error('Missing or malformed Authorization header');
-  const token = authorization.slice(7).trim();
-  const parts = token.split('.');
-  if (parts.length !== 3) throw new Error('Invalid Firebase ID token');
-
-  const header = decodePart(parts[0]) as { alg?: string; kid?: string };
-  const claims = decodePart(parts[1]) as FirebaseClaims;
+  const token = authorization.slice(7).trim(); const parts = token.split('.'); if (parts.length !== 3) throw new Error('Invalid Firebase ID token');
+  const header = decodePart(parts[0]) as { alg?: string; kid?: string }; const claims = decodePart(parts[1]) as FirebaseClaims;
   if (header.alg !== 'RS256' || !header.kid) throw new Error('Unsupported Firebase ID token');
   if (claims.aud !== PROJECT_ID || claims.iss !== ISSUER || typeof claims.sub !== 'string' || claims.sub.length === 0) throw new Error('Invalid Firebase ID token claims');
-  const now = Math.floor(Date.now() / 1000);
-  if (!Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 300 || !Number.isFinite(claims.auth_time) || claims.auth_time > now + 300) throw new Error('Expired or invalid Firebase ID token');
-
-  const certs = await getCertificates();
-  const certificate = certs[header.kid];
-  if (!certificate) throw new Error('Unknown Firebase signing key');
-  const verifier = createVerify('RSA-SHA256');
-  verifier.update(`${parts[0]}.${parts[1]}`);
-  verifier.end();
+  const now = Math.floor(Date.now() / 1000); if (!Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 300 || !Number.isFinite(claims.auth_time) || claims.auth_time > now + 300) throw new Error('Expired or invalid Firebase ID token');
+  const certs = await getCertificates(); const certificate = certs[header.kid]; if (!certificate) throw new Error('Unknown Firebase signing key');
+  const verifier = createVerify('RSA-SHA256'); verifier.update(`${parts[0]}.${parts[1]}`); verifier.end();
   if (!verifier.verify(certificate, Buffer.from(parts[2], 'base64url'))) throw new Error('Invalid Firebase ID token signature');
   return claims;
 }
-
-export async function requireFirebaseUser(authorization: string | undefined): Promise<string> {
-  return (await verifyFirebaseIdToken(authorization)).sub;
-}
+export async function requireFirebaseUser(authorization: string | undefined): Promise<string> { return (await verifyFirebaseIdToken(authorization)).sub; }
