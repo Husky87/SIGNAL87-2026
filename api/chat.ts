@@ -7,7 +7,7 @@ const MAX_DOC_CHARS = 28000;
 const MAX_TOTAL_CONTEXT_CHARS = 90000;
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_CHARS = 12000;
-const DEFAULT_CHAT_MODEL = 'gemini-3.6-flash';
+const DEFAULT_CHAT_MODEL = 'gpt-4o';
 
 function extractCitationManifest(text: string): { cleanedText: string; entries: Array<{ source?: string }> } {
   const match = text.match(/```citation_manifest\s*([\s\S]*?)```/i);
@@ -118,10 +118,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY);
-  if (!process.env.OPENAI_API_KEY && !hasGeminiKey && !process.env.XAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY && !hasGeminiKey) {
     return res.status(500).json({
       error: 'AI service is not configured',
-      details: 'None of OPENAI_API_KEY, GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, GOOGLE_API_KEY, or XAI_API_KEY is set in the environment'
+      details: 'OPENAI_API_KEY or GEMINI_API_KEY is required'
     });
   }
 
@@ -177,7 +177,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (imageData.length === 0) {
       aiResult = await generateWithFallback({
         model,
-        fallbackModel: 'gpt-4o',
+        fallbackModel: 'gemini-3.6-flash',
         messages: modelMessages,
         temperature: 0.2,
         timeoutMs: 30000,
@@ -191,35 +191,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...imageData.map((file: any) => ({ type: 'image_url', image_url: { url: file.dataUrl } }))
       ];
 
-      const callVision = async (baseUrl: string, apiKey: string, provider: 'openai' | 'grok', visionModel: string) => {
-        const response = await fetch(`${baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: visionModel, messages: multimodalMessages, temperature: 0.2, max_tokens: 1400, stream: false })
-        });
-        if (!response.ok) throw new Error(`${provider} vision call failed [HTTP ${response.status}]: ${await response.text().catch(() => '')}`);
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content || '';
-        if (!text) throw new Error(`${provider} vision provider returned an empty response.`);
-        return text;
-      };
-
       let text = '';
-      let provider: 'openai' | 'grok' = 'openai';
+      let provider: 'openai' | 'gemini' = 'openai';
       let modelUsed = 'gpt-4o';
       let fallbackTriggered = false;
       let fallbackReason: string | undefined;
 
       try {
         if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is missing.');
-        text = await callVision('https://api.openai.com/v1', process.env.OPENAI_API_KEY, 'openai', 'gpt-4o');
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: JSON.stringify({ model: 'gpt-4o', messages: multimodalMessages, temperature: 0.2, max_tokens: 1400, stream: false })
+        });
+        if (!response.ok) throw new Error(`OpenAI vision call failed [HTTP ${response.status}]: ${await response.text().catch(() => '')}`);
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content || '';
+        if (!text) throw new Error('OpenAI vision provider returned an empty response.');
       } catch (primaryError: any) {
         fallbackTriggered = true;
         fallbackReason = primaryError?.message || 'OpenAI vision unavailable';
-        if (!process.env.XAI_API_KEY) throw primaryError;
-        text = await callVision('https://api.x.ai/v1', process.env.XAI_API_KEY, 'grok', 'grok-4.6');
-        provider = 'grok';
-        modelUsed = 'grok-4.6';
+        const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
+        if (!geminiKey) throw primaryError;
+        throw new Error(`${fallbackReason}; Gemini image fallback requires the standard Gemini text route and was not attempted for this image request.`);
       }
       aiResult = { text, provider, modelUsed, fallbackTriggered, fallbackReason };
     }
