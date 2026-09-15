@@ -115,8 +115,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-  if (!process.env.OPENAI_API_KEY && !process.env.XAI_API_KEY) {
-    return res.status(500).json({ error: 'AI service is not configured', details: 'Neither OPENAI_API_KEY nor XAI_API_KEY is set in the environment' });
+
+  // Keep this guard aligned with generateWithFallback: Gemini is a supported
+  // primary/fallback provider and must not be rejected when it is the only key.
+  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY && !process.env.XAI_API_KEY) {
+    return res.status(500).json({ error: 'AI service is not configured', details: 'None of OPENAI_API_KEY, GEMINI_API_KEY, or XAI_API_KEY is set in the environment' });
   }
 
   try {
