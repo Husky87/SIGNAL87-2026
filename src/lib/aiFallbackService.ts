@@ -24,6 +24,10 @@ export interface NormalizedAiResponse {
   fallbackReason?: string;
 }
 
+function getGeminiApiKey(): string | undefined {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
+}
+
 function mapToOpenAiModel(requested?: string): string {
   if (requested?.startsWith('gpt-')) return requested;
   return process.env.OPENAI_MODEL || 'gpt-4o';
@@ -67,11 +71,7 @@ function toGeminiContents(messages: OpenAiMessage[]) {
     }));
 }
 
-async function callOpenAI(
-  normalizedMessages: OpenAiMessage[],
-  options: GenerateWithFallbackOptions,
-  model: string
-): Promise<string> {
+async function callOpenAI(normalizedMessages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is missing.');
 
@@ -112,13 +112,9 @@ async function callOpenAI(
   }
 }
 
-async function callGemini(
-  normalizedMessages: OpenAiMessage[],
-  options: GenerateWithFallbackOptions,
-  model: string
-): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is missing.');
+async function callGemini(normalizedMessages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) throw new Error('Gemini API key is missing. Set GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or GOOGLE_API_KEY.');
 
   const systemInstruction = options.systemInstruction || normalizedMessages.find((m) => m.role === 'system')?.content;
   const contents = toGeminiContents(normalizedMessages);
@@ -129,11 +125,7 @@ async function callGemini(
   };
   if (options.responseMimeType) generationConfig.responseMimeType = options.responseMimeType;
 
-  const body: Record<string, any> = {
-    contents,
-    generationConfig
-  };
-
+  const body: Record<string, any> = { contents, generationConfig };
   if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
 
   const timeoutMs = options.timeoutMs ?? 25000;
@@ -160,11 +152,7 @@ async function callGemini(
   }
 }
 
-async function callGrok(
-  normalizedMessages: OpenAiMessage[],
-  options: GenerateWithFallbackOptions,
-  model: string
-): Promise<string> {
+async function callGrok(normalizedMessages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
   const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) throw new Error('XAI_API_KEY is missing.');
 
@@ -182,13 +170,7 @@ async function callGrok(
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: options.temperature ?? 0.2,
-        max_tokens: options.maxOutputTokens ?? 1400,
-        stream: false
-      }),
+      body: JSON.stringify({ model, messages, temperature: options.temperature ?? 0.2, max_tokens: options.maxOutputTokens ?? 1400, stream: false }),
       signal: controller.signal
     });
     if (!response.ok) {
@@ -207,21 +189,19 @@ async function callGrok(
 export async function generateWithFallback(options: GenerateWithFallbackOptions): Promise<NormalizedAiResponse> {
   const normalizedMessages = normalizeOpenAiMessages(options);
   const requestedModel = options.model || process.env.AI_MODEL || 'gemini-3.6-flash';
-  const isGemini = requestedModel.startsWith('gemini-');
-  const isGrok = requestedModel.startsWith('grok-');
-  const isOpenAI = requestedModel.startsWith('gpt-');
+  const primaryProvider: 'gemini' | 'grok' | 'openai' = requestedModel.startsWith('gemini-')
+    ? 'gemini'
+    : requestedModel.startsWith('grok-')
+      ? 'grok'
+      : 'openai';
 
-  const primaryProvider: 'gemini' | 'grok' | 'openai' = isGemini ? 'gemini' : isGrok ? 'grok' : 'openai';
   const primaryModel = primaryProvider === 'gemini'
     ? mapToGeminiModel(requestedModel)
     : primaryProvider === 'grok'
       ? mapToGrokModel(requestedModel)
       : mapToOpenAiModel(requestedModel);
 
-  const attempts: Array<{ provider: 'gemini' | 'grok' | 'openai'; model: string }> = [
-    { provider: primaryProvider, model: primaryModel }
-  ];
-
+  const attempts: Array<{ provider: 'gemini' | 'grok' | 'openai'; model: string }> = [{ provider: primaryProvider, model: primaryModel }];
   const addFallback = (provider: 'gemini' | 'grok' | 'openai', model: string) => {
     if (!attempts.some((attempt) => attempt.provider === provider)) attempts.push({ provider, model });
   };
@@ -230,27 +210,22 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
   addFallback('openai', mapToOpenAiModel(options.fallbackModel));
   addFallback('grok', mapToGrokModel(options.fallbackModel));
 
-  let lastError: any = null;
   let firstError: any = null;
+  let lastError: any = null;
 
   for (let index = 0; index < attempts.length; index++) {
     const attempt = attempts[index];
-    const isPrimary = index === 0;
     try {
       let text = '';
-      if (attempt.provider === 'gemini') {
-        text = await callGemini(normalizedMessages, options, attempt.model);
-      } else if (attempt.provider === 'openai') {
-        text = await callOpenAI(normalizedMessages, options, attempt.model);
-      } else {
-        text = await callGrok(normalizedMessages, options, attempt.model);
-      }
+      if (attempt.provider === 'gemini') text = await callGemini(normalizedMessages, options, attempt.model);
+      else if (attempt.provider === 'openai') text = await callOpenAI(normalizedMessages, options, attempt.model);
+      else text = await callGrok(normalizedMessages, options, attempt.model);
 
       return {
         text,
         provider: attempt.provider,
         modelUsed: attempt.model,
-        fallbackTriggered: !isPrimary,
+        fallbackTriggered: index > 0,
         ...(firstError ? { fallbackReason: firstError.message || String(firstError) } : {})
       };
     } catch (err: any) {
@@ -260,29 +235,16 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
     }
   }
 
-  const configuredProviders = [
-    process.env.GEMINI_API_KEY && 'Gemini',
-    process.env.OPENAI_API_KEY && 'OpenAI',
-    process.env.XAI_API_KEY && 'Grok'
-  ].filter(Boolean).join(', ');
-
   const fallbackReason = lastError?.message || firstError?.message || 'All configured AI providers failed.';
   const missingKeys = [
-    !process.env.GEMINI_API_KEY && 'GEMINI_API_KEY',
+    !getGeminiApiKey() && 'GEMINI_API_KEY/GOOGLE_GENERATIVE_AI_API_KEY/GOOGLE_API_KEY',
     !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
     !process.env.XAI_API_KEY && 'XAI_API_KEY'
   ].filter(Boolean) as string[];
 
   if (options.responseMimeType === 'application/json') {
     return {
-      text: JSON.stringify({
-        summary: `Automated analysis did not run. Reason: ${fallbackReason}.`,
-        entities: [],
-        riskHighlights: [],
-        suggestedTags: [],
-        analysisSkipped: true,
-        analysisSkippedReason: fallbackReason
-      }),
+      text: JSON.stringify({ summary: `Automated analysis did not run. Reason: ${fallbackReason}.`, entities: [], riskHighlights: [], suggestedTags: [], analysisSkipped: true, analysisSkippedReason: fallbackReason }),
       provider: 'none',
       modelUsed: 'analysis-unavailable',
       fallbackTriggered: true,
@@ -292,7 +254,7 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
 
   const diagnosis = missingKeys.length === 3
     ? `No AI provider is configured. Missing: ${missingKeys.join(', ')}.`
-    : `AI providers configured: ${configuredProviders || 'none'}. Last error: ${fallbackReason}`;
+    : `The configured AI providers could not answer the request. Last error: ${fallbackReason}`;
 
   return {
     text: `## Analysis unavailable\n\nYour question was **not** answered.\n\n**Why:** ${diagnosis}`,
