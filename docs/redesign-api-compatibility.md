@@ -5,8 +5,9 @@ The redesigned frontend must preserve the existing backend API contract.
 ## Provider routing
 
 1. OpenAI / GPT is primary.
-2. Google Gemini is the second provider.
-3. xAI Grok is the third fallback.
+2. Google Gemini is the only fallback provider.
+
+There is no xAI/Grok provider, API, model, credential, or routing path in Signal87.
 
 ## Existing frontend-facing endpoints
 
