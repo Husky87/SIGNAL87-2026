@@ -1,42 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
+import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'AI service is not configured', details: 'OPENAI_API_KEY or GEMINI_API_KEY is required' });
-  }
-
+  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method Not Allowed' }); }
+  try { await requireFirebaseUser(req.headers.authorization); } catch (error: any) { return res.status(401).json({ error: 'Unauthorized', details: error?.message || 'Valid Firebase ID token required' }); }
+  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'AI service is not configured', details: 'OPENAI_API_KEY or GEMINI_API_KEY is required' });
   try {
-    const { documents } = req.body;
-    if (!documents || !Array.isArray(documents) || documents.length < 2) {
-      return res.status(400).json({ error: 'At least 2 documents are required for comparison' });
-    }
-
-    const formattedDocs = documents.map((doc: any, idx: number) => {
-      const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.';
-      return `DOCUMENT ${idx + 1}: ${doc.title}\n${body}`;
-    }).join('\n\n');
-
-    const aiResult = await generateWithFallback({
-      prompt: `Compare the following ${documents.length} documents in detail:\n\n${formattedDocs}`,
-      systemInstruction: `You are a multi-document legal, financial, and policy comparative analyst for Signal87 AI. Use only the supplied documents. Do not invent facts, clauses, conflicts, dates, figures, or risks. If something cannot be established from the documents, say so.
-Provide JSON with: summary, similarities, differences, missingClauses, conflicts, repeatedLanguage, riskTrends.`,
-      temperature: 0.1,
-      responseMimeType: 'application/json'
-    });
-
-    let jsonResult: any;
-    try { jsonResult = JSON.parse(aiResult.text || '{}'); }
-    catch { jsonResult = { summary: aiResult.text, similarities: [], differences: [], missingClauses: [], conflicts: [], repeatedLanguage: [], riskTrends: [] }; }
-
+    const { documents } = req.body; if (!documents || !Array.isArray(documents) || documents.length < 2) return res.status(400).json({ error: 'At least 2 documents are required for comparison' });
+    const formattedDocs = documents.map((doc: any, idx: number) => { const body = doc.fullText || doc.contentPreview || doc.summary || 'No content available.'; return `DOCUMENT ${idx + 1}: ${doc.title}\n${body}`; }).join('\n\n');
+    const aiResult = await generateWithFallback({ model: 'gpt-4o', fallbackModel: 'gemini-3.6-flash', prompt: `Compare the following ${documents.length} documents in detail:\n\n${formattedDocs}`, systemInstruction: `You are a multi-document legal, financial, and policy comparative analyst for Signal87 AI. Use only the supplied documents. Do not invent facts, clauses, conflicts, dates, figures, or risks. If something cannot be established from the documents, say so.\nProvide JSON with: summary, similarities, differences, missingClauses, conflicts, repeatedLanguage, riskTrends.`, temperature: 0.1, responseMimeType: 'application/json' });
+    let jsonResult: any; try { jsonResult = JSON.parse(aiResult.text || '{}'); } catch { jsonResult = { summary: aiResult.text, similarities: [], differences: [], missingClauses: [], conflicts: [], repeatedLanguage: [], riskTrends: [] }; }
     return res.json({ ...jsonResult, _provider: aiResult.provider, _fallbackTriggered: aiResult.fallbackTriggered });
-  } catch (error: any) {
-    console.error('Error in /api/compare:', error);
-    return res.status(500).json({ error: 'Multi-doc comparison failed', details: error.message || String(error) });
-  }
+  } catch (error: any) { console.error('Error in /api/compare:', error); return res.status(500).json({ error: 'Multi-doc comparison failed', details: error.message || String(error) }); }
 }
