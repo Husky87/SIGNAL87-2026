@@ -5,6 +5,14 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
       "source": "/team",
       "destination": "/team/index.html"
     },
