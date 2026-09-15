@@ -18,7 +18,7 @@ export interface GenerateWithFallbackOptions {
 
 export interface NormalizedAiResponse {
   text: string;
-  provider: 'openai' | 'gemini' | 'grok' | 'none';
+  provider: 'openai' | 'gemini' | 'none';
   modelUsed: string;
   fallbackTriggered: boolean;
   fallbackReason?: string;
@@ -40,11 +40,6 @@ function mapToGeminiModel(requested?: string): string {
   if (requested === 'gemini-2.5-flash') return 'gemini-2.5-flash';
   if (requested?.startsWith('gemini-')) return requested;
   return process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-}
-
-function mapToGrokModel(requested?: string): string {
-  if (requested?.startsWith('grok-')) return requested;
-  return process.env.GROK_MODEL || 'grok-4.6';
 }
 
 export function normalizeOpenAiMessages(options: GenerateWithFallbackOptions): OpenAiMessage[] {
@@ -152,63 +147,28 @@ async function callGemini(normalizedMessages: OpenAiMessage[], options: Generate
   }
 }
 
-async function callGrok(normalizedMessages: OpenAiMessage[], options: GenerateWithFallbackOptions, model: string): Promise<string> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) throw new Error('XAI_API_KEY is missing.');
-
-  const messages = [...normalizedMessages];
-  if (options.responseMimeType === 'application/json') {
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg) lastMsg.content = `${lastMsg.content}\n\nReturn only a valid JSON object.`;
-  }
-
-  const timeoutMs = options.timeoutMs ?? 25000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, temperature: options.temperature ?? 0.2, max_tokens: options.maxOutputTokens ?? 1400, stream: false }),
-      signal: controller.signal
-    });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(`Grok API call failed [HTTP ${response.status}]: ${detail}`);
-    }
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Grok returned an empty response.');
-    return text;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
 export async function generateWithFallback(options: GenerateWithFallbackOptions): Promise<NormalizedAiResponse> {
   const normalizedMessages = normalizeOpenAiMessages(options);
-  const requestedModel = options.model || process.env.AI_MODEL || 'gemini-3.6-flash';
-  const primaryProvider: 'gemini' | 'grok' | 'openai' = requestedModel.startsWith('gemini-')
-    ? 'gemini'
-    : requestedModel.startsWith('grok-')
-      ? 'grok'
-      : 'openai';
+  const requestedModel = options.model || process.env.AI_MODEL || 'gpt-4o';
+  const primaryProvider: 'openai' | 'gemini' = requestedModel.startsWith('gemini-') ? 'gemini' : 'openai';
 
   const primaryModel = primaryProvider === 'gemini'
     ? mapToGeminiModel(requestedModel)
-    : primaryProvider === 'grok'
-      ? mapToGrokModel(requestedModel)
-      : mapToOpenAiModel(requestedModel);
+    : mapToOpenAiModel(requestedModel);
 
-  const attempts: Array<{ provider: 'gemini' | 'grok' | 'openai'; model: string }> = [{ provider: primaryProvider, model: primaryModel }];
-  const addFallback = (provider: 'gemini' | 'grok' | 'openai', model: string) => {
+  const attempts: Array<{ provider: 'openai' | 'gemini'; model: string }> = [
+    { provider: primaryProvider, model: primaryModel }
+  ];
+
+  const addFallback = (provider: 'openai' | 'gemini', model: string) => {
     if (!attempts.some((attempt) => attempt.provider === provider)) attempts.push({ provider, model });
   };
 
-  addFallback('gemini', mapToGeminiModel(options.fallbackModel));
-  addFallback('openai', mapToOpenAiModel(options.fallbackModel));
-  addFallback('grok', mapToGrokModel(options.fallbackModel));
+  if (primaryProvider === 'openai') {
+    addFallback('gemini', mapToGeminiModel(options.fallbackModel));
+  } else {
+    addFallback('openai', mapToOpenAiModel(options.fallbackModel));
+  }
 
   let firstError: any = null;
   let lastError: any = null;
@@ -216,10 +176,9 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
   for (let index = 0; index < attempts.length; index++) {
     const attempt = attempts[index];
     try {
-      let text = '';
-      if (attempt.provider === 'gemini') text = await callGemini(normalizedMessages, options, attempt.model);
-      else if (attempt.provider === 'openai') text = await callOpenAI(normalizedMessages, options, attempt.model);
-      else text = await callGrok(normalizedMessages, options, attempt.model);
+      const text = attempt.provider === 'gemini'
+        ? await callGemini(normalizedMessages, options, attempt.model)
+        : await callOpenAI(normalizedMessages, options, attempt.model);
 
       return {
         text,
@@ -238,8 +197,7 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
   const fallbackReason = lastError?.message || firstError?.message || 'All configured AI providers failed.';
   const missingKeys = [
     !getGeminiApiKey() && 'GEMINI_API_KEY/GOOGLE_GENERATIVE_AI_API_KEY/GOOGLE_API_KEY',
-    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
-    !process.env.XAI_API_KEY && 'XAI_API_KEY'
+    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY'
   ].filter(Boolean) as string[];
 
   if (options.responseMimeType === 'application/json') {
@@ -252,9 +210,9 @@ export async function generateWithFallback(options: GenerateWithFallbackOptions)
     };
   }
 
-  const diagnosis = missingKeys.length === 3
+  const diagnosis = missingKeys.length === 2
     ? `No AI provider is configured. Missing: ${missingKeys.join(', ')}.`
-    : `The configured AI providers could not answer the request. Last error: ${fallbackReason}`;
+    : `OpenAI and Gemini could not answer the request. Last error: ${fallbackReason}`;
 
   return {
     text: `## Analysis unavailable\n\nYour question was **not** answered.\n\n**Why:** ${diagnosis}`,
