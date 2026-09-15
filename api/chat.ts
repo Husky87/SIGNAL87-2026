@@ -7,6 +7,7 @@ const MAX_DOC_CHARS = 28000;
 const MAX_TOTAL_CONTEXT_CHARS = 90000;
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_CHARS = 12000;
+const DEFAULT_CHAT_MODEL = 'gemini-3.6-flash';
 
 function extractCitationManifest(text: string): { cleanedText: string; entries: Array<{ source?: string }> } {
   const match = text.match(/```citation_manifest\s*([\s\S]*?)```/i);
@@ -116,19 +117,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Keep this guard aligned with generateWithFallback: Gemini is a supported
-  // primary/fallback provider and must not be rejected when it is the only key.
-  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY && !process.env.XAI_API_KEY) {
-    return res.status(500).json({ error: 'AI service is not configured', details: 'None of OPENAI_API_KEY, GEMINI_API_KEY, or XAI_API_KEY is set in the environment' });
+  const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY);
+  if (!process.env.OPENAI_API_KEY && !hasGeminiKey && !process.env.XAI_API_KEY) {
+    return res.status(500).json({
+      error: 'AI service is not configured',
+      details: 'None of OPENAI_API_KEY, GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, GOOGLE_API_KEY, or XAI_API_KEY is set in the environment'
+    });
   }
 
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles } = req.body || {};
+    const {
+      prompt,
+      messages,
+      documents,
+      ingestedFilesData,
+      attachedFiles,
+      model = DEFAULT_CHAT_MODEL
+    } = req.body || {};
+
     if (!prompt && (!Array.isArray(messages) || messages.length === 0)) {
       return res.status(400).json({ error: 'Prompt or messages array is required' });
     }
 
-    mark('request received');
+    mark(`request received; model=${model}`);
 
     const allDocs: any[] = Array.isArray(documents) ? documents : [];
     const readableDocs = allDocs.filter((doc: any) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary));
@@ -161,10 +172,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .slice(0, 5);
 
     let aiResult: any;
-    mark('provider request start');
+    mark(`provider request start; selected=${model}`);
 
     if (imageData.length === 0) {
-      aiResult = await generateWithFallback({ messages: modelMessages, temperature: 0.2, timeoutMs: 30000, maxOutputTokens: 1400 });
+      aiResult = await generateWithFallback({
+        model,
+        fallbackModel: 'gpt-4o',
+        messages: modelMessages,
+        temperature: 0.2,
+        timeoutMs: 30000,
+        maxOutputTokens: 1400
+      });
     } else {
       const multimodalMessages: any[] = modelMessages.map((message) => ({ ...message }));
       const last = multimodalMessages[multimodalMessages.length - 1];
@@ -173,16 +191,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...imageData.map((file: any) => ({ type: 'image_url', image_url: { url: file.dataUrl } }))
       ];
 
-      const callVision = async (baseUrl: string, apiKey: string, model: string) => {
+      const callVision = async (baseUrl: string, apiKey: string, provider: 'openai' | 'grok', visionModel: string) => {
         const response = await fetch(`${baseUrl}/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model, messages: multimodalMessages, temperature: 0.2, max_tokens: 1400, stream: false })
+          body: JSON.stringify({ model: visionModel, messages: multimodalMessages, temperature: 0.2, max_tokens: 1400, stream: false })
         });
-        if (!response.ok) throw new Error(`${baseUrl.includes('openai') ? 'OpenAI' : 'Grok'} vision call failed [HTTP ${response.status}]: ${await response.text().catch(() => '')}`);
+        if (!response.ok) throw new Error(`${provider} vision call failed [HTTP ${response.status}]: ${await response.text().catch(() => '')}`);
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || '';
-        if (!text) throw new Error('Vision provider returned an empty response.');
+        if (!text) throw new Error(`${provider} vision provider returned an empty response.`);
         return text;
       };
 
@@ -191,14 +209,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let modelUsed = 'gpt-4o';
       let fallbackTriggered = false;
       let fallbackReason: string | undefined;
+
       try {
         if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is missing.');
-        text = await callVision('https://api.openai.com/v1', process.env.OPENAI_API_KEY, 'gpt-4o');
+        text = await callVision('https://api.openai.com/v1', process.env.OPENAI_API_KEY, 'openai', 'gpt-4o');
       } catch (primaryError: any) {
         fallbackTriggered = true;
         fallbackReason = primaryError?.message || 'OpenAI vision unavailable';
         if (!process.env.XAI_API_KEY) throw primaryError;
-        text = await callVision('https://api.x.ai/v1', process.env.XAI_API_KEY, 'grok-4.6');
+        text = await callVision('https://api.x.ai/v1', process.env.XAI_API_KEY, 'grok', 'grok-4.6');
         provider = 'grok';
         modelUsed = 'grok-4.6';
       }
@@ -210,7 +229,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const citations = resolveCitations(citationResult.entries, readableDocs, readableAttached);
     const totalMs = mark('response complete');
 
-    res.setHeader('Server-Timing', `context;dur=${Math.max(0, providerMs - (mark('provider response timing checkpoint') - providerMs))}, total;dur=${totalMs}`);
     res.setHeader('X-Signal87-Total-Ms', String(totalMs));
     res.setHeader('X-Signal87-Provider-Ms', String(providerMs));
 
