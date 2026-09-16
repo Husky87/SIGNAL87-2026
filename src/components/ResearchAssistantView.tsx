@@ -518,21 +518,13 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }
   };
 
-  /**
-   * `research` picks the heavyweight multi-document synthesis instead of the
-   * assistant. It is an argument rather than component state on purpose: this
-   * used to be a sticky `mode` that only the preset chips could set and nothing
-   * ever reset, so choosing "Draft Executive Report" once sent every later
-   * message — including "what is the date on this?" — to the deep research
-   * engine, with no way back and nothing on screen saying so.
-   */
-  const handleSendQuery = async (queryText?: string, research = false) => {
+  const sendingRef = useRef(false);
+  const handleSendQuery = async (queryText?: string) => {
     const userMsgText = queryText || inputQuery;
-    if (!userMsgText.trim() || loading) return;
+    if (!userMsgText.trim() || sendingRef.current) return;
+    sendingRef.current = true;
 
     if (!queryText) setInputQuery('');
-
-    const targetMode = research ? 'deep' : 'quick';
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -562,38 +554,25 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }));
 
     try {
-      let endpoint = '/api/chat';
-      let bodyPayload: any = {};
-
-      if (targetMode === 'deep') {
-        endpoint = '/api/research';
-        bodyPayload = {
-          researchGoal: userMsgText,
-          documentIds: selectedDocIds,
-          model: selectedModel,
-          documents: fullTextDocumentPayload,
-          ingestedFilesData,
-          attachedFiles
-        };
-      } else {
-        const priorTurns = [...chatHistory, userMsg]
-          .filter((m) => m.role === 'user' || m.role === 'assistant')
-          .slice(-12)
-          .map((m) => ({ role: m.role, content: m.text }));
-        bodyPayload = {
-          prompt: userMsgText,
-          messages: priorTurns,
-          documents: fullTextDocumentPayload,
-          model: selectedModel,
-          ingestedFilesData,
-          attachedFiles
-        };
-      }
+      if (!currentUser) throw new Error('Please sign in to send a message.');
+      const token = await currentUser.getIdToken();
+      const priorTurns = [...chatHistory, userMsg]
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-12)
+        .map((m) => ({ role: m.role, content: m.text }));
+      const bodyPayload = {
+        prompt: userMsgText,
+        messages: priorTurns,
+        documents: fullTextDocumentPayload,
+        model: selectedModel,
+        ingestedFilesData,
+        attachedFiles
+      };
 
       const startTime = Date.now();
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(bodyPayload)
       });
 
@@ -641,7 +620,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         responseText += `\n\n*System Note: Excel export data "${excelExportData.filename}" is available for download.*`;
       }
 
-      const routedDeliverableType = determineDeliverableType(userMsgText, responseText, targetMode === 'deep');
+      const routedDeliverableType = determineDeliverableType(userMsgText, responseText, false);
 
       const aiMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
@@ -668,7 +647,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           latencyMs: actualLatency
         },
         reasoningSteps: reasoningSteps,
-        isDeepResearch: targetMode === 'deep'
+        isDeepResearch: false
       };
 
       setChatHistory((prev) => [...prev, aiMsg]);
@@ -694,6 +673,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       };
       setChatHistory((prev) => [...prev, errorMsg]);
       setLoading(false);
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -827,18 +808,39 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             filter: 'blur(14px)'
           }}
         />
-        <div
-          className="s87-field relative pl-2 pr-2 py-1.5 sm:p-2.5 flex items-center gap-1.5 sm:gap-2.5 min-h-[52px] sm:min-h-[48px]"
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSendQuery();
+          }}
+          className="s87-field relative flex flex-col gap-2 p-3 sm:p-4 min-h-[132px]"
         >
+          <textarea
+            aria-label="Ask Signal87"
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder="What would you like to know?"
+            className="w-full flex-1 bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[62px] max-h-40 px-1 py-1 font-sans caret-[var(--teal)]"
+            rows={2}
+          />
+
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--rule)] pt-2">
           <div className="relative flex-shrink-0">
             <button
               type="button"
               onClick={() => setShowAttachMenu(!showAttachMenu)}
               aria-label={showAttachMenu ? 'Close attach menu' : 'Add attachment'}
               aria-expanded={showAttachMenu}
-              className="flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-transparent hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 min-h-10 px-3 rounded-full bg-[var(--surface-2)] hover:bg-[var(--raised)] text-[var(--ink-2)] hover:text-[var(--ink)] text-sm transition-colors cursor-pointer"
             >
-              {showAttachMenu ? <X size={18} /> : <Plus size={20} />}
+              {showAttachMenu ? <X size={16} /> : <Plus size={16} />}
+              <span>Add documents</span>
             </button>
 
             {showAttachMenu && (
@@ -871,49 +873,10 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             )}
           </div>
 
-          <span
-            className="flex-shrink-0 text-[15px] font-medium text-[var(--teal)] select-none"
-            aria-hidden="true"
-          >
-            &gt;_
-          </span>
-
-          <textarea
-            value={inputQuery}
-            onChange={(e) => setInputQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendQuery();
-              }
-            }}
-            placeholder="Ask anything..."
-            className="flex-1 min-w-0 bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[28px] max-h-24 px-1 py-2 font-sans caret-[var(--teal)]"
-            rows={1}
-          />
-
-          {/* Two send actions rather than a mode. The expensive multi-document
-              run is always a deliberate press, so nothing can silently redirect
-              an ordinary question into it. */}
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-xs text-[var(--muted)]">Enter to send · Shift+Enter for a new line</span>
           <button
-            type="button"
-            onClick={() => handleSendQuery(undefined, true)}
-            disabled={!inputQuery.trim() || loading}
-            aria-label="Research across documents"
-            title="Research across your documents — slower, writes a full brief"
-            className={`flex-shrink-0 h-11 sm:h-9 px-3 flex items-center gap-1.5 rounded-full border transition-colors cursor-pointer text-[12.5px] font-medium ${
-              inputQuery.trim() && !loading
-                ? 'border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--teal)]'
-                : 'border-[var(--rule)] text-[var(--muted)] cursor-not-allowed'
-            }`}
-          >
-            <Layers size={15} />
-            <span className="hidden sm:inline">Research</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuery()}
+            type="submit"
             disabled={!inputQuery.trim() || loading}
             aria-label="Send"
             className={`flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
@@ -923,9 +886,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             }`}
             title="Send message"
           >
-            <ArrowUp size={16} strokeWidth={2.6} />
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={2.6} />}
           </button>
-        </div>
+          </div>
+          </div>
+        </form>
       </div>
     </div>
   );
