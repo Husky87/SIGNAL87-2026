@@ -34,3 +34,7 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Production API reachability smoke test
+        run: |
+          curl --fail --silent --show-error --location --max-time 20 https://signal87.ai/api/health
