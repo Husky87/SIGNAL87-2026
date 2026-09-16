@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { Loader2, AlertCircle, Download } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { fileDataCache } from '../lib/pdfGenerator';
 import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -31,7 +31,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   currentPage,
   totalPages,
   onTotalPagesChange,
-  onPageChange,
+  onPageChange: _onPageChange,
   zoomLevel,
 }) => {
   const [loading, setLoading] = useState(true);
@@ -105,9 +105,6 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
     updateWidth();
 
-    // ResizeObserver is supported by modern Firefox, but a browser extension,
-    // hardened profile, or older embedded Firefox can remove it. The viewer
-    // should still render using the initial width instead of crashing the tree.
     const Observer = typeof ResizeObserver !== 'undefined' ? ResizeObserver : null;
     if (!Observer) return;
 
@@ -128,15 +125,17 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     setLoading(false);
   }
 
-  const basePageWidth = Math.max(280, Math.min(containerWidth || 800, 900));
+  // The page should use the full available width of the enlarged document
+  // viewer rather than stopping at the old 900px cap.
+  const basePageWidth = Math.max(280, Math.min(containerWidth || 800, 1200));
   const pageWidth = basePageWidth * (zoomLevel / 100);
 
   return (
     <div ref={containerRef} className="flex flex-col items-center w-full relative min-w-0">
       {loading && (
-        <div className="flex flex-col items-center justify-center p-12 text-[#78716C] gap-3">
-          <Loader2 size={32} className="animate-spin text-[#8C2F27]" />
-          <span className="text-xs font-mono font-bold tracking-wider">RENDERING PDF DOCUMENT...</span>
+        <div className="flex flex-col items-center justify-center p-12 text-[var(--muted)] gap-3">
+          <Loader2 size={32} className="animate-spin text-[var(--teal)]" />
+          <span className="text-xs font-semibold tracking-wider">RENDERING PDF DOCUMENT...</span>
         </div>
       )}
 
@@ -148,11 +147,13 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
               <div className="text-[13px] font-medium text-[var(--ink)]">Showing this document in your browser's viewer</div>
               <p className="text-[11.5px] text-[var(--slate)] m-0 break-words">{error}</p>
             </div>
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="ml-auto flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-[var(--teal-ink)] text-[11.5px] font-semibold rounded-full hover:opacity-90 transition-all flex items-center gap-1.5">
-              <Download size={13} /> Download
-            </a>
           </div>
-          <iframe src={fileUrl} title={fileName} className="w-full rounded-xl border border-[var(--rule)] bg-white" style={{ height: '70vh' }} />
+          <iframe
+            src={fileUrl}
+            title={fileName}
+            className="w-full rounded-xl border border-[var(--rule)] bg-white"
+            style={{ height: '82vh' }}
+          />
         </div>
       )}
 
@@ -166,7 +167,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
       {pdfFile && !error && (
         <div className="w-full flex justify-center min-w-0 overflow-visible">
-          <div className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[#DDD6C8] shadow-sm" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', width: `${basePageWidth}px` }}>
+          <div className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[var(--rule)] shadow-sm" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', width: `${basePageWidth}px` }}>
             <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError} loading={null} error={null}>
               <Page pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)} width={pageWidth} renderTextLayer={true} renderAnnotationLayer={false} className="w-full" />
             </Document>
