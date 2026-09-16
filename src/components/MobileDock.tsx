@@ -5,11 +5,11 @@ import {
   FolderPlus,
   Upload,
   X,
-  Bookmark,
   Menu,
   Plus,
   Search,
-  StickyNote
+  StickyNote,
+  Home
 } from 'lucide-react';
 
 interface MobileDockProps {
@@ -34,12 +34,14 @@ export const MobileDock: React.FC<MobileDockProps> = ({
 }) => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  // Map of Mobile Style Tabs
+  // The reference design uses Home / Ask / Files / Notes / More as the persistent
+  // mobile destinations. The existing "New" action remains available through the
+  // center plus control so no creation workflow is lost.
   const tabs: { id: NavTab | 'new' | 'more'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'research', label: 'Ask', icon: Search },
-    { id: 'new', label: 'New', icon: Plus },
-    { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'saved', label: 'Notes', icon: StickyNote },
     { id: 'more', label: 'More', icon: Menu },
   ];
 
@@ -47,14 +49,11 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     setIsBottomSheetOpen(false);
     setTimeout(() => {
       if (type === 'folder') {
-        // Toggle new folder modal. Since it resides in DocumentLibraryView, we can select documents tab
         onSelectTab('documents');
         if (onOpenNewFolderModal) {
           onOpenNewFolderModal();
         } else {
-          // Fallback: Dispatch custom event to open folder modal in Library View
-          const event = new CustomEvent('open-new-folder-modal');
-          window.dispatchEvent(event);
+          window.dispatchEvent(new CustomEvent('open-new-folder-modal'));
         }
       } else if (type === 'upload') {
         if (onOpenUpload) onOpenUpload();
@@ -74,97 +73,62 @@ export const MobileDock: React.FC<MobileDockProps> = ({
 
   return (
     <>
-      {/* Actions Bottom Sheet Modal */}
       {isBottomSheetOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Transparent/blur Backdrop overlay */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-2xs transition-opacity"
+            className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
             onClick={() => setIsBottomSheetOpen(false)}
           />
-
-          {/* Bottom Sheet Container */}
-          <div className="relative bg-[var(--card)] rounded-t-3xl border-t border-[var(--rule)] p-6 pb-8 space-y-6 z-10 transform transition-transform animate-in slide-in-from-bottom duration-250 ease-out max-w-lg mx-auto w-full">
-            {/* Soft drag handle marker */}
-            <div className="w-10 h-1 bg-[var(--rule)] rounded-full mx-auto" />
-
-            <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-bold text-[var(--ink)]">Create new</h3>
+          <div className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-[var(--rule)] bg-[var(--surface)] p-6 pb-8 shadow-2xl">
+            <div className="mx-auto mb-6 h-1 w-10 rounded-full bg-[var(--rule)]" />
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[var(--ink)]">Create new</h3>
               <button
+                type="button"
                 onClick={() => setIsBottomSheetOpen(false)}
-                className="p-1.5 hover:bg-[var(--raised)] text-[var(--slate)] hover:text-[var(--ink)] rounded-full cursor-pointer"
+                aria-label="Close create menu"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--ink)]"
               >
                 <X size={18} />
               </button>
             </div>
-
-            {/* Action Options Grid */}
-            <div className="grid grid-cols-2 gap-6 text-center">
-              <button
-                onClick={() => handleAction('chat')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] text-[var(--accent-ink)] flex items-center justify-center border border-[var(--accent)]/20 group-active:scale-95 transition-transform">
-                  <Search size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Ask</span>
+            <div className="grid grid-cols-2 gap-4">
+              <button type="button" onClick={() => handleAction('chat')} className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--raised)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--teal-soft)] text-[var(--teal)]"><Search size={20} /></div>
+                <span className="text-xs font-semibold text-[var(--ink)]">Ask</span>
               </button>
-
-              <button
-                onClick={() => handleAction('note')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 group-active:scale-95 transition-transform">
-                  <StickyNote size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Note</span>
+              <button type="button" onClick={() => handleAction('note')} className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--raised)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--raised)] text-[var(--ink-2)]"><StickyNote size={20} /></div>
+                <span className="text-xs font-semibold text-[var(--ink)]">Note</span>
               </button>
-
-              <button
-                onClick={() => handleAction('folder')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-[var(--teal-soft)] text-[var(--teal)] flex items-center justify-center border border-[var(--teal)]/20 group-active:scale-95 transition-transform">
-                  <FolderPlus size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Folder</span>
+              <button type="button" onClick={() => handleAction('folder')} className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--raised)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--teal-soft)] text-[var(--teal)]"><FolderPlus size={20} /></div>
+                <span className="text-xs font-semibold text-[var(--ink)]">Folder</span>
               </button>
-
-              <button
-                onClick={() => handleAction('upload')}
-                className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-active:scale-95 transition-transform">
-                  <Upload size={22} />
-                </div>
-                <span className="text-xs font-semibold text-[var(--ink-2)] truncate w-full">Upload</span>
+              <button type="button" onClick={() => handleAction('upload')} className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--raised)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--raised)] text-[var(--ink-2)]"><Upload size={20} /></div>
+                <span className="text-xs font-semibold text-[var(--ink)]">Upload</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Primary Bottom Navigation Bar - Material 3 Style */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden flex items-center justify-between flex-shrink-0 px-1 pt-2 pb-2.5 bg-[var(--card)] border-t border-[var(--rule)] z-40 w-full max-w-full overflow-x-hidden"
-        style={{
-          // Same "10px + inset" expression --dock-height (index.css) is built
-          // from, so the two can never drift apart.
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
-        }}
+        className="md:hidden flex items-center justify-between flex-shrink-0 border-t border-[var(--rule)] bg-[var(--surface)] px-1 pt-2 z-40 w-full max-w-full overflow-x-hidden"
+        style={{ paddingBottom: 'calc(10px + env(safe-area-inset-bottom))' }}
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
-            (tab.id === 'documents' && currentTab === 'documents') ||
+            (tab.id === 'dashboard' && currentTab === 'dashboard') ||
             (tab.id === 'research' && currentTab === 'research') ||
+            (tab.id === 'documents' && currentTab === 'documents') ||
             (tab.id === 'saved' && currentTab === 'saved');
 
           const handleClick = () => {
-            if (tab.id === 'new') {
-              setIsBottomSheetOpen(true);
-            } else if (tab.id === 'more') {
+            if (tab.id === 'more') {
               if (onOpenMenu) onOpenMenu();
             } else {
               onSelectTab(tab.id as NavTab);
@@ -174,27 +138,15 @@ export const MobileDock: React.FC<MobileDockProps> = ({
           return (
             <button
               key={tab.id}
+              type="button"
               onClick={handleClick}
               aria-current={isActive ? 'page' : undefined}
-              className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 cursor-pointer transition-colors focus:outline-none py-1 px-0.5"
+              className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-1 px-0.5 focus:outline-none"
             >
-              {/* Modern Google MD3 Active Accent Pill Indicator */}
-              <div
-                className={`flex items-center justify-center px-3 py-2 rounded-full transition-all duration-200 ${
- isActive
- ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
- : 'bg-transparent text-[var(--ink-2)] hover:bg-[var(--raised)]/40 hover:text-[var(--ink)]'
- }`}
-              >
-                <Icon className="w-5 h-5" />
+              <div className={`flex h-9 w-11 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]' : 'text-[var(--ink-2)]'}`}>
+                <Icon className="h-5 w-5" />
               </div>
-
-              {/* Tab Label */}
-              <span
-                className={`text-[11px] font-semibold leading-tight tracking-tight transition-colors whitespace-nowrap ${
- isActive ? 'text-[var(--accent-ink)]' : 'text-[var(--slate)]'
- }`}
-              >
+              <span className={`text-[11px] font-medium leading-tight ${isActive ? 'text-[var(--accent-ink)]' : 'text-[var(--muted)]'}`}>
                 {tab.label}
               </span>
             </button>
