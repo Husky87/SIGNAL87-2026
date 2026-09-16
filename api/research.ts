@@ -1,6 +1,36 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
+import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
+
+const DEFAULT_PRIMARY_MODEL = 'gpt-4o';
+const DEFAULT_FALLBACK_MODEL = 'gemini-3.6-flash';
+const MAX_CONTEXT_CHARS = 120_000;
+
+type ResearchDocument = {
+  id?: string;
+  title?: string;
+  fullText?: string;
+  contentPreview?: string;
+  summary?: string;
+};
+
+type IngestedFile = {
+  id?: string;
+  fileName?: string;
+  extractedText?: string;
+  summaryInfo?: string;
+};
+
+function getAuthorizationHeader(req: VercelRequest): string | undefined {
+  const value = req.headers.authorization;
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function trimContext(value: string, remaining: number): string {
+  if (remaining <= 0) return '';
+  return value.length <= remaining ? value : `${value.slice(0, remaining)}\n[Context truncated by server limit]`;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -8,132 +38,142 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+  let userId: string;
+  try {
+    userId = await requireFirebaseUser(getAuthorizationHeader(req));
+  } catch (error: any) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      details: error?.message || 'A valid Firebase ID token is required.'
+    });
+  }
+
+  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.OPENAI_API_KEY) {
     return res.status(500).json({
       error: 'AI service is not configured',
-      details: 'Neither GEMINI_API_KEY nor OPENAI_API_KEY is set in the environment'
+      details: 'Neither OpenAI nor Gemini is configured in the server environment.'
     });
   }
 
   try {
-    const { researchGoal, documentIds, model = 'gemini-3.6-flash', documents, ingestedFilesData } = req.body;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const researchGoal = typeof body.researchGoal === 'string' ? body.researchGoal.trim() : '';
+    const requestedModel = typeof body.model === 'string' ? body.model : DEFAULT_PRIMARY_MODEL;
+    const documentIds = Array.isArray(body.documentIds) ? body.documentIds.filter((id: unknown): id is string => typeof id === 'string') : [];
+    const allDocs: ResearchDocument[] = Array.isArray(body.documents) ? body.documents : [];
+    const allAttached: IngestedFile[] = Array.isArray(body.ingestedFilesData) ? body.ingestedFilesData : [];
 
     if (!researchGoal) {
       return res.status(400).json({ error: 'Research goal is required' });
     }
+    if (researchGoal.length > 12_000) {
+      return res.status(400).json({ error: 'Research goal is too long.' });
+    }
 
-    // See api/chat.ts: documents whose extraction failed still hold the raw PDF
-    // container as their text, which reads as confident nonsense to the model.
-    const allDocs: any[] = Array.isArray(documents) ? documents : [];
-    const readableDocs = allDocs.filter((doc: any) =>
+    // The browser supplies the currently selected document context. Enforce the
+    // selection server-side so a caller cannot silently expand the requested set.
+    const selectedIdSet = new Set(documentIds);
+    const selectedDocs = documentIds.length > 0
+      ? allDocs.filter((doc) => typeof doc.id === 'string' && selectedIdSet.has(doc.id))
+      : allDocs;
+
+    const readableDocs = selectedDocs.filter((doc) =>
       hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
     );
-    const unreadableTitles: string[] = allDocs
-      .filter((doc: any) => !readableDocs.includes(doc))
-      .map((doc: any) => doc.title);
+    const unreadableTitles: string[] = selectedDocs
+      .filter((doc) => !readableDocs.includes(doc))
+      .map((doc) => doc.title || 'Untitled document');
 
-    let docContext = '';
-    if (readableDocs.length > 0) {
-      docContext = readableDocs
-        .map((doc: any, idx: number) => {
-          const body = doc.fullText || doc.contentPreview || doc.summary;
-          return `Doc ${idx + 1}: ${doc.title}\n${body}`;
-        })
-        .join('\n\n');
+    let remainingChars = MAX_CONTEXT_CHARS;
+    const docSections: string[] = [];
+    for (const [idx, doc] of readableDocs.entries()) {
+      const bodyText = doc.fullText || doc.contentPreview || doc.summary || '';
+      const section = `Doc ${idx + 1}: ${doc.title || 'Untitled document'}\n${trimContext(bodyText, remainingChars)}`;
+      docSections.push(section);
+      remainingChars -= section.length;
+      if (remainingChars <= 0) break;
     }
+
+    let docContext = docSections.join('\n\n');
     if (unreadableTitles.length > 0) {
       docContext +=
         `\n\nDOCUMENTS THAT COULD NOT BE READ (no text extracted — do not answer from them, ` +
         `name them and say they must be re-uploaded):\n` +
-        unreadableTitles.map((t: string) => `- ${t}`).join('\n');
+        unreadableTitles.map((title) => `- ${title}`).join('\n');
     }
 
-    // Same guard as the repository set: an attached document whose extraction
-    // failed carries noise or nothing, and must not be presented as evidence.
-    const allAttached: any[] = Array.isArray(ingestedFilesData) ? ingestedFilesData : [];
-    const readableAttached = allAttached.filter((f: any) => hasUsableText(f.extractedText));
-    for (const f of allAttached) {
-      if (!readableAttached.includes(f)) unreadableTitles.push(f.fileName);
+    const readableAttached = allAttached.filter((file) => hasUsableText(file.extractedText));
+    const unreadableAttached = allAttached
+      .filter((file) => !readableAttached.includes(file))
+      .map((file) => file.fileName || 'Untitled attachment');
+
+    const attachedSections: string[] = [];
+    for (const [idx, file] of readableAttached.entries()) {
+      if (remainingChars <= 0) break;
+      const section = `Attachment ${idx + 1}: ${file.fileName || 'Untitled attachment'} (${file.summaryInfo || ''})\nRaw Content:\n${trimContext(file.extractedText || '', remainingChars)}`;
+      attachedSections.push(section);
+      remainingChars -= section.length;
     }
 
-    let attachedFilesContext = '';
-    if (readableAttached.length > 0) {
-      attachedFilesContext = readableAttached
-        .map((f: any, idx: number) => `Attachment ${idx + 1}: ${f.fileName} (${f.summaryInfo || ''})\nRaw Content:\n${f.extractedText}`)
-        .join('\n\n');
+    let attachedFilesContext = attachedSections.join('\n\n');
+    if (unreadableAttached.length > 0) {
+      attachedFilesContext += `\n\nATTACHMENTS THAT COULD NOT BE READ:\n${unreadableAttached.map((name) => `- ${name}`).join('\n')}`;
     }
 
-    const systemInstruction = `You are the official Signal87 AI Platform Assistant executing Flagship Multi-Document Deep Research.
-Cross-reference legislative texts, corporate filings, lease terms, and government policies with deep logical synthesis.
+    const systemInstruction = `You are the official Signal87 AI Platform Research Assistant executing multi-document deep research for authenticated user ${userId}.
+Cross-reference the supplied legislative texts, corporate filings, lease terms, and government policies with careful logical synthesis.
 
-[ENFORCE DIRECT ACTION MODE]
-1. Never present conversational menus, options, or conversational fillers (e.g., "Recommended Next Steps", "How would you like to proceed?").
-2. When asked to analyze, edit, map, or export data, immediately execute the request.
-3. Skip confirmation loops and proceed directly to outputting the final artifact, including the mandatory \`excel_export\` JSON structure for spreadsheet requests.
+Do not claim that you performed retrieval, browsing, legal verification, clause verification, or other operations unless the supplied context or tool result actually demonstrates it. Distinguish document evidence from inference and clearly identify missing or unreadable sources.
 
-[CRITICAL INSTRUCTION FOR DOCUMENT ANALYSIS]
-When document content (e.g., spreadsheet data, slides) is provided in the prompt, SKIP high-level templates or generic "Phase" outlines. Immediately perform a DEEP, DIRECT QUALITATIVE ANALYSIS on the extracted text.
+When document content is supplied, perform direct qualitative analysis rather than generic templates. Map first-order categories to second-order themes and synthesize findings across the research phases represented in the supplied data.
 
-[ATLAS.ti & RESEARCH DATA MAPPING]
-For research data, specifically:
-1. Map 1st-order categories from the document data directly to emerging 2nd-order themes.
-2. Synthesize findings within the context of the 6 phases of research found in the provided data.
+For spreadsheet requests, output the required excel_export JSON object at the end of the response. Otherwise, structure the response with clean markdown using relevant sections such as Deep Qualitative Analysis, Category & Theme Mapping, Phase-Based Research Patterns, Risk Assessment & Legal/Policy Exposure, and Strategic Actionable Recommendations.`;
 
-[EXCEL EXPORT CAPABILITY - MANDATORY]
-When asked to edit, add columns, format, or generate a spreadsheet, you MUST NOT provide manual step-by-step instructions. You MUST ONLY output the required structured \`excel_export\` JSON object at the very end of your response, which will automatically trigger the spreadsheet file generation and download.
-
-Structure your response with the key "excel_export" and the following structure:
-{
-  "excel_export": {
-    "filename": "my_research_data.xlsx",
-    "data": [
-      {"Category": "Theme A", "Analysis": "Deep finding 1"},
-      {"Category": "Theme B", "Analysis": "Deep finding 2"}
-    ]
-  }
-}
-
-Structure your analysis with clean markdown:
-## Deep Qualitative Analysis
-## Category & Theme Mapping
-## Phase-Based Research Patterns
-## Risk Assessment & Legal/Policy Exposure
-## Strategic Actionable Recommendations`;
-
-    let prompt = `DEEP RESEARCH GOAL: ${researchGoal}\n\nATTACHED REPOSITORY DOCUMENTS:\n${docContext || 'All indexed repository files'}`;
+    let prompt = `DEEP RESEARCH GOAL: ${researchGoal}\n\nSELECTED REPOSITORY DOCUMENTS:\n${docContext || 'No readable indexed documents were selected.'}`;
     if (attachedFilesContext) {
-      prompt = `ACTIVE ATTACHED FILES INGESTED:\n${attachedFilesContext}\n\n` + prompt;
+      prompt = `ACTIVE ATTACHED FILES INGESTED:\n${attachedFilesContext}\n\n${prompt}`;
     }
 
     const startTime = Date.now();
     const aiResult = await generateWithFallback({
-      prompt: prompt,
+      prompt,
       systemInstruction,
-      model: model,
-      fallbackModel: 'gpt-4o',
-      temperature: 0.1
+      model: DEFAULT_PRIMARY_MODEL,
+      fallbackModel: DEFAULT_FALLBACK_MODEL,
+      temperature: 0.1,
+      timeoutMs: 25_000,
+      maxOutputTokens: 1800
     });
-
     const latencyMs = Date.now() - startTime;
 
     const reasoningSteps = [
-      'Step 1: Scanned multi-document index and mapped cross-entity relations',
-      `Step 2: Evaluated legal liabilities using ${aiResult.provider.toUpperCase()} (${aiResult.modelUsed})`,
-      ...(aiResult.fallbackTriggered ? [`Step 2b: Fallback engaged from Gemini to OpenAI (${aiResult.fallbackReason})`] : []),
-      'Step 3: Verified clause alignment across attached documents',
-      'Step 4: Formulated evidence-backed strategic report'
+      'Input validated and authenticated',
+      `Prepared ${readableDocs.length} readable document(s) and ${readableAttached.length} readable attachment(s)`,
+      `Generated research response with ${aiResult.provider === 'none' ? 'no available provider' : `${aiResult.provider.toUpperCase()} (${aiResult.modelUsed})`}`,
+      ...(aiResult.fallbackTriggered ? [`OpenAI failed; Gemini fallback was used: ${aiResult.fallbackReason || 'primary provider failure'}`] : []),
+      'Response returned with source-readability and execution metadata'
     ];
 
     return res.json({
+      agent: 'research-assistant',
+      authenticatedUserId: userId,
       text: aiResult.text,
       provider: aiResult.provider,
+      modelUsed: aiResult.modelUsed,
       fallbackTriggered: aiResult.fallbackTriggered,
+      fallbackReason: aiResult.fallbackReason,
       reasoningSteps,
       verificationTrace: {
         steps: reasoningSteps,
-        modelsUsed: [aiResult.modelUsed],
+        modelsUsed: aiResult.provider === 'none' ? [] : [aiResult.modelUsed],
         provider: aiResult.provider,
-        contextTokensProcessed: Math.floor(prompt.length / 3.8) + 1200,
+        primaryModel: DEFAULT_PRIMARY_MODEL,
+        fallbackModel: DEFAULT_FALLBACK_MODEL,
+        selectedDocumentCount: selectedDocs.length,
+        readableDocumentCount: readableDocs.length,
+        readableAttachmentCount: readableAttached.length,
+        unreadableSourceCount: unreadableTitles.length + unreadableAttached.length,
+        contextCharsProcessed: prompt.length,
         latencyMs
       }
     });
@@ -141,7 +181,7 @@ Structure your analysis with clean markdown:
     console.error('Error in /api/research:', error);
     return res.status(500).json({
       error: 'Failed to run Deep Research agent',
-      details: error.message || String(error)
+      details: error?.message || String(error)
     });
   }
 }
