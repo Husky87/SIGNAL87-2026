@@ -6,6 +6,8 @@ import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
 const DEFAULT_PRIMARY_MODEL = 'gpt-4o';
 const DEFAULT_FALLBACK_MODEL = 'gemini-3.6-flash';
 const MAX_CONTEXT_CHARS = 120_000;
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'gen-lang-client-0608802366';
+const FIRESTORE_DATABASE_ID = process.env.FIRESTORE_DATABASE_ID || '(default)';
 
 type ResearchDocument = {
   id?: string;
@@ -32,57 +34,76 @@ function trimContext(value: string, remaining: number): string {
   return value.length <= remaining ? value : `${value.slice(0, remaining)}\n[Context truncated by server limit]`;
 }
 
+function decodeFirestoreValue(value: any): any {
+  if (!value || typeof value !== 'object') return value;
+  if ('stringValue' in value) return value.stringValue;
+  if ('integerValue' in value) return Number(value.integerValue);
+  if ('doubleValue' in value) return value.doubleValue;
+  if ('booleanValue' in value) return value.booleanValue;
+  if ('nullValue' in value) return null;
+  if ('timestampValue' in value) return value.timestampValue;
+  if ('referenceValue' in value) return value.referenceValue;
+  if ('bytesValue' in value) return value.bytesValue;
+  if ('arrayValue' in value) return (value.arrayValue.values || []).map(decodeFirestoreValue);
+  if ('mapValue' in value) return decodeFirestoreFields(value.mapValue.fields || {});
+  return value;
+}
+
+function decodeFirestoreFields(fields: Record<string, any>): Record<string, any> {
+  return Object.fromEntries(Object.entries(fields || {}).map(([key, value]) => [key, decodeFirestoreValue(value)]));
+}
+
+async function fetchAuthorizedDocument(authHeader: string, userId: string, documentId: string): Promise<ResearchDocument | null> {
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(FIREBASE_PROJECT_ID)}/databases/${encodeURIComponent(FIRESTORE_DATABASE_ID)}/documents/users/${encodeURIComponent(userId)}/documents/${encodeURIComponent(documentId)}`;
+  const response = await fetch(url, { headers: { Authorization: authHeader, Accept: 'application/json' } });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Firestore document lookup failed [HTTP ${response.status}]`);
+  const payload = await response.json();
+  const fields = decodeFirestoreFields(payload.fields || {});
+  return { id: documentId, ...fields } as ResearchDocument;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const authorization = getAuthorizationHeader(req);
   let userId: string;
   try {
-    userId = await requireFirebaseUser(getAuthorizationHeader(req));
+    userId = await requireFirebaseUser(authorization);
   } catch (error: any) {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      details: error?.message || 'A valid Firebase ID token is required.'
-    });
+    return res.status(401).json({ error: 'Unauthorized', details: error?.message || 'A valid Firebase ID token is required.' });
   }
 
   if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error: 'AI service is not configured',
-      details: 'Neither OpenAI nor Gemini is configured in the server environment.'
-    });
+    return res.status(500).json({ error: 'AI service is not configured', details: 'Neither OpenAI nor Gemini is configured in the server environment.' });
   }
 
   try {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const researchGoal = typeof body.researchGoal === 'string' ? body.researchGoal.trim() : '';
-    const requestedModel = typeof body.model === 'string' ? body.model : DEFAULT_PRIMARY_MODEL;
-    const documentIds = Array.isArray(body.documentIds) ? body.documentIds.filter((id: unknown): id is string => typeof id === 'string') : [];
-    const allDocs: ResearchDocument[] = Array.isArray(body.documents) ? body.documents : [];
+    const documentIds = Array.isArray(body.documentIds) ? body.documentIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0).slice(0, 50) : [];
+    const suppliedDocs: ResearchDocument[] = Array.isArray(body.documents) ? body.documents : [];
     const allAttached: IngestedFile[] = Array.isArray(body.ingestedFilesData) ? body.ingestedFilesData : [];
 
-    if (!researchGoal) {
-      return res.status(400).json({ error: 'Research goal is required' });
-    }
-    if (researchGoal.length > 12_000) {
-      return res.status(400).json({ error: 'Research goal is too long.' });
+    if (!researchGoal) return res.status(400).json({ error: 'Research goal is required' });
+    if (researchGoal.length > 12_000) return res.status(400).json({ error: 'Research goal is too long.' });
+
+    // Document IDs are resolved against the authenticated user's Firestore
+    // namespace. The browser-supplied document body is not trusted as the source
+    // of truth when IDs are present.
+    let selectedDocs: ResearchDocument[] = [];
+    if (documentIds.length > 0) {
+      const resolved = await Promise.all(documentIds.map((id) => fetchAuthorizedDocument(authorization as string, userId, id)));
+      selectedDocs = resolved.filter((doc): doc is ResearchDocument => Boolean(doc));
+    } else {
+      selectedDocs = suppliedDocs;
     }
 
-    // The browser supplies the currently selected document context. Enforce the
-    // selection server-side so a caller cannot silently expand the requested set.
-    const selectedIdSet = new Set(documentIds);
-    const selectedDocs = documentIds.length > 0
-      ? allDocs.filter((doc) => typeof doc.id === 'string' && selectedIdSet.has(doc.id))
-      : allDocs;
-
-    const readableDocs = selectedDocs.filter((doc) =>
-      hasUsableText(doc.fullText || doc.contentPreview || doc.summary)
-    );
-    const unreadableTitles: string[] = selectedDocs
-      .filter((doc) => !readableDocs.includes(doc))
-      .map((doc) => doc.title || 'Untitled document');
+    const readableDocs = selectedDocs.filter((doc) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary));
+    const unreadableTitles = selectedDocs.filter((doc) => !readableDocs.includes(doc)).map((doc) => doc.title || 'Untitled document');
 
     let remainingChars = MAX_CONTEXT_CHARS;
     const docSections: string[] = [];
@@ -96,17 +117,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let docContext = docSections.join('\n\n');
     if (unreadableTitles.length > 0) {
-      docContext +=
-        `\n\nDOCUMENTS THAT COULD NOT BE READ (no text extracted — do not answer from them, ` +
-        `name them and say they must be re-uploaded):\n` +
-        unreadableTitles.map((title) => `- ${title}`).join('\n');
+      docContext += `\n\nDOCUMENTS THAT COULD NOT BE READ (no text extracted — do not answer from them, name them and say they must be re-uploaded):\n${unreadableTitles.map((title) => `- ${title}`).join('\n')}`;
     }
 
     const readableAttached = allAttached.filter((file) => hasUsableText(file.extractedText));
-    const unreadableAttached = allAttached
-      .filter((file) => !readableAttached.includes(file))
-      .map((file) => file.fileName || 'Untitled attachment');
-
+    const unreadableAttached = allAttached.filter((file) => !readableAttached.includes(file)).map((file) => file.fileName || 'Untitled attachment');
     const attachedSections: string[] = [];
     for (const [idx, file] of readableAttached.entries()) {
       if (remainingChars <= 0) break;
@@ -114,25 +129,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       attachedSections.push(section);
       remainingChars -= section.length;
     }
-
     let attachedFilesContext = attachedSections.join('\n\n');
-    if (unreadableAttached.length > 0) {
-      attachedFilesContext += `\n\nATTACHMENTS THAT COULD NOT BE READ:\n${unreadableAttached.map((name) => `- ${name}`).join('\n')}`;
-    }
+    if (unreadableAttached.length > 0) attachedFilesContext += `\n\nATTACHMENTS THAT COULD NOT BE READ:\n${unreadableAttached.map((name) => `- ${name}`).join('\n')}`;
 
     const systemInstruction = `You are the official Signal87 AI Platform Research Assistant executing multi-document deep research for authenticated user ${userId}.
-Cross-reference the supplied legislative texts, corporate filings, lease terms, and government policies with careful logical synthesis.
-
-Do not claim that you performed retrieval, browsing, legal verification, clause verification, or other operations unless the supplied context or tool result actually demonstrates it. Distinguish document evidence from inference and clearly identify missing or unreadable sources.
-
+Cross-reference supplied legislative texts, corporate filings, lease terms, and government policies with careful logical synthesis.
+Do not claim retrieval, browsing, legal verification, clause verification, or other operations unless the supplied context or tool result actually demonstrates it. Distinguish document evidence from inference and identify missing or unreadable sources.
 When document content is supplied, perform direct qualitative analysis rather than generic templates. Map first-order categories to second-order themes and synthesize findings across the research phases represented in the supplied data.
+For spreadsheet requests, output the required excel_export JSON object at the end of the response. Otherwise, use clean markdown with relevant research sections.`;
 
-For spreadsheet requests, output the required excel_export JSON object at the end of the response. Otherwise, structure the response with clean markdown using relevant sections such as Deep Qualitative Analysis, Category & Theme Mapping, Phase-Based Research Patterns, Risk Assessment & Legal/Policy Exposure, and Strategic Actionable Recommendations.`;
-
-    let prompt = `DEEP RESEARCH GOAL: ${researchGoal}\n\nSELECTED REPOSITORY DOCUMENTS:\n${docContext || 'No readable indexed documents were selected.'}`;
-    if (attachedFilesContext) {
-      prompt = `ACTIVE ATTACHED FILES INGESTED:\n${attachedFilesContext}\n\n${prompt}`;
-    }
+    let prompt = `DEEP RESEARCH GOAL: ${researchGoal}\n\nAUTHORIZED SELECTED DOCUMENTS:\n${docContext || 'No readable authorized documents were selected.'}`;
+    if (attachedFilesContext) prompt = `ACTIVE ATTACHED FILES INGESTED:\n${attachedFilesContext}\n\n${prompt}`;
 
     const startTime = Date.now();
     const aiResult = await generateWithFallback({
@@ -148,10 +155,11 @@ For spreadsheet requests, output the required excel_export JSON object at the en
 
     const reasoningSteps = [
       'Input validated and authenticated',
-      `Prepared ${readableDocs.length} readable document(s) and ${readableAttached.length} readable attachment(s)`,
-      `Generated research response with ${aiResult.provider === 'none' ? 'no available provider' : `${aiResult.provider.toUpperCase()} (${aiResult.modelUsed})`}`,
+      `Resolved ${selectedDocs.length} authorized document(s); ${readableDocs.length} contained readable text`,
+      `Prepared ${readableAttached.length} readable attachment(s)`,
+      `Generated response with ${aiResult.provider === 'none' ? 'no available provider' : `${aiResult.provider.toUpperCase()} (${aiResult.modelUsed})`}`,
       ...(aiResult.fallbackTriggered ? [`OpenAI failed; Gemini fallback was used: ${aiResult.fallbackReason || 'primary provider failure'}`] : []),
-      'Response returned with source-readability and execution metadata'
+      'Returned response with source-readability and execution metadata'
     ];
 
     return res.json({
@@ -179,9 +187,6 @@ For spreadsheet requests, output the required excel_export JSON object at the en
     });
   } catch (error: any) {
     console.error('Error in /api/research:', error);
-    return res.status(500).json({
-      error: 'Failed to run Deep Research agent',
-      details: error?.message || String(error)
-    });
+    return res.status(500).json({ error: 'Failed to run Deep Research agent', details: error?.message || String(error) });
   }
 }
