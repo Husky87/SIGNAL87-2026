@@ -1,0 +1,49 @@
+/* Document viewer presentation overrides.
+   Scoped to the authenticated document viewer via the Viewer aria-label so
+   other dialogs and screens are unaffected. */
+
+.s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"]) {
+  padding: 0 !important;
+}
+
+.s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"]) > div {
+  width: min(98vw, 1440px) !important;
+  max-width: none !important;
+  height: 98vh !important;
+}
+
+/* The outer download action is the single download control. Remove only the
+   duplicate fallback link inside the browser-viewer error notice. */
+.s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"])
+  a[class*="ml-auto"][class*="bg-[var(--accent)]"] {
+  display: none !important;
+}
+
+/* Give the actual reading surface as much vertical room as possible. */
+.s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"])
+  > div > div[class*="flex-1"][class*="overflow-y-auto"][class*="bg-[var(--bg)]"] {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+/* Keep the action footer useful but compact. */
+.s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"]) > div > div:last-child {
+  padding-top: 6px !important;
+  padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+}
+
+/* On smaller screens retain full-bleed behavior without exceeding the viewport. */
+@media (max-width: 640px) {
+  .s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"]) > div {
+    width: 100vw !important;
+    height: 100dvh !important;
+  }
+
+  .s87-app > .fixed.inset-0.z-50:has(button[aria-label="Viewer"])
+    > div > div[class*="flex-1"][class*="overflow-y-auto"][class*="bg-[var(--bg)]"] {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
