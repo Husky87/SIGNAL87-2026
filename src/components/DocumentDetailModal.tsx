@@ -292,12 +292,10 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
       <div className="bg-[var(--surface)] rounded-none sm:rounded-2xl max-w-6xl w-full h-full sm:h-[94vh] overflow-hidden border-0 sm:border sm:border-[var(--rule)] flex flex-col text-[var(--ink)]">
 
-        {/* Top header. On mobile this modal is edge-to-edge (rounded-none, h-full,
-            border-0 above), so the header sits under the notch/status bar unless
-            padded for it. On desktop the inset resolves to 0, so max() falls back
-            to the same 0.5rem the plain py-2 gave it — no visible change there. */}
+        {/* Single-row document controls. Search, page navigation, and zoom live
+            here so the PDF never loses vertical space to a second toolbar row. */}
         <div
-          className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex items-center gap-3"
+          className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex flex-wrap items-center gap-2.5"
           style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
           <div className="min-w-0 flex-1 px-1">
@@ -313,7 +311,72 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center flex-wrap gap-0 border border-[var(--rule)] rounded-lg overflow-hidden">
+          {activeTab === 'pdf' && (
+            <>
+              <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] flex-shrink-0">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  title="Previous page"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <span className="whitespace-nowrap">
+                  Page <span className="text-[var(--ink)] font-medium">{currentPage}</span> of {totalPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  title="Next page"
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 bg-[var(--raised)] px-2 py-1 rounded-lg min-w-0 w-[190px] sm:w-[230px] flex-shrink-0">
+                <Search size={14} className="text-[var(--muted)] flex-shrink-0" />
+                <input
+                  type="text"
+                  value={docSearchQuery}
+                  onChange={(e) => setDocSearchQuery(e.target.value)}
+                  placeholder="Search this document"
+                  aria-label="Search this document"
+                  className="w-full min-w-0 bg-transparent text-[var(--ink)] text-[13px] placeholder-[var(--muted)] focus:outline-none"
+                />
+                {docSearchQuery && (
+                  <div className="flex items-center gap-1 text-[12px] text-[var(--muted)] flex-shrink-0">
+                    <span>{matchesCount > 0 ? `${activeMatchIndex + 1}/${matchesCount}` : '0'}</span>
+                    <button onClick={handlePrevMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Previous match">
+                      <ChevronUp size={12} />
+                    </button>
+                    <button onClick={handleNextMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Next match">
+                      <ChevronDown size={12} />
+                    </button>
+                    <button onClick={() => setDocSearchQuery('')} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Clear search">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-[var(--raised)] px-2 py-1 rounded-lg flex-shrink-0">
+                <button onClick={handleZoomOut} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom out">
+                  <ZoomOut size={14} />
+                </button>
+                <span className="w-9 text-center text-[12px]">{zoomLevel}%</span>
+                <button onClick={handleZoomIn} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom in">
+                  <ZoomIn size={14} />
+                </button>
+                <button onClick={() => setZoomLevel(100)} className="ml-1 text-[12px] text-[var(--muted)] hover:text-[var(--ink)] underline cursor-pointer" title="Reset zoom">
+                  Reset
+                </button>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center flex-wrap gap-0 border border-[var(--rule)] rounded-lg overflow-hidden flex-shrink-0">
             <button
               onClick={() => setActiveTab('pdf')}
               className={`${menuButtonClass} ${activeTab === 'pdf' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
@@ -379,96 +442,6 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Hairline toolbar — no dark chrome */}
-        {activeTab === 'pdf' && (
-          <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--rule)] flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--ink-2)]">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPage <= 1}
-                className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                title="Previous page"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span>
-                Page <span className="text-[var(--ink)] font-medium">{currentPage}</span> of {totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage >= totalPages}
-                className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                title="Next page"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1 bg-[var(--raised)] px-2.5 py-1 rounded-lg min-w-[200px] sm:min-w-[260px]">
-              <Search size={14} className="text-[var(--muted)] flex-shrink-0" />
-              <input
-                type="text"
-                value={docSearchQuery}
-                onChange={(e) => setDocSearchQuery(e.target.value)}
-                placeholder="Search this document"
-                className="w-full bg-transparent text-[var(--ink)] text-[13px] placeholder-[var(--muted)] focus:outline-none"
-              />
-              {docSearchQuery && (
-                <div className="flex items-center gap-1 text-[12px] text-[var(--muted)] flex-shrink-0">
-                  <span>{matchesCount > 0 ? `${activeMatchIndex + 1}/${matchesCount}` : '0'}</span>
-                  <button onClick={handlePrevMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Previous match">
-                    <ChevronUp size={12} />
-                  </button>
-                  <button onClick={handleNextMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Next match">
-                    <ChevronDown size={12} />
-                  </button>
-                  <button onClick={() => setDocSearchQuery('')} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Clear search">
-                    <X size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {doc.fileUrl && (
-                <div className="flex items-center gap-1 mr-2">
-                  <button
-                    onClick={() => setActiveTab('pdf')}
-                    className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
-                      activeTab === 'pdf' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
-                    }`}
-                    title="View embedded PDF"
-                  >
-                    Embedded
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('analysis')}
-                    className={`px-2 py-1 text-[12px] rounded transition-colors cursor-pointer ${
-                      activeTab === 'analysis' ? 'bg-[var(--raised)] text-[var(--ink)] font-medium' : 'text-[var(--muted)] hover:text-[var(--ink)]'
-                    }`}
-                    title="View page reader mode"
-                  >
-                    Page reader
-                  </button>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1 bg-[var(--raised)] px-2 py-1 rounded-lg">
-                <button onClick={handleZoomOut} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom out">
-                  <ZoomOut size={14} />
-                </button>
-                <span className="w-10 text-center text-[12px]">{zoomLevel}%</span>
-                <button onClick={handleZoomIn} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom in">
-                  <ZoomIn size={14} />
-                </button>
-                <button onClick={() => setZoomLevel(100)} className="ml-1 text-[12px] text-[var(--muted)] hover:text-[var(--ink)] underline cursor-pointer" title="Reset zoom">
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Reading surface */}
         <div className="flex-1 overflow-y-auto bg-[var(--bg)] px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start">
