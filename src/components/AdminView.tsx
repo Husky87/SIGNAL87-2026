@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Settings,
-  Users,
-  ShieldCheck,
-  Key,
-  CreditCard,
-  Sparkles,
-  Plus
-} from 'lucide-react';
+import { Settings, Users, ShieldCheck, Key, CreditCard, Sparkles, Plus } from 'lucide-react';
 import { OrgStats } from '../types';
 
 interface AdminViewProps {
@@ -17,113 +9,89 @@ interface AdminViewProps {
   onSignOut?: () => void;
 }
 
-export const AdminView: React.FC<AdminViewProps> = ({
-  stats: _stats,
-  selectedModel,
-  onChangeModel,
-  onSignOut
-}) => {
+export const AdminView: React.FC<AdminViewProps> = ({ stats: _stats, selectedModel, onChangeModel, onSignOut }) => {
   const [activeTab, setActiveTab] = useState<'account' | 'team' | 'apikeys'>('account');
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 bg-[#131314] text-[#e3e3e3] min-h-[100dvh] w-full max-w-full overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#37393b]">
-        <div>
-          <h1 className="text-2xl font-extrabold text-[#e3e3e3] tracking-tight flex items-center gap-2">
-            <Settings size={26} className="text-[#e3e3e3]" /> Settings & Administration
-          </h1>
-          <p className="text-xs text-[#c4c7c5] mt-0.5">
-            Manage your subscription, member permissions, API access, and Signal87 AI routing.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-[#004a77]/40 border border-[#004a77] text-[#7dd3fc] px-3 py-1.5 rounded-xl text-xs font-semibold">
-          <ShieldCheck size={16} /> Enterprise Tier • Active
-        </div>
-      </div>
-
-      <div className="flex border-b border-[#37393b] gap-2 sm:gap-6">
-        <button onClick={() => setActiveTab('account')} className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'account' ? 'border-[#1a73e8] text-[#7dd3fc]' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'}`}>
-          <CreditCard size={16} /> Account & Subscription
-        </button>
-        <button onClick={() => setActiveTab('team')} className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'team' ? 'border-[#1a73e8] text-[#7dd3fc]' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'}`}>
-          <Users size={16} /> Team & Access
-        </button>
-        <button onClick={() => setActiveTab('apikeys')} className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'apikeys' ? 'border-[#1a73e8] text-[#7dd3fc]' : 'border-transparent text-[#c4c7c5] hover:text-[#e3e3e3]'}`}>
-          <Key size={16} /> API Access
-        </button>
-      </div>
-
-      {activeTab === 'account' && (
-        <div className="space-y-6">
-          <div className="bg-[#1e1f20] text-[#e3e3e3] rounded-2xl p-6 border border-[#37393b] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#37393b] pb-4">
-              <div>
-                <span className="text-[10px] font-mono font-bold text-[#7dd3fc] uppercase tracking-widest block">CURRENT PLAN</span>
-                <h2 className="text-xl font-extrabold text-[#e3e3e3] tracking-tight flex items-center gap-2 mt-0.5">Enterprise Unlimited Tier <Sparkles size={18} className="text-amber-400" /></h2>
-                <p className="text-xs text-[#c4c7c5] mt-1">Dedicated workspace, secure document processing, and OpenAI-primary AI with Gemini fallback.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => alert('Billing Portal: Your Enterprise plan is active with unlimited seats.')} className="px-4 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-xs rounded-xl transition-all cursor-pointer">Manage Billing & Invoices</button>
-                {onSignOut && <button type="button" onClick={onSignOut} className="px-4 py-2 bg-transparent border border-[#37393b] hover:bg-[#28292a] text-[#e3e3e3] font-bold text-xs rounded-xl transition-all cursor-pointer">Sign out</button>}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-1">
-              <div><span className="text-[10px] text-[#c4c7c5] block font-mono">STATUS</span><span className="font-bold text-[#7dd3fc]">Active • Auto-renews</span></div>
-              <div><span className="text-[10px] text-[#c4c7c5] block font-mono">MONTHLY QUOTA</span><span className="font-bold text-[#e3e3e3] font-mono">100,000,000 Tokens</span></div>
-              <div><span className="text-[10px] text-[#c4c7c5] block font-mono">ACTIVE SEATS</span><span className="font-bold text-[#e3e3e3]">4 of Unlimited Seats</span></div>
-              <div><span className="text-[10px] text-[#c4c7c5] block font-mono">RENEWAL DATE</span><span className="font-bold text-[#c4c7c5]">August 27, 2026</span></div>
-            </div>
-          </div>
-
-          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 space-y-4">
+    <div className="min-h-full bg-[var(--bg)] px-5 py-8 text-[var(--ink)] sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-5xl">
+        <header className="border-b border-[var(--rule)] pb-7">
+          <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <h3 className="text-sm font-extrabold text-[#e3e3e3]">Signal87 AI Routing</h3>
-              <p className="text-xs text-[#c4c7c5]">Signal87 uses OpenAI as the primary AI provider. Google Gemini is the automatic fallback. There is no Grok/xAI provider.</p>
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]"><Settings size={14} className="text-[var(--teal)]" /> Settings</div>
+              <h1 className="mt-3 text-[32px] font-semibold tracking-[-0.055em] sm:text-[40px]">Workspace settings</h1>
+              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[var(--ink-2)]">Manage account access, team permissions, billing, and Signal87 AI routing.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl border border-[#1a73e8] bg-[#004a77]/30 ring-1 ring-[#1a73e8] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm">OpenAI / GPT — Primary</span>
-                  <span className="text-[12px] text-[#7dd3fc]">Primary</span>
-                </div>
-                <p className="text-xs text-[#c4c7c5] leading-relaxed">Primary engine for Signal87 queries, analysis, research, and document workflows.</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[#37393b] bg-[#28292a] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#e3e3e3] text-xs sm:text-sm">Google Gemini — Fallback</span>
-                  <span className="text-[12px] text-[#c4c7c5]">Automatic backup</span>
-                </div>
-                <p className="text-xs text-[#c4c7c5] leading-relaxed">Used automatically only when the primary OpenAI request cannot be completed.</p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#37393b] bg-[#28292a] px-4 py-3 text-xs text-[#c4c7c5]">
-              <span className="font-semibold text-[#e3e3e3]">Routing is provider-controlled.</span> The model selector no longer changes the provider order. Current UI selection: <span className="font-mono text-[#7dd3fc]">{selectedModel || 'OpenAI / GPT'}</span>.
-            </div>
+            <div className="flex items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-3 py-2 text-[11px] font-medium text-[var(--ink-2)]"><ShieldCheck size={14} className="text-[var(--ok)]" /> Secure workspace</div>
           </div>
-        </div>
-      )}
 
-      {activeTab === 'team' && (
-        <div className="space-y-6">
-          <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between"><div><h3 className="text-sm font-extrabold text-[#e3e3e3]">Organization Members & Role Permissions</h3><p className="text-xs text-[#c4c7c5]">Manage access privileges and active workspace seats.</p></div><button onClick={() => alert('Invite member link copied to clipboard!')} className="px-3.5 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"><Plus size={14} /> Invite Member</button></div>
-            <div className="divide-y divide-[#28292a]">
-              {[{ email: 'ceo@signal87.ai', name: 'Michael Benezra (CEO)', role: 'Workspace Owner / Admin', status: 'Active' }, { email: 'arch@signal87.ai', name: 'Michael Chavira (Chief Architect)', role: 'Admin & System Owner', status: 'Active' }, { email: 'senate_liaison@signal87.ai', name: 'Government Liaison', role: 'Senior Analyst', status: 'Active' }, { email: 'legal@signal87.ai', name: 'Legal Counsel', role: 'Reviewer', status: 'Active' }].map((u, idx) => (
-                <div key={idx} className="py-3.5 flex items-center justify-between text-xs"><div><h4 className="font-bold text-[#e3e3e3] text-sm">{u.name}</h4><span className="text-[#c4c7c5] font-mono text-[11px]">{u.email}</span></div><div className="flex items-center gap-3"><span className="text-[13px] text-[#c4c7c5]">{u.role}</span><span className="text-[12px] text-[#c4c7c5]">{u.status}</span></div></div>
-              ))}
-            </div>
+          <div className="mt-7 flex gap-2 overflow-x-auto pb-1">
+            {[
+              ['account', 'Account & billing', CreditCard],
+              ['team', 'Team & access', Users],
+              ['apikeys', 'AI & API', Key]
+            ].map(([id, label, Icon]) => (
+              <button
+                key={id as string}
+                type="button"
+                onClick={() => setActiveTab(id as 'account' | 'team' | 'apikeys')}
+                className={`flex min-h-[42px] shrink-0 items-center gap-2 rounded-full border px-4 text-[12px] font-medium ${activeTab === id ? 'border-[var(--teal-soft)] bg-[var(--teal-soft)] text-[var(--teal)]' : 'border-[var(--rule)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--raised)]'}`}
+              >
+                <Icon size={14} /> {label as string}
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+        </header>
 
-      {activeTab === 'apikeys' && (
-        <div className="bg-[#1e1f20] border border-[#37393b] rounded-2xl p-6 space-y-6">
-          <div><h3 className="text-sm font-extrabold text-[#e3e3e3]">API Access</h3><p className="text-xs text-[#c4c7c5] mt-0.5">Provider credentials are stored server-side and are never displayed or copied from this screen.</p></div>
-          <div className="rounded-2xl border border-[#37393b] bg-[#28292a] p-5">
-            <div className="flex items-start gap-3"><Key size={18} className="mt-0.5 text-[#7dd3fc]" /><div><h4 className="font-bold text-sm text-[#e3e3e3]">Server-side provider configuration</h4><p className="mt-2 text-xs leading-6 text-[#c4c7c5]">OpenAI and Google Gemini credentials are configured as private server environment variables. Signal87 does not expose provider API keys in the browser or settings UI.</p><p className="mt-3 text-xs text-[#7dd3fc] font-semibold">No Grok/xAI credentials are used by Signal87.</p></div></div>
+        {activeTab === 'account' && (
+          <div className="mt-8 space-y-4">
+            <section className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Current plan</div>
+                  <h2 className="mt-2 flex items-center gap-2 text-xl font-semibold tracking-[-0.035em]">Enterprise workspace <Sparkles size={17} className="text-[var(--teal)]" /></h2>
+                  <p className="mt-2 max-w-xl text-[13px] leading-6 text-[var(--ink-2)]">Dedicated workspace, secure document processing, and OpenAI-primary AI with Gemini fallback.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => alert('Billing portal is ready to be connected.')} className="min-h-[42px] rounded-full bg-[var(--ink)] px-4 text-[12px] font-medium text-white hover:opacity-90">Manage billing</button>
+                  {onSignOut && <button type="button" onClick={onSignOut} className="min-h-[42px] rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 text-[12px] font-medium text-[var(--ink-2)] hover:bg-[var(--raised)]">Sign out</button>}
+                </div>
+              </div>
+              <div className="mt-6 grid gap-3 border-t border-[var(--rule-2)] pt-5 sm:grid-cols-4">
+                {[['Status','Active'],['Monthly quota','100M tokens'],['Active seats','4 seats'],['Renewal','August 27, 2026']].map(([label,value]) => <div key={label}><div className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{label}</div><div className="mt-1 text-[13px] font-medium text-[var(--ink)]">{value}</div></div>)}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold">AI routing</h3><p className="mt-1 text-[12px] leading-5 text-[var(--ink-2)]">Provider routing is fixed for reliability: OpenAI first, Gemini second.</p></div><div className="rounded-full bg-[var(--teal-soft)] px-3 py-1.5 text-[10px] font-semibold text-[var(--teal)]">OpenAI → Gemini</div></div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[var(--teal)]/30 bg-[var(--teal-soft)]/60 p-4"><div className="flex items-center justify-between"><span className="text-[13px] font-semibold">OpenAI / GPT</span><span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--teal)]">Primary</span></div><p className="mt-2 text-[12px] leading-5 text-[var(--ink-2)]">Primary engine for chat, analysis, research, comparison, and document workflows.</p></div>
+                <div className="rounded-2xl border border-[var(--rule)] bg-[var(--bg)] p-4"><div className="flex items-center justify-between"><span className="text-[13px] font-semibold">Google Gemini</span><span className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--muted)]">Fallback</span></div><p className="mt-2 text-[12px] leading-5 text-[var(--ink-2)]">Automatically used when the primary OpenAI request cannot be completed.</p></div>
+              </div>
+              <label className="mt-5 block text-[11px] font-medium text-[var(--muted)]">Workspace response profile</label>
+              <select value={selectedModel} onChange={(e) => onChangeModel(e.target.value)} className="mt-2 w-full rounded-xl border border-[var(--rule)] bg-[var(--surface)] px-3 py-3 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--teal)] sm:max-w-sm">
+                <option value="gemini-3.6-flash">Signal87 Standard</option>
+                <option value="gemini-2.5-pro">Signal87 Deep</option>
+                <option value="gemini-3.5-flash-lite">Signal87 Fast</option>
+              </select>
+              <p className="mt-2 text-[11px] text-[var(--muted)]">This preference affects the requested response profile; provider order remains OpenAI first and Gemini second.</p>
+            </section>
           </div>
-        </div>
-      )}
+        )}
+
+        {activeTab === 'team' && (
+          <section className="mt-8 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-sm font-semibold">Team & access</h2><p className="mt-1 text-[12px] text-[var(--ink-2)]">Manage workspace members and permissions.</p></div><button type="button" onClick={() => alert('Invite workflow is ready to be connected.')} className="flex min-h-[42px] items-center gap-2 rounded-full bg-[var(--ink)] px-4 text-[12px] font-medium text-white hover:opacity-90"><Plus size={14} /> Invite member</button></div>
+            <div className="mt-5 divide-y divide-[var(--rule-2)]">{[
+              ['Michael Benezra','michael@signal87.ai','Admin','Active'],['Jessica Smith','jessica@signal87.ai','Member','Active'],['David Park','david@signal87.ai','Member','Active'],['Jamie Lee','jamie@signal87.ai','Member','Active'],['Ryan Wilson','ryan@signal87.ai','Member','Active']
+            ].map(([name,email,role,status]) => <div key={email} className="flex flex-wrap items-center justify-between gap-4 py-4"><div><div className="text-[13px] font-semibold">{name}</div><div className="mt-1 text-[11px] text-[var(--muted)]">{email}</div></div><div className="flex items-center gap-3 text-[11px] text-[var(--ink-2)]"><span>{role}</span><span className="flex items-center gap-1.5 text-[var(--ok)]"><span className="h-1.5 w-1.5 rounded-full bg-[var(--ok)]" />{status}</span></div></div>)}</div>
+          </section>
+        )}
+
+        {activeTab === 'apikeys' && (
+          <section className="mt-8 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 sm:p-6"><h2 className="text-sm font-semibold">AI & API access</h2><p className="mt-1 text-[12px] text-[var(--ink-2)]">Provider credentials stay server-side and are never exposed in the workspace UI.</p><div className="mt-5 rounded-2xl border border-[var(--rule)] bg-[var(--bg)] p-5"><div className="flex items-start gap-3"><Key size={17} className="mt-0.5 text-[var(--teal)]" /><div><div className="text-[13px] font-semibold">Secure provider configuration</div><p className="mt-2 text-[12px] leading-6 text-[var(--ink-2)]">Signal87 uses private server environment variables for OpenAI and Google Gemini. No provider API key is displayed or stored in the browser settings.</p></div></div></div></section>
+        )}
+      </div>
     </div>
   );
 };
