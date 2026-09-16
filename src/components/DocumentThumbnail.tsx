@@ -1,13 +1,14 @@
 import React from "react";
-import { FileText, FileSpreadsheet, FileType, File as FileIcon, Download } from "lucide-react";
+import { FileText, FileSpreadsheet, FileType, Presentation, File as FileIcon, Download } from "lucide-react";
 import { DocumentItem } from "../types";
 
 export function getTypeMeta(type?: string) {
   const t = (type || "").toLowerCase();
-  if (t.includes("pdf")) return { label: "PDF", color: "text-[var(--muted)]", icon: "", Icon: FileText, iconColor: "currentColor" };
-  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Sheet", color: "text-[var(--muted)]", icon: "", Icon: FileSpreadsheet, iconColor: "currentColor" };
-  if (t.includes("doc") || t.includes("word")) return { label: "Doc", color: "text-[var(--muted)]", icon: "", Icon: FileType, iconColor: "currentColor" };
-  return { label: type || "File", color: "text-[var(--muted)]", icon: "", Icon: FileIcon, iconColor: "currentColor" };
+  if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", icon: "", Icon: FileText, iconColor: "#d94b4b" };
+  if (t.includes("ppt") || t.includes("presentation")) return { label: "PowerPoint", color: "#d97735", icon: "", Icon: Presentation, iconColor: "#d97735" };
+  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Spreadsheet", color: "#2f9b64", icon: "", Icon: FileSpreadsheet, iconColor: "#2f9b64" };
+  if (t.includes("doc") || t.includes("word")) return { label: "Word", color: "#3578c4", icon: "", Icon: FileType, iconColor: "#3578c4" };
+  return { label: type || "File", color: "#7c817d", icon: "", Icon: FileIcon, iconColor: "#7c817d" };
 }
 
 interface DocumentThumbnailProps {
@@ -55,7 +56,12 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
       <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-5">
         <div className="mx-auto h-[122px] max-w-[210px] rounded-t-lg border border-[var(--rule)] bg-[var(--paper)] p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--muted)]">{meta.label}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <meta.Icon size={15} className="shrink-0" style={{ color: meta.color }} aria-hidden="true" />
+              <span className="truncate text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
+                {meta.label}
+              </span>
+            </div>
             <span className="h-1.5 w-12 rounded-full bg-[var(--rule)]" />
           </div>
           {previewLines.length > 0 ? (
@@ -77,7 +83,10 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
 
       <div className="flex min-h-[102px] flex-col justify-between p-4">
         <div className="min-w-0">
-          <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--muted)]">{meta.label}</div>
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
+            <meta.Icon size={12} aria-hidden="true" />
+            <span>{meta.label}</span>
+          </div>
           <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--text)]" title={docName}>
             {docName}
           </h3>
