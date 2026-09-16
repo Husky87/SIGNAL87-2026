@@ -4,6 +4,7 @@ import { NavTab } from './Sidebar';
 
 interface LandingPageViewProps {
   onOpenEmailAuth: (mode?: 'signup' | 'signin') => void;
+  onAskQuestion: (question: string) => void;
   onOpenPrivacy: () => void;
   onOpenBlog: () => void;
   onOpenMedia: () => void;
@@ -17,6 +18,7 @@ interface LandingPageViewProps {
  */
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenEmailAuth,
+  onAskQuestion,
   onOpenPrivacy,
   onOpenBlog,
   onOpenMedia,
@@ -25,6 +27,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   <div className="min-h-screen bg-[#f7f7f3]">
     <Signal87LandingShell
       onOpenEmailAuth={onOpenEmailAuth}
+      onAskQuestion={onAskQuestion}
       onSelectTab={onSelectTab}
     />
 
