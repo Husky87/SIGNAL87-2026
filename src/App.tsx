@@ -276,9 +276,11 @@ export default function App() {
   const [isBlogOpen, setIsBlogOpen] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
   const [isEmailAuthOpen, setIsEmailAuthOpen] = useState(false);
+  const [emailAuthMode, setEmailAuthMode] = useState<'signup' | 'signin'>('signup');
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
+  const [pendingLandingQuery, setPendingLandingQuery] = useState<string | null>(null);
   const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string }[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -749,6 +751,12 @@ export default function App() {
     setPendingHomeQuery(trimmed);
   };
 
+  useEffect(() => {
+    if (!currentUser || !workspaceReady || !pendingLandingQuery) return;
+    handleAskFromHome(pendingLandingQuery);
+    setPendingLandingQuery(null);
+  }, [currentUser, workspaceReady, pendingLandingQuery]);
+
   /**
    * Sends whatever is in the mobile search box to the assistant.
    *
@@ -849,7 +857,15 @@ export default function App() {
     return (
       <>
         <LandingPageView
-          onOpenEmailAuth={() => setIsEmailAuthOpen(true)}
+          onOpenEmailAuth={(mode = 'signup') => {
+            setEmailAuthMode(mode);
+            setIsEmailAuthOpen(true);
+          }}
+          onAskQuestion={(question) => {
+            setPendingLandingQuery(question);
+            setEmailAuthMode('signup');
+            setIsEmailAuthOpen(true);
+          }}
           onOpenPrivacy={() => setIsPrivacyOpen(true)}
           onOpenBlog={() => setIsBlogOpen(true)}
           onOpenMedia={() => setIsMediaOpen(true)}
@@ -877,6 +893,7 @@ export default function App() {
 
         <EmailAuthModal
           isOpen={isEmailAuthOpen}
+          initialMode={emailAuthMode}
           onClose={() => setIsEmailAuthOpen(false)}
           onSignUp={handleEmailSignUp}
           onSignIn={handleEmailSignIn}
