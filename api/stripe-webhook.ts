@@ -14,10 +14,18 @@ function json(res: VercelResponse, status: number, body: Record<string, unknown>
   res.status(status).setHeader('Content-Type', 'application/json').json(body);
 }
 
-function rawBody(req: VercelRequest): string {
-  if (typeof req.body === 'string') return req.body;
-  if (Buffer.isBuffer(req.body)) return req.body.toString('utf8');
-  return JSON.stringify(req.body ?? {});
+export const config = { api: { bodyParser: false } };
+
+async function rawBody(req: VercelRequest): Promise<string> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > 1024 * 1024) throw new Error('Webhook payload exceeds 1 MB');
+    chunks.push(bytes);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 function verifyStripeSignature(payload: string, signature: string, secret: string): boolean {
@@ -71,7 +79,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, 400, { error: 'Missing Stripe signature.' });
   }
 
-  const payload = rawBody(req);
+  let payload: string;
+  try {
+    payload = await rawBody(req);
+  } catch {
+    return json(res, 413, { error: 'Webhook payload could not be read.' });
+  }
   if (!verifyStripeSignature(payload, signature, webhookSecret)) {
     return json(res, 400, { error: 'Invalid Stripe signature.' });
   }
