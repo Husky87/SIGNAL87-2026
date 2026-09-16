@@ -38,3 +38,13 @@ jobs:
       - name: Production API reachability smoke test
         run: |
           curl --fail --silent --show-error --location --max-time 20 https://signal87.ai/api/health
+
+      - name: Research API authentication smoke test
+        run: |
+          status=$(curl --silent --show-error --location --max-time 20 --output /tmp/research-response.json --write-out '%{http_code}' \
+            --request POST https://signal87.ai/api/research \
+            --header 'Content-Type: application/json' \
+            --data '{"researchGoal":"Unauthenticated smoke test"}')
+          echo "Research API HTTP status: $status"
+          cat /tmp/research-response.json
+          test "$status" = "401"
