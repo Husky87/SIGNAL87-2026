@@ -490,19 +490,35 @@ export default function App() {
     let cancelled = false;
     setDocumentsLoading(true);
     async function syncFirestoreData() {
-      try {
-        const remoteDocs = await fetchDocumentsFromFirestore();
-        if (!cancelled) {
-          setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
-        }
+      // Saved items do not supply context to /api/chat. A slow saved-items
+      // query must never prevent a question from being sent.
+      void fetchSavedItemsFromFirestore()
+        .then((remoteSaved) => {
+          if (!cancelled) setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
+        })
+        .catch((error) => console.warn('Saved items sync failed:', error));
 
-        const remoteSaved = await fetchSavedItemsFromFirestore();
-        if (!cancelled) {
-          setSavedItems(remoteSaved.filter((item) => belongsToUser(item, currentUser)));
-        }
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const documentRequest = fetchDocumentsFromFirestore();
+        void documentRequest.then((remoteDocs) => {
+          if (!cancelled) setDocuments(remoteDocs.filter((d) => belongsToUser(d, currentUser)));
+        }).catch((error) => console.warn('Document sync failed:', error));
+        await Promise.race([
+          documentRequest,
+          new Promise<void>((resolve) => {
+            timeoutId = setTimeout(() => {
+              console.warn('Document sync is taking too long; using the local library until it finishes.');
+              resolve();
+            }, 10000);
+          })
+        ]);
+      } catch (error) {
+        console.warn('Document sync failed:', error);
       } finally {
-        // Also on failure. Leaving this true would leave the library showing
-        // placeholder rows forever rather than saying it is empty.
+        clearTimeout(timeoutId);
+        // Keep the chat usable even if the document service never responds.
+        // A late result still refreshes the library through documentRequest.
         if (!cancelled) setDocumentsLoading(false);
       }
     }
