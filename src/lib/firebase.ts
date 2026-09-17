@@ -21,7 +21,15 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// The production app serves Firebase's /__/auth helper through a transparent
+// Vercel rewrite. Keep the helper on the same origin as the workspace so
+// redirect sign-in can recover its state in browsers blocking third-party
+// storage (notably Firefox and Safari). Preview/local hosts retain the
+// Firebase default until they have their own authorized OAuth callback.
+const authDomain = typeof window !== 'undefined' && window.location.hostname === 'www.signal87.ai'
+  ? 'www.signal87.ai'
+  : firebaseConfig.authDomain;
+const app = !getApps().length ? initializeApp({ ...firebaseConfig, authDomain }) : getApp();
 
 function createAuth() {
   try {
@@ -53,7 +61,12 @@ function markRedirectPending() {
 
 export const signInWithGoogleRedirect = async () => {
   markRedirectPending();
-  return signInWithRedirect(auth, googleProvider);
+  try {
+    return await signInWithRedirect(auth, googleProvider);
+  } catch (error) {
+    try { sessionStorage.removeItem('s87_auth_redirect'); } catch { /* Storage may be unavailable. */ }
+    throw error;
+  }
 };
 
 export const signInWithGoogle = async () =>

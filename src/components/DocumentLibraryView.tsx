@@ -311,6 +311,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           doc.owner,
           doc.summary ?? '',
           doc.contentPreview ?? '',
+          doc.fullText ?? '',
           (doc.tags ?? []).join(' '),
           (doc.entities ?? []).map((e) => e.name).join(' '),
           (doc.riskHighlights ?? []).join(' ')
