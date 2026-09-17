@@ -450,27 +450,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   // Session chat is owned by App (per activeSessionId). Do not replace it
   // with an unscoped Firestore dump.
 
-  // Sync document selection when documents prop changes
-  useEffect(() => {
-    if (documents && documents.length > 0) {
-      setSelectedDocIds((prev) => {
-        const prevSet = new Set(prev);
-        const allDocIds = documents.map((d) => d.id);
-        if (prev.length === 0) return allDocIds;
-        const newDocIds = allDocIds.filter((id) => !prevSet.has(id));
-        if (newDocIds.length > 0) {
-          return [...prev, ...newDocIds];
-        }
-        const existingDocIdsSet = new Set(allDocIds);
-        const filteredPrev = prev.filter((id) => existingDocIdsSet.has(id));
-        if (filteredPrev.length !== prev.length) {
-          return filteredPrev;
-        }
-        return prev;
-      });
-    }
-  }, [documents]);
-
   const isInitialLoadRef = useRef<boolean>(true);
   const prevHistoryLengthRef = useRef<number>(0);
 
@@ -537,7 +516,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     saveChatMessageToFirestore(userMsg);
     setLoading(true);
 
-    const activeDocs = documents.filter((d) => selectedDocIds.includes(d.id));
+    // A document can arrive from Firestore just before this effect has added
+    // its id to selection. Include that newly seen document in the same turn;
+    // preserve explicit deselection of ids that were already known.
+    const activeDocs = documents.filter((d) =>
+      selectedDocIds.includes(d.id) || !knownDocIdsRef.current.has(d.id)
+    );
 
     const fullTextDocumentPayload = activeDocs.map((doc: any) => ({
       id: doc.id,
@@ -569,7 +553,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         attachedFiles
       };
 
-      const startTime = Date.now();
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -595,7 +578,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       }
 
       const data = await res.json();
-      const actualLatency = Date.now() - startTime;
 
       let responseText = '';
       let reasoningSteps = data.reasoningSteps || [];
@@ -636,16 +618,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         // VERIFICATION TRACE. The trace block is guarded on a non-empty array,
         // so it now simply does not render when there is nothing to cite.
         citations: data.citations,
-        verificationTrace: data.verificationTrace || {
-          steps: [
-            'Scanned vector indices across selected documents',
-            'Cross-referenced structural provisions and requirements',
-            'Completed Signal87 inference synthesis'
-          ],
-          modelsUsed: [selectedModel],
-          contextTokensProcessed: Math.floor(userMsgText.length * 3.5) + 12400,
-          latencyMs: actualLatency
-        },
+        verificationTrace: data.verificationTrace,
         reasoningSteps: reasoningSteps,
         isDeepResearch: false
       };

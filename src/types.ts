@@ -80,9 +80,14 @@ export interface ChatMessage {
   timestamp: string;
   citations?: Citation[];
   verificationTrace?: {
-    steps: string[];
-    modelsUsed: string[];
-    contextTokensProcessed: number;
+    provider?: string;
+    model?: string;
+    groundedDocuments?: number;
+    groundedAttachments?: number;
+    unreadableDocuments?: number;
+    steps?: string[];
+    modelsUsed?: string[];
+    contextTokensProcessed?: number;
     latencyMs: number;
   };
   reasoningSteps?: string[];
@@ -180,4 +185,3 @@ export interface SavedAnswer {
 }
 
 export type SavedItem = SavedNote | SavedAnswer;
-

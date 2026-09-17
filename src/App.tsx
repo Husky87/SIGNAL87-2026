@@ -426,6 +426,11 @@ export default function App() {
         if (result && result.user) {
           setCurrentUser(result.user);
           setAuthError(null);
+        } else if (!auth.currentUser) {
+          setAuthError({
+            code: 'auth/no-redirect-result',
+            message: 'Google sign-in returned without a session. Please try again.'
+          });
         }
       })
       .catch((error: any) => {
@@ -752,10 +757,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!currentUser || !workspaceReady || !pendingLandingQuery) return;
+    if (!currentUser || !workspaceReady || documentsLoading || !pendingLandingQuery) return;
     handleAskFromHome(pendingLandingQuery);
     setPendingLandingQuery(null);
-  }, [currentUser, workspaceReady, pendingLandingQuery]);
+  }, [currentUser, workspaceReady, documentsLoading, pendingLandingQuery]);
 
   /**
    * Sends whatever is in the mobile search box to the assistant.
@@ -780,6 +785,14 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     try {
       setAuthError(null);
+      // Production has a same-origin Firebase helper. Use a full redirect so
+      // the account choice can return to this tab without a popup or third-
+      // party storage. Other hosts keep the popup while their callback is
+      // configured on Firebase's default auth domain.
+      if (window.location.hostname === 'www.signal87.ai') {
+        await signInWithGoogleRedirect();
+        return;
+      }
       const res = await signInWithGoogle();
       if (res && res.user) {
         setCurrentUser(res.user);
@@ -789,9 +802,7 @@ export default function App() {
       console.error('Google Sign-In Error:', err);
       const code = err?.code || '';
       if (
-        code === 'auth/popup-closed-by-user' ||
-        code === 'auth/cancelled-popup-request' ||
-        code === 'auth/popup-blocked'
+        code === 'auth/cancelled-popup-request'
       ) {
         return;
       }
@@ -1181,7 +1192,7 @@ export default function App() {
               onSelectDocument={setSelectedDocForDetail}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
-              initialQuery={pendingHomeQuery}
+              initialQuery={documentsLoading ? null : pendingHomeQuery}
               onInitialQueryConsumed={() => setPendingHomeQuery(null)}
             />
           )}

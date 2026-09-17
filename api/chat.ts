@@ -73,7 +73,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       aiResult = { text, provider, modelUsed, fallbackTriggered, fallbackReason };
     }
-    const providerMs = mark('provider response complete'); const citationResult = extractCitationManifest(aiResult.text || ''); const citations = resolveCitations(citationResult.entries, readableDocs, readableAttached); const totalMs = mark('response complete');
+    const providerMs = mark('provider response complete'); const citationResult = extractCitationManifest(aiResult.text || '');
+    let citations = resolveCitations(citationResult.entries, readableDocs, readableAttached);
+    // Some providers emit the requested [1] marker but omit the manifest. A
+    // single readable source is unambiguous; recover its real identity so the
+    // UI does not silently remove a valid citation. Never guess among sources.
+    if (citations.length === 0 && /\[1\]/.test(citationResult.cleanedText) && readableDocs.length + readableAttached.length === 1) {
+      citations = resolveCitations([{ source: readableDocs.length ? 'DOCUMENT 1' : 'INGESTED ACTIVE FILE 1' }], readableDocs, readableAttached);
+    }
+    const totalMs = mark('response complete');
     res.setHeader('X-Signal87-Total-Ms', String(totalMs)); res.setHeader('X-Signal87-Provider-Ms', String(providerMs));
     return res.json({ text: citationResult.cleanedText || aiResult.text, citations, provider: aiResult.provider, modelUsed: aiResult.modelUsed, fallbackTriggered: aiResult.fallbackTriggered, fallbackReason: aiResult.fallbackReason, latencyMs: totalMs, verificationTrace: { provider: aiResult.provider, model: aiResult.modelUsed, groundedDocuments: readableDocs.length, groundedAttachments: readableAttached.length, unreadableDocuments: unreadableDocs.length + unreadableAttached.length, latencyMs: totalMs } });
   } catch (error: any) { console.error('Error in /api/chat:', error); return res.status(500).json({ error: 'AI request failed', details: error?.message || String(error) }); }
