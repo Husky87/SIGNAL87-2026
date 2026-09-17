@@ -807,14 +807,9 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     try {
       setAuthError(null);
-      // Production has a same-origin Firebase helper. Use a full redirect so
-      // the account choice can return to this tab without a popup or third-
-      // party storage. Other hosts keep the popup while their callback is
-      // configured on Firebase's default auth domain.
-      if (window.location.hostname === 'www.signal87.ai') {
-        await signInWithGoogleRedirect();
-        return;
-      }
+      // A popup returns the credential directly to this tab. Redirect sign-in
+      // can lose its pending result in browsers that clear navigation state;
+      // keep it as the fallback only when the browser blocks the popup.
       const res = await signInWithGoogle();
       if (res && res.user) {
         setCurrentUser(res.user);
@@ -823,6 +818,18 @@ export default function App() {
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       const code = err?.code || '';
+      if (code === 'auth/popup-blocked') {
+        try {
+          await signInWithGoogleRedirect();
+          return;
+        } catch (redirectError: any) {
+          setAuthError({
+            code: redirectError?.code || 'auth/redirect-failed',
+            message: redirectError?.message || 'Google sign-in could not start.'
+          });
+          return;
+        }
+      }
       if (
         code === 'auth/cancelled-popup-request'
       ) {
