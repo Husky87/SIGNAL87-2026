@@ -631,7 +631,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   // A question asked from the home screen arrives here and sends itself.
   const consumedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!initialQuery || consumedQueryRef.current === initialQuery) return;
+    if (!initialQuery) {
+      consumedQueryRef.current = null;
+      return;
+    }
+    if (consumedQueryRef.current === initialQuery) return;
     consumedQueryRef.current = initialQuery;
     handleSendQuery(initialQuery);
     if (onInitialQueryConsumed) onInitialQueryConsumed();
