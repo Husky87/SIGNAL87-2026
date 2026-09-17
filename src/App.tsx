@@ -280,9 +280,16 @@ export default function App() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [authError, setAuthError] = useState<{ code?: string; message?: string } | null>(null);
   const [pendingHomeQuery, setPendingHomeQuery] = useState<string | null>(null);
-  const [pendingLandingQuery, setPendingLandingQuery] = useState<string | null>(null);
+  // Google sign-in leaves this page and reloads it on return. Keep a question
+  // entered on the public landing page in this tab until the workspace can
+  // send it; React state alone is lost during the OAuth redirect.
+  const [pendingLandingQuery, setPendingLandingQuery] = useState<string | null>(() => {
+    try { return sessionStorage.getItem('s87_pending_landing_query'); } catch { return null; }
+  });
   const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string }[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  // Wait for a new session's history load before sending its initial question.
+  const [chatSessionReadyId, setChatSessionReadyId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[]>([]);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -306,6 +313,7 @@ export default function App() {
     skipChatSaveRef.current = true;
     if (!activeSessionId || !currentUser) {
       setChatHistory([]);
+      setChatSessionReadyId(null);
       return;
     }
     try {
@@ -319,6 +327,7 @@ export default function App() {
       console.warn('Error loading chat history for session:', activeSessionId, e);
       setChatHistory([]);
     }
+    setChatSessionReadyId(activeSessionId);
   }, [activeSessionId, currentUser]);
 
   // Save chatHistory to localStorage for the active session
@@ -756,6 +765,7 @@ export default function App() {
     if (!currentUser || !workspaceReady || documentsLoading || !pendingLandingQuery) return;
     handleAskFromHome(pendingLandingQuery);
     setPendingLandingQuery(null);
+    try { sessionStorage.removeItem('s87_pending_landing_query'); } catch { /* Storage may be unavailable. */ }
   }, [currentUser, workspaceReady, documentsLoading, pendingLandingQuery]);
 
   /**
@@ -870,6 +880,7 @@ export default function App() {
           }}
           onAskQuestion={(question) => {
             setPendingLandingQuery(question);
+            try { sessionStorage.setItem('s87_pending_landing_query', question); } catch { /* Keep the in-memory fallback. */ }
             setEmailAuthMode('signup');
             setIsEmailAuthOpen(true);
           }}
@@ -1188,7 +1199,7 @@ export default function App() {
               onSelectDocument={setSelectedDocForDetail}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
-              initialQuery={documentsLoading ? null : pendingHomeQuery}
+              initialQuery={documentsLoading || chatSessionReadyId !== activeSessionId ? null : pendingHomeQuery}
               onInitialQueryConsumed={() => setPendingHomeQuery(null)}
             />
           )}
