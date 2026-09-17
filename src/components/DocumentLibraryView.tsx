@@ -79,7 +79,7 @@ type SortDir = 'asc' | 'desc';
 type ModifiedFilter = 'any' | 'today' | 'week' | 'month' | 'year';
 
 const VIEW_TITLES: Record<FilesView, string> = {
-  workspace: 'My Workspace',
+  workspace: 'Files',
   recent: 'Recent',
   starred: 'Starred',
   shared: 'Shared',

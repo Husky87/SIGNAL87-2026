@@ -1,0 +1,32 @@
+name: Workspace layout
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/components/**'
+      - 'src/index.css'
+      - 'src/lib/useAutosizeTextarea.ts'
+      - 'tests/workspace-layout*'
+      - '.github/workflows/workspace-layout.yml'
+permissions:
+  contents: read
+jobs:
+  browser-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/workspace-layout.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-layout
+          path: artifacts/workspace-layout/
+          retention-days: 7

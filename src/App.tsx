@@ -114,7 +114,7 @@ function useVisualViewportHeight(): number | null {
 
 export default function App() {
   const visualHeight = useVisualViewportHeight();
-  const [currentTab, setCurrentTab] = useState<NavTab>('documents');
+  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

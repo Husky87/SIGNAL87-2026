@@ -107,7 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenNewFolderModal,
   onOpenNewNote,
 }) => {
-  const [filesExpanded, setFilesExpanded] = useState(false);
   const [newMenuOpen, setNewMenuOpen] = useState(false);
 
   // Dismiss the way a menu is expected to: click away, or Escape.
