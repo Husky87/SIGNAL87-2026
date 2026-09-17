@@ -724,7 +724,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const isEmptyChat = chatHistory.length === 0;
 
   const composer = (
-    <div className="w-full">
+    <div className="w-full min-w-0 max-w-full">
       {attachedFiles.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
           {attachedFiles.map((f) => (
@@ -767,7 +767,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             event.preventDefault();
             void handleSendQuery();
           }}
-          className="s87-field relative flex flex-col gap-2 p-3 sm:p-4 min-h-[132px]"
+          className="s87-field relative flex flex-col gap-2 p-3 sm:p-4 min-h-[116px] sm:min-h-[128px]"
         >
           <textarea
             aria-label="Ask Signal87"
@@ -780,7 +780,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               }
             }}
             placeholder="What would you like to know?"
-            className="w-full flex-1 bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[62px] max-h-40 px-1 py-1 font-sans caret-[var(--teal)]"
+            className="block w-full min-w-0 max-w-full flex-1 bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[56px] max-h-40 px-1 py-1 font-sans caret-[var(--teal)]"
             rows={2}
           />
 
@@ -975,7 +975,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 </h1>
               </div>
 
-              <div className="w-full max-w-[640px] mx-auto">
+              <div className="w-full min-w-0 max-w-[640px] mx-auto">
                 {composer}
               </div>
 
@@ -1069,7 +1069,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               </div>
 
               <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[var(--bg)]">
-                <div className="max-w-[768px] w-full mx-auto">
+                <div className="max-w-[768px] w-full min-w-0 mx-auto">
                   {composer}
                 </div>
               </div>
