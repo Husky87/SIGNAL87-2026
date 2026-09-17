@@ -492,3 +492,60 @@
     transform: translateX(100%);
   }
 }
+
+/* Signal87 workspace design system: scoped to the authenticated application. */
+.s87-app {
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6FB;
+  --ink: #14213D;
+  --ink-2: #51627F;
+  --muted: #6F809C;
+  --rule: #E4EAF3;
+  --rule-2: #EEF2F7;
+  --teal: #4D5BFA;
+  --teal-soft: #EEF0FF;
+  --teal-ink: #FFFFFF;
+  --ok: #168563;
+  --paper: var(--bg);
+  --card: var(--surface);
+  --raised: var(--surface-2);
+  --slate: var(--muted);
+  --accent: var(--teal);
+  --accent-soft: var(--teal-soft);
+  --accent-ink: #414CDD;
+  --teal-deep: var(--teal);
+  --blue: var(--teal);
+  --blue-soft: var(--teal-soft);
+  --verify: var(--ok);
+  --verify-bg: #EAF8F2;
+  --field-ring: 0 0 0 1px var(--rule);
+  --field-glow: 0 0 0 1px var(--rule), 0 2px 8px #14213D04;
+  --field-glow-focus: 0 0 0 1px #6370FA, 0 0 0 4px #6370FA12;
+  --workspace-width: 960px;
+}
+.s87-app .s87-column { width: 100%; max-width: var(--workspace-width); margin-inline: auto; min-width: 0; }
+.s87-app .s87-page { padding: 32px 24px 48px; }
+.s87-app .s87-page-title { font-size: 28px; line-height: 1.25; font-weight: 600; letter-spacing: -.035em; }
+.s87-app .s87-page-description { margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.s87-app .s87-sidebar { background: linear-gradient(180deg, #FBFCFF, #F7F9FC); }
+.s87-app .s87-sidebar nav button { border-radius: 8px; }
+.s87-app .s87-brand-mark > rect { fill: transparent; }
+.s87-app .s87-brand-mark > g { fill: var(--accent); }
+.s87-app .s87-field { border-radius: 22px; }
+.s87-app .s87-home-composer { border-radius: 16px; }
+.s87-app .s87-composer-input { min-width: 0; overflow-y: auto; overflow-wrap: anywhere; }
+.s87-app .s87-composer-toolbar { container-type: inline-size; }
+.s87-app .s87-send-hint { display: none; }
+@container (min-width: 560px) { .s87-app .s87-send-hint { display: inline; } }
+.s87-app .s87-settings-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 22px 4px; text-align: left; border-bottom: 1px solid var(--rule-2); color: var(--ink); cursor: pointer; }
+.s87-app .s87-settings-row:hover { background: var(--surface-2); }
+.s87-app .s87-settings-row::-webkit-details-marker { display: none; }
+.s87-app .s87-settings-row > svg:first-child { width: 18px; height: 18px; color: var(--ink-2); flex-shrink: 0; }
+.s87-app .s87-settings-row > span { flex: 1; }
+.s87-app .s87-settings-row strong { display: block; font-size: 14px; font-weight: 500; }
+.s87-app .s87-settings-row small { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.s87-app .s87-settings-detail { padding: 20px 4px 24px 36px; font-size: 14px; color: var(--ink-2); }
+.s87-app .s87-home-input { min-height: 24px; max-height: 160px; resize: none; }
+@media (max-width: 639px) { .s87-app .s87-page { padding: 24px 16px 32px; } .s87-app .s87-page-title { font-size: 25px; } }
+@media (prefers-reduced-motion: reduce) { .s87-app *, .s87-app *::before, .s87-app *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

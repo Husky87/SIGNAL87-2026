@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
+  Home,
+  Users,
   FolderOpen,
   Search,
   ChevronLeft,
@@ -105,7 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenNewFolderModal,
   onOpenNewNote,
 }) => {
-  const [filesExpanded, setFilesExpanded] = useState(true);
   const [newMenuOpen, setNewMenuOpen] = useState(false);
 
   // Dismiss the way a menu is expected to: click away, or Escape.
@@ -134,14 +135,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [newMenuOpen]);
 
   const navItems: {
-    id: NavTab | 'new' | 'upload';
+    id: NavTab | 'new' | 'upload' | 'recent' | 'starred';
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
-    { id: 'new', label: 'New', icon: Plus },
-    { id: 'upload', label: 'Upload', icon: Upload },
+    { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'research', label: 'Ask', icon: Search },
-    { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'saved', label: 'Notes', icon: StickyNote },
+    { id: 'recent', label: 'Recent', icon: Clock },
+    { id: 'starred', label: 'Starred', icon: Star },
+    { id: 'team', label: 'Team', icon: Users },
     { id: 'admin', label: 'Settings', icon: Settings },
   ];
 
@@ -192,17 +196,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAdmin = isAdminEmail(currentUser?.email);
   const trialStatus = currentUser && !isAdmin ? getTrialStatus(currentUser) : null;
 
-  const renderNavItem = (item: { id: NavTab | 'new' | 'upload'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
+  const renderNavItem = (item: { id: NavTab | 'new' | 'upload' | 'recent' | 'starred'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
     const Icon = item.icon;
     const isNew = item.id === 'new';
     const isUpload = item.id === 'upload';
-    const isActive =
-      !isNew &&
-      !isUpload &&
-      ((item.id === 'research' && currentTab === 'research') ||
-        (item.id === 'saved' && currentTab === 'saved') ||
-        (item.id === 'admin' &&
-          (currentTab === 'admin' || currentTab === 'organization')));
+    const isActive = item.id === 'recent' || item.id === 'starred'
+      ? currentTab === 'documents' && filesView === item.id
+      : item.id === 'documents'
+        ? currentTab === 'documents' && filesView === 'workspace'
+        : item.id === currentTab || (item.id === 'admin' && currentTab === 'organization');
 
     // New opens a menu rather than firing one hidden action. It used to start a
     // question thread immediately, so creating a note or a folder from here was
@@ -261,11 +263,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           if (isUpload) {
             if (onOpenUpload) onOpenUpload();
             if (onCloseMobileMenu) onCloseMobileMenu();
+          } else if (item.id === 'recent' || item.id === 'starred' || item.id === 'documents') {
+            onSelectFilesView?.(item.id === 'documents' ? 'workspace' : item.id);
+            onSelectTab('documents');
+            onCloseMobileMenu?.();
           } else {
             onSelectTab(item.id as NavTab);
             if (onCloseMobileMenu) onCloseMobileMenu();
           }
         }}
+        aria-current={isActive ? 'page' : undefined}
         title={isUpload ? 'Upload a document' : undefined}
         className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border ${
  isActive
@@ -285,7 +292,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const sidebarContent = (
-    <div className="flex flex-col justify-between h-full bg-[var(--paper)] text-[var(--ink)] select-none p-4 space-y-5">
+    <div className="s87-sidebar flex flex-col justify-between h-full overflow-y-auto bg-[var(--paper)] text-[var(--ink)] select-none p-4 space-y-5">
       <div className="space-y-5">
         {/* Workspace Title Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--rule)] min-h-[44px]">
@@ -337,69 +344,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation: New, Upload, Ask, Files (tree), Saved, Settings */}
-        <nav className="space-y-1 pt-1">
-          {navItems.slice(0, 3).map((item) => renderNavItem(item))}
-
-          {/* Files — expandable tree: My Workspace / Recent / Starred / Shared / Trash */}
-          <div>
-            <button
-              onClick={() => {
-                if (collapsed && !mobileMenuOpen) {
-                  if (onSelectFilesView) onSelectFilesView('workspace');
-                  onSelectTab('documents');
-                  if (onCloseMobileMenu) onCloseMobileMenu();
-                } else {
-                  setFilesExpanded((prev) => !prev);
-                }
-              }}
-              className={`w-full rounded-full px-4 py-2.5 text-[13px] font-medium flex items-center gap-3 transition-all text-left cursor-pointer border bg-transparent border-transparent ${
- currentTab === 'documents'
- ? 'text-[var(--ink)] font-semibold'
- : 'text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
- } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''}`}
-            >
-              <FolderOpen size={16} className={`flex-shrink-0 ${currentTab === 'documents' ? 'text-[var(--accent)]' : 'text-[var(--slate)]'}`} />
-              {(!collapsed || mobileMenuOpen) && (
-                <>
-                  <span className="flex-1">Files</span>
-                  <ChevronDown
-                    size={14}
-                    className={`text-[var(--slate)] transition-transform ${filesExpanded ? '' : '-rotate-90'}`}
-                  />
-                </>
-              )}
-            </button>
-
-            {filesExpanded && (!collapsed || mobileMenuOpen) && (
-              <div className="mt-0.5 ml-4 pl-3 border-l border-[var(--rule)] space-y-0.5">
-                {FILES_SUB_ITEMS.map((sub) => {
-                  const SubIcon = sub.icon;
-                  const isSubActive = currentTab === 'documents' && filesView === sub.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => {
-                        if (onSelectFilesView) onSelectFilesView(sub.id);
-                        onSelectTab('documents');
-                        if (onCloseMobileMenu) onCloseMobileMenu();
-                      }}
-                      className={`w-full rounded-full px-3 py-2 text-[12.5px] font-medium flex items-center gap-2.5 transition-all text-left cursor-pointer ${
- isSubActive
- ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
- : 'text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
- }`}
-                    >
-                      <SubIcon size={14} className={`flex-shrink-0 ${isSubActive ? 'text-[var(--accent)]' : 'text-[var(--slate)]'}`} />
-                      <span>{sub.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {navItems.slice(3).map((item) => renderNavItem(item))}
+        <nav aria-label="Workspace" className="space-y-1">
+          {navItems.map(renderNavItem)}
+          <div className="pt-4">{renderNavItem({ id: 'new', label: 'Create new', icon: Plus })}</div>
+          {(!collapsed || mobileMenuOpen) && <details className="pt-3 text-[12px] text-[var(--muted)]">
+            <summary className="cursor-pointer px-4 py-2">More file options</summary>
+            {FILES_SUB_ITEMS.filter(item => item.id === 'shared' || item.id === 'trash').map(item => <button key={item.id} type="button" onClick={() => { onSelectFilesView?.(item.id); onSelectTab('documents'); onCloseMobileMenu?.(); }} className="flex w-full items-center gap-3 px-4 py-2 hover:bg-[var(--raised)]"><item.icon size={15} />{item.label}</button>)}
+          </details>}
         </nav>
       </div>
 
@@ -455,8 +406,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Desktop Left Rail */}
       <aside
-        className={`hidden md:flex flex-shrink-0 bg-[var(--paper)] h-full flex-col justify-between border-r border-transparent transition-all duration-200 relative z-20 ${
- collapsed ? 'w-20' : 'w-64'
+        className={`hidden md:flex flex-shrink-0 bg-[var(--paper)] h-full flex-col justify-between border-r border-[var(--rule-2)] transition-all duration-200 relative z-20 ${
+ collapsed ? 'w-20' : 'w-56'
  }`}
       >
         {sidebarContent}
