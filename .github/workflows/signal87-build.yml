@@ -36,6 +36,12 @@ jobs:
       - name: Firebase AI fallback routing tests
         run: npm run test:firebase-ai-fallback
 
+      - name: Chat request and citation regression tests
+        run: |
+          node --import tsx tests/chat-client.test.ts
+          node --import tsx tests/citation-recovery.test.ts
+          node --import tsx tests/chat-response-render.test.tsx
+
       - name: Build
         run: npm run build
 
