@@ -417,6 +417,9 @@
 .s87-app input:is([type='text'], [type='search'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='url'], [type='date']),
 .s87-app input:not([type]),
 .s87-app textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   background-color: var(--field-bg);
   border: 0;
   border-radius: 999px;
@@ -430,9 +433,13 @@
 
 /* The composer carries the full glow whether or not it is focused. */
 .s87-app .s87-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background-color: var(--field-bg);
   border: 0;
-  border-radius: 999px;
+  border-radius: 20px;
   box-shadow: var(--field-glow) !important;
   color: var(--ink);
   transition: box-shadow 0.25s ease;
@@ -450,6 +457,16 @@
    plain so the two do not stack into a double ring. */
 .s87-app .s87-field input,
 .s87-app .s87-field textarea {
+  width: 100%;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+}
+
+/* A control inside an existing search/composer shell follows that shell's
+   shape. The shell owns the background, border and focus treatment. */
+.s87-app input.s87-inset-control,
+.s87-app input.s87-inset-control:focus {
   background-color: transparent;
   border-radius: 0;
   box-shadow: none !important;
