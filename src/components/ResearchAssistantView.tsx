@@ -44,8 +44,10 @@ import {
 import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
+import { requestChat } from '../lib/chatClient';
 import { Signal87Logo } from './Signal87Logo';
-import { ActionRouterCard, determineDeliverableType } from './ActionRouterComponents';
+import { determineDeliverableType } from './ActionRouterComponents';
+import { AssistantAnswer } from './AssistantAnswer';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { AttachExistingDocumentModal } from './AttachExistingDocumentModal';
 
@@ -539,7 +541,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
     try {
       if (!currentUser) throw new Error('Please sign in to send a message.');
-      const token = await currentUser.getIdToken();
       const priorTurns = [...chatHistory, userMsg]
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .slice(-12)
@@ -553,36 +554,12 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         attachedFiles
       };
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(bodyPayload)
-      });
-
-      if (!res.ok) {
-        // Surface the server's own explanation instead of a bare status code.
-        let serverDetail = '';
-        try {
-          const errBody = await res.json();
-          serverDetail = errBody.details || errBody.error || '';
-        } catch {
-          try {
-            serverDetail = (await res.text()).slice(0, 300);
-          } catch {
-            serverDetail = '';
-          }
-        }
-        throw new Error(
-          `status ${res.status}${serverDetail ? ` \u2014 ${serverDetail}` : ''}`
-        );
-      }
-
-      const data = await res.json();
+      const data = await requestChat(bodyPayload, () => currentUser.getIdToken());
 
       let responseText = '';
       let reasoningSteps = data.reasoningSteps || [];
 
-      responseText = data.text || 'Analysis synthesis complete.';
+      responseText = data.text;
 
       let excelExportData = null;
 
@@ -640,7 +617,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        text: `Error: The AI assistant is currently experiencing high demand or configuration issues. Please try again later. (${err instanceof Error ? err.message : 'Unknown error'})`,
+        text: `Unable to answer: ${err instanceof Error ? err.message : 'Unknown error'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         deliverableType: 'qa'
       };
@@ -654,7 +631,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   // A question asked from the home screen arrives here and sends itself.
   const consumedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!initialQuery || consumedQueryRef.current === initialQuery) return;
+    if (!initialQuery) {
+      consumedQueryRef.current = null;
+      return;
+    }
+    if (consumedQueryRef.current === initialQuery) return;
     consumedQueryRef.current = initialQuery;
     handleSendQuery(initialQuery);
     if (onInitialQueryConsumed) onInitialQueryConsumed();
@@ -1048,34 +1029,27 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <div className="flex gap-3 sm:gap-4 items-start my-4">
-                              <div className="w-8 h-8 rounded-full bg-[var(--surface-2)] text-[var(--muted)] flex items-center justify-center flex-shrink-0 mt-1">
-                                <Signal87Logo size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <ActionRouterCard
-                                  msg={msg}
-                                  userPrompt={previousUserMsg}
-                                  copiedMsgId={copiedMsgId}
-                                  onCopy={handleCopy}
-                                  onExportPDF={handleExportPDF}
-                                  onInspectInCanvas={(item) => {
-                                    setActiveArtifact({
-                                      id: item.id,
-                                      title: item.text.slice(0, 40) + '...',
-                                      content: item.text,
-                                      citations: item.citations,
-                                      timestamp: item.timestamp
-                                    });
-                                    setSplitViewOpen(true);
-                                  }}
-                                  onSelectDocument={onSelectDocument}
-                                  documents={documents}
-                                  onSaveAnswer={onSaveAnswer}
-                                  isAnswerSaved={savedAnswerIds?.has(msg.id)}
-                                />
-                              </div>
-                            </div>
+                            <AssistantAnswer
+                              msg={msg}
+                              userPrompt={previousUserMsg}
+                              copiedMsgId={copiedMsgId}
+                              onCopy={handleCopy}
+                              onExportPDF={handleExportPDF}
+                              onInspectInCanvas={(item) => {
+                                setActiveArtifact({
+                                  id: item.id,
+                                  title: item.text.slice(0, 40) + '...',
+                                  content: item.text,
+                                  citations: item.citations,
+                                  timestamp: item.timestamp
+                                });
+                                setSplitViewOpen(true);
+                              }}
+                              onSelectDocument={onSelectDocument}
+                              documents={documents}
+                              onSaveAnswer={onSaveAnswer}
+                              isAnswerSaved={savedAnswerIds?.has(msg.id)}
+                            />
                           )}
                         </div>
                       );
