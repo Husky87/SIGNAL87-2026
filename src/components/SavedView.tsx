@@ -140,25 +140,25 @@ export const SavedView: React.FC<SavedViewProps> = ({
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--bg)] text-[var(--ink)]">
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-10 sm:py-12">
-          <div className="flex flex-wrap items-end justify-between gap-6">
+        <div className="s87-page">
+          <div className="s87-column"><div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--teal)]"><StickyNote size={15} /> Notes</div>
-              <h1 className="mt-4 max-w-3xl text-[34px] font-semibold tracking-[-0.06em] text-[var(--ink)] sm:text-[48px]">Capture ideas. Build context. Take action.</h1>
-              <p className="mt-4 max-w-2xl text-[14px] leading-7 text-[var(--ink-2)]">Keep notes and saved answers together with the documents and decisions they reference.</p>
+
+              <h1 className="s87-page-title">Notes</h1>
+              <p className="s87-page-description">Keep notes and saved answers together with the documents and decisions they reference.</p>
             </div>
             <button type="button" onClick={startNewNote} className="flex min-h-[44px] items-center gap-2 rounded-full bg-[var(--teal)] px-5 text-[12px] font-semibold text-white shadow-sm transition hover:opacity-90"><Plus size={15} /> New note</button>
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-2">
-            <div className="flex h-11 min-w-[240px] flex-1 items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 shadow-sm"><Search size={15} className="text-[var(--muted)]" /><input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search notes..." className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--muted)]" /></div>
+            <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 shadow-sm"><Search size={15} className="text-[var(--muted)]" /><input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search notes..." className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--muted)]" /></div>
             {(['all', 'notes', 'answers'] as const).map((filter) => <button key={filter} type="button" onClick={() => setActiveFilter(filter)} className={`min-h-[38px] rounded-full border px-4 text-[11px] font-semibold transition ${activeFilter === filter ? 'border-[var(--teal-soft)] bg-[var(--teal-soft)] text-[var(--teal)]' : 'border-[var(--rule)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--raised)]'}`}>{filter === 'all' ? 'All' : filter === 'notes' ? 'Notes' : 'Saved answers'}</button>)}
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--surface)] shadow-sm">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--surface)] shadow-sm">
             {filteredItems.length > 0 ? filteredItems.map((item, idx) => <button key={item.id} type="button" onClick={() => openItem(item)} className={`group flex min-h-[88px] w-full items-center gap-4 px-5 text-left transition hover:bg-[var(--raised)] sm:px-6 ${idx < filteredItems.length - 1 ? 'border-b border-[var(--rule-2)]' : ''}`}><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.type === 'note' ? 'bg-[var(--teal-soft)] text-[var(--teal)]' : 'bg-[var(--blue-soft)] text-[var(--blue)]'}`}>{item.type === 'note' ? <StickyNote size={16} /> : <FileText size={16} />}</div><div className="min-w-0 flex-1"><div className="truncate text-[13px] font-semibold text-[var(--ink)]">{item.type === 'note' ? item.title : item.question}</div><div className="mt-1 truncate text-[11px] text-[var(--muted)]">{item.type === 'note' ? item.body || 'Empty note' : 'Saved answer'}</div></div><span className="shrink-0 text-[10px] text-[var(--muted)]">{new Date(item.type === 'note' ? item.updatedAt : item.timestamp).toLocaleDateString()}</span></button>) : <div className="px-6 py-16 text-center"><StickyNote size={26} className="mx-auto text-[var(--muted)]" /><p className="mt-4 text-[14px] font-medium text-[var(--ink-2)]">No notes or saved answers yet.</p><p className="mt-1 text-[12px] text-[var(--muted)]">Create a note or save a useful answer from Ask.</p><button type="button" onClick={startNewNote} className="mt-5 rounded-full bg-[var(--teal)] px-4 py-2.5 text-[11px] font-semibold text-white">Create your first note</button></div>}
           </div>
-        </div>
+        </div></div>
       </div>
     </div>
   );

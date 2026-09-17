@@ -41,6 +41,7 @@ import {
   User as UserIcon,
   FolderOpen
 } from 'lucide-react';
+import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
@@ -244,6 +245,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   onInitialQueryConsumed
 }) => {
   const [inputQuery, setInputQuery] = useState('');
+  const composerInputRef = useAutosizeTextarea(inputQuery, 200, chatHistory.length === 0);
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
@@ -754,22 +756,15 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       )}
 
       <div className="relative">
-        <div
-          className="pointer-events-none absolute -inset-5 sm:-inset-6 rounded-[36px]"
-          style={{
-            background:
-              'radial-gradient(ellipse at center, rgba(32,184,205,0.45) 0%, rgba(32,184,205,0.18) 45%, transparent 75%)',
-            filter: 'blur(14px)'
-          }}
-        />
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void handleSendQuery();
           }}
-          className="s87-field relative flex flex-col gap-2 p-3 sm:p-4 min-h-[132px]"
+          className="s87-field relative flex flex-col gap-2 p-3 sm:p-4 min-w-0"
         >
           <textarea
+            ref={composerInputRef}
             aria-label="Ask Signal87"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
@@ -780,11 +775,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               }
             }}
             placeholder="What would you like to know?"
-            className="w-full flex-1 bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[62px] max-h-40 px-1 py-1 font-sans caret-[var(--teal)]"
+            className="s87-composer-input w-full bg-transparent border-0 text-base leading-[1.5] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none resize-none min-h-[48px] max-h-[200px] px-1 py-1 font-sans caret-[var(--teal)]"
             rows={2}
           />
 
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--rule)] pt-2">
+          <div className="s87-composer-toolbar flex items-center justify-between gap-2 border-t border-[var(--rule)] pt-2">
           <div className="relative flex-shrink-0">
             <button
               type="button"
@@ -828,7 +823,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline text-xs text-[var(--muted)]">Enter to send · Shift+Enter for a new line</span>
+            <span className="s87-send-hint text-xs text-[var(--muted)]">Enter to send · Shift+Enter for a new line</span>
           <button
             type="submit"
             disabled={!inputQuery.trim() || loading}
@@ -965,21 +960,21 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
  splitViewOpen ? 'w-full md:w-1/2 lg:w-3/5 border-r border-[var(--rule)]' : 'w-full'
  }`}>
           {isEmptyChat ? (
-            <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-4 sm:px-6">
-              <div className="flex flex-col items-center justify-end text-center pb-5 sm:pb-7 min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-center px-4 sm:px-6 py-8">
+              <div className="s87-column flex flex-col items-start pb-6">
                 <span className="text-[12px] font-medium text-[var(--muted)]">
                   {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
                 </span>
-                <h1 className="mt-2 text-[1.65rem] sm:text-[2.5rem] leading-[1.15] text-[var(--ink)] m-0 font-semibold tracking-tight max-w-[18ch] sm:max-w-none">
-                  What do you want to know{currentUser?.displayName?.split(' ')[0] ? `, ${currentUser.displayName.split(' ')[0]}` : ''}?
+                <h1 className="s87-page-title mt-2 text-[var(--ink)]">
+                  What would you like to understand?
                 </h1>
               </div>
 
-              <div className="w-full max-w-[640px] mx-auto">
+              <div className="s87-column">
                 {composer}
               </div>
 
-              <div className="flex flex-col items-center justify-start pt-5 sm:pt-7 min-h-0 overflow-y-auto">
+              <div className="s87-column flex flex-col items-start pt-5">
                 <div className="relative w-full max-w-md">
                   <button
                     onClick={() => setShowActionsDropdown(!showActionsDropdown)}
@@ -1009,13 +1004,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             </div>
           ) : (
             <>
-              <div className="flex-1 overflow-y-auto px-4 py-3 sm:py-4 flex flex-col">
-                {/* mt-auto seats a short conversation at the bottom of the scroll
-                    area next to the composer, the way ChatGPT and Claude do —
-                    without it one exchange floats at the top with a gap beneath.
-                    Once the thread outgrows the container there is no free space
-                    left and it scrolls as normal. */}
-                <div className="max-w-[768px] w-full mx-auto space-y-4 mt-auto">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 flex flex-col">
+                <div className="s87-column space-y-4">
                   <div className="space-y-4 pb-4">
                     {chatHistory.map((msg, index) => {
                       const previousUserMsg = index > 0 && chatHistory[index - 1].role === 'user' ? chatHistory[index - 1].text : '';
@@ -1024,7 +1014,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         <div key={msg.id} className="py-1">
                           {msg.role === 'user' ? (
                             <div className="flex justify-end my-3">
-                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[80%]">
+                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[85%] break-words [overflow-wrap:anywhere]">
                                 {msg.text}
                               </div>
                             </div>
@@ -1069,7 +1059,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               </div>
 
               <div className="flex-shrink-0 z-20 px-4 sm:px-6 pt-2 pb-2 sm:pb-3 bg-[var(--bg)]">
-                <div className="max-w-[768px] w-full mx-auto">
+                <div className="s87-column">
                   {composer}
                 </div>
               </div>
@@ -1078,7 +1068,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         </div>
 
         {splitViewOpen && (
-          <div className="w-full md:w-1/2 lg:w-2/5 bg-[var(--surface)] border-l border-[var(--rule)] flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
+          <div className="absolute inset-0 md:static w-full md:w-1/2 lg:w-2/5 md:shrink-0 bg-[var(--surface)] border-l border-[var(--rule)] flex flex-col h-full overflow-hidden z-20 animate-fadeIn">
             <div className="h-12 px-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--bg)] flex-shrink-0">
               <div className="flex items-center gap-2">
                 <FileText size={16} className="text-[var(--muted)]" />

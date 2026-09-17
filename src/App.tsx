@@ -1166,6 +1166,7 @@ export default function App() {
                 recentSessions={sessions}
                 onAskQuestion={handleAskFromHome}
                 onOpenSession={handleOpenSessionFromHome}
+                onOpenNewNote={handleOpenNewNote}
                 onOpenUpload={() => setIsUploadOpen(true)}
               />
             </ScrollArea>
@@ -1248,7 +1249,7 @@ export default function App() {
 
           {currentTab === 'team' && (
             <ScrollArea id="tab:team" className="flex-1 min-h-0 overflow-y-auto">
-              <TeamView />
+              <TeamView currentUser={currentUser} />
             </ScrollArea>
           )}
 
@@ -1262,6 +1263,10 @@ export default function App() {
             <ScrollArea id="tab:admin" className="flex-1 min-h-0 overflow-y-auto">
               <AdminView
                 stats={stats}
+                currentUser={currentUser}
+                onOpenTeam={() => setCurrentTab('team')}
+                onOpenPrivacy={() => setCurrentTab('privacy')}
+                onOpenTerms={() => setCurrentTab('terms')}
                 selectedModel={selectedModel}
                 onChangeModel={setSelectedModel}
                 onSignOut={handleSignOut}

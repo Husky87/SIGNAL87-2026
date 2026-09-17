@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUp, Calendar, FileText, Columns, DollarSign, Clock, Plus, Paperclip, Search, StickyNote, Sparkles } from 'lucide-react';
+import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
 import { ChatSessionSummary } from './Sidebar';
 
@@ -9,6 +10,7 @@ interface DashboardViewProps {
   onAskQuestion: (question: string) => void;
   onOpenSession: (id: string) => void;
   onOpenUpload: () => void;
+  onOpenNewNote: () => void;
 }
 
 const SUGGESTIONS = [
@@ -21,7 +23,7 @@ const SUGGESTIONS = [
 const QUICK_ACTIONS = [
   { icon: FileText, label: 'Summarize a document', question: 'Summarize the latest document in my workspace.' },
   { icon: Search, label: 'Find my notes', question: 'Find the most relevant notes in my workspace.' },
-  { icon: StickyNote, label: 'Start with a note', question: '' }
+  { icon: StickyNote, label: 'Create a note', question: '' }
 ];
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -29,9 +31,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   recentSessions,
   onAskQuestion,
   onOpenSession,
-  onOpenUpload
+  onOpenUpload,
+  onOpenNewNote
 }) => {
   const [query, setQuery] = useState('');
+  const inputRef = useAutosizeTextarea(query, 160);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const attachMenuRef = useRef<HTMLDivElement>(null);
 
@@ -59,18 +63,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     .slice(0, 6);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)]">
-      <div className="mx-auto w-full max-w-[760px] px-5 pb-24 pt-10 sm:px-8 sm:pt-14">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-            <Sparkles size={13} className="text-[var(--teal)]" />
-            Signal87 workspace
-          </div>
-          <div className="hidden text-[11px] text-[var(--muted)] sm:block">Private · Verified workspace</div>
-        </div>
-
-        <section className="mt-8">
-          <h1 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.055em] sm:text-[44px]">
+    <div className="s87-page flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)]">
+      <div className="s87-column pb-10">
+        <section className="mt-6">
+          <h1 className="s87-page-title">
             Good morning, {firstName}.
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[var(--ink-2)] sm:text-[16px]">
@@ -79,7 +75,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
 
         <section className="mt-8">
-          <div className="rounded-[24px] border border-[var(--rule)] bg-[var(--surface)] p-2 shadow-[0_16px_50px_rgba(27,27,24,.06)] focus-within:border-[var(--teal)]/50">
+          <div className="s87-field s87-home-composer p-2">
             <div className="flex items-center gap-2">
               <div ref={attachMenuRef} className="relative shrink-0">
                 <button
@@ -105,18 +101,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 )}
               </div>
 
-              <input
-                type="text"
+              <textarea
+                ref={inputRef}
+                rows={1}
+                aria-label="Ask a question"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
                     handleSend();
                   }
                 }}
                 placeholder="Ask a question, search your files, or search the web..."
-                className="min-w-0 flex-1 bg-transparent px-1 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+                className="s87-home-input min-w-0 flex-1 bg-transparent px-1 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
               />
 
               <button
@@ -137,7 +135,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               key={label}
               type="button"
-              onClick={() => question ? onAskQuestion(question) : onOpenUpload()}
+              onClick={() => question ? onAskQuestion(question) : onOpenNewNote()}
               className="flex min-h-[42px] items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-3.5 text-[12px] font-medium text-[var(--ink-2)] hover:border-[var(--teal)]/40 hover:text-[var(--ink)]"
             >
               <Icon size={14} className="text-[var(--teal)]" />
@@ -177,19 +175,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           )}
         </section>
 
-        <section className="mt-8 grid gap-3 sm:grid-cols-2">
-          {SUGGESTIONS.map(({ icon: Icon, text }) => (
-            <button
-              key={text}
-              type="button"
-              onClick={() => onAskQuestion(text)}
-              className="flex min-h-[54px] items-center gap-3 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] px-4 text-left hover:bg-[var(--raised)]"
-            >
-              <Icon size={14} className="shrink-0 text-[var(--teal)]" />
-              <span className="text-[13px] text-[var(--ink-2)]">{text}</span>
-            </button>
-          ))}
-        </section>
+
       </div>
     </div>
   );

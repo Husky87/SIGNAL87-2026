@@ -1,0 +1,17 @@
+import React, { useState } from 'react';
+import {createRoot} from 'react-dom/client';
+import './src/index.css';
+import {Sidebar} from './src/components/Sidebar';
+import {DashboardView} from './src/components/DashboardView';
+import {ResearchAssistantView} from './src/components/ResearchAssistantView';
+import {AdminView} from './src/components/AdminView';
+import {TeamView} from './src/components/TeamView';
+import {SavedView} from './src/components/SavedView';
+import {MobileDock} from './src/components/MobileDock';
+import {DocumentLibraryView} from './src/components/DocumentLibraryView';
+const noop=()=>{};
+const user:any={displayName:'Michael Benezra',email:'preview@example.com',uid:'preview',metadata:{creationTime:new Date().toISOString()}};
+function Preview(){const previewWidth = new URLSearchParams(location.search).get('width'); if(previewWidth) return <iframe title="Mobile preview" src="/__design-preview.html" style={{width:previewWidth+'px',height:'844px',border:0}}/>; const [tab,setTab]=useState<any>('dashboard');const [collapsed,setCollapsed]=useState(false);const [menu,setMenu]=useState(false);const [history,setHistory]=useState<any[]>([]);const [attachments,setAttachments]=useState<any[]>([]);const [view,setView]=useState<any>('workspace');const [note,setNote]=useState(0);const [model,setModel]=useState('gemini-3.6-flash');
+const newNote=()=>{setTab('saved');setNote(n=>n+1)};
+return <div className="s87-app flex h-[100dvh] overflow-hidden"><Sidebar currentTab={tab} onSelectTab={setTab} collapsed={collapsed} onToggleCollapse={()=>setCollapsed(!collapsed)} documentCount={0} projectCount={0} currentUser={user} mobileMenuOpen={menu} onCloseMobileMenu={()=>setMenu(false)} onNewSession={()=>{setHistory([]);setTab('research')}} onOpenNewNote={newNote} onOpenUpload={noop} filesView={view} onSelectFilesView={setView}/><div className="flex flex-1 min-w-0 flex-col"><div className="min-h-0 flex-1 flex flex-col">{tab==='dashboard'&&<DashboardView currentUser={user} recentSessions={[{id:'1',title:'Q3 strategy questions',timestamp:'Today'}]} onAskQuestion={q=>{setHistory([{id:'u',role:'user',text:q,timestamp:Date.now()},{id:'a',role:'assistant',text:'This is a layout preview of a sourced answer.\n\nYour answers and the follow-up textbox use the same content width.',timestamp:Date.now()}]);setTab('research')}} onOpenSession={()=>setTab('research')} onOpenUpload={noop} onOpenNewNote={newNote}/>}{tab==='research'&&<ResearchAssistantView documents={[]} attachedFiles={attachments} setAttachedFiles={setAttachments} selectedModel={model} onChangeModel={setModel} chatHistory={history} setChatHistory={setHistory} currentUser={user}/>}{tab==='admin'&&<AdminView stats={{} as any} currentUser={user} selectedModel={model} onChangeModel={setModel} onOpenTeam={()=>setTab('team')} onOpenPrivacy={noop} onOpenTerms={noop}/>}{tab==='team'&&<TeamView currentUser={user}/>}{tab==='saved'&&<SavedView savedItems={[]} onSaveItem={noop} onDeleteItem={noop} documents={[]} onSelectDocument={noop} newNoteRequestId={note}/>}{tab==='documents'&&<DocumentLibraryView documents={[]} filesView={view} onSelectDocument={noop} onOpenUpload={noop} onDeleteDocument={noop}/>}</div><MobileDock currentTab={tab} onSelectTab={setTab} onNewSession={()=>{setHistory([]);setTab('research')}} onOpenMenu={()=>setMenu(true)} onOpenNewNote={newNote}/></div></div>};
+createRoot(document.getElementById('root')!).render(<Preview/>);
