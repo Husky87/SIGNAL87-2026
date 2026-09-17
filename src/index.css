@@ -61,7 +61,8 @@
 @layer base {
   html {
     font-size: 16px;
-    overflow-x: hidden;
+    /* Clip horizontal paint without creating a vertical scroll container in Firefox. */
+    overflow-x: clip;
     max-width: 100%;
     overscroll-behavior-x: none;
   }
@@ -72,14 +73,14 @@
     font-family: var(--f);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100%;
     overscroll-behavior-x: none;
   }
 
   #root {
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   h1, h2, h3, h4, h5, h6 {
