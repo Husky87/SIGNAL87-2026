@@ -434,18 +434,14 @@ export default function App() {
         }
       })
       .catch((error: any) => {
+        if (auth.currentUser) return;
         const code = error?.code || '';
-        if (
-          code === 'auth/no-redirect-result' ||
-          code === 'auth/argument-error' ||
-          /missing initial state|no auth event/i.test(error?.message || '')
-        ) {
-          return;
-        }
         console.error('Redirect result error:', error);
         setAuthError({
           code: code || 'auth/unknown-error',
-          message: error?.message || 'OAuth redirect failed'
+          message: /missing initial state|no auth event/i.test(error?.message || '')
+            ? 'Google sign-in returned without a saved session. Please try again.'
+            : error?.message || 'OAuth redirect failed'
         });
       });
   }, []);
