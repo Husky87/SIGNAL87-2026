@@ -7,6 +7,9 @@ claim backed by a citation or a test, nothing asserted as fixed without evidence
 **Branch:** `phase-0-fixes` (based on `phase-0-audit`)
 **Baseline suite:** `tests/phase-0-audit.test.ts` — unmodified, re-run at the end of this pass (§3)
 **New verification suite:** `tests/phase-0-fixes.test.ts` — 11/11 passing (§2)
+**Firestore emulator verification (added after initial review):** `tests/phase-0-firestore-emulator.test.ts` — 8/8
+passing against a real Firestore emulator, not mocks (§2.5). This closes the one item §1.4 originally flagged as
+unverified.
 
 ---
 
@@ -100,12 +103,14 @@ per-document limit) still shows as "Ready" in the UI with no indication it never
   `status: 'error'`, which `DocumentLibraryView.tsx`'s existing status badge already renders as "Failed" — reusing
   UI that exists today rather than adding a new component.
 
-**This fix is not verified by an executed test** — `src/lib/firestoreService.ts` imports the browser Firebase SDK
-(`firebase/firestore`), which has no meaning in this Node/tsx harness, and no Firestore test project is available
-in this environment (the same limitation the audit noted for this exact risk in its §3.4). It is verified by direct
-source reading (cited above) and by the TypeScript compiler accepting every call site's updated contract — not by
-observing the failure-and-recovery behavior actually run. **This is the one item on this list that most needs
-verification against a real (or emulated) Firestore project before being trusted in production** — see §4.
+**Update:** this was originally verified only by source reading and the TypeScript compiler accepting each call
+site's updated contract, not by an executed test — `src/lib/firestoreService.ts` imports the browser Firebase SDK,
+which has no meaning in a plain Node/tsx harness, and no Firestore project was available in that environment. That
+gap is now closed: §2.5 verifies the actual failure mode (a document whose `fullText` pushes it past Firestore's
+1 MiB limit) against a real Firestore emulator, confirms the security rules permit exactly the read/write pattern
+`firestoreService.ts` uses and nothing more, and confirms the fix's own multi-document scenario (four large filler
+documents plus the Rockland Trust statement) round-trips correctly through a real Firestore collection at the
+volume the fix is meant to solve.
 
 ---
 
@@ -127,7 +132,146 @@ verification against a real (or emulated) Firestore project before being trusted
 TOTAL: 11/11 passed
 ```
 
-FIX-9 (Firestore surfacing) is deliberately not in this count — see §1.4's note and §4.
+FIX-9 (Firestore surfacing) is deliberately not in this count — it's verified separately, against a real emulator
+rather than a mock, in §2.5.
+
+---
+
+## 2.5. Firestore emulator verification (`tests/phase-0-firestore-emulator.test.ts`)
+
+Added in response to review: the fix above touches Firestore, and Firestore-specific failure modes — security
+rules, per-document size limits, composite index requirements — are exactly the class of bug a mock cannot catch,
+because a mock only reflects what the author already assumed about the API's behavior. This section verifies
+against the real thing.
+
+### Emulator setup
+
+No emulator was configured in this repository before this pass. Steps taken, in order:
+
+1. **Installed the tooling** (not saved to `package.json` — see the note on why at the end of this section):
+   ```
+   npm install --no-save --no-audit --no-fund firebase-tools @firebase/rules-unit-testing
+   ```
+   `firebase-tools` provides `firebase emulators:exec`, which starts the emulator, runs a given command against it,
+   and tears it down. `@firebase/rules-unit-testing` is Firebase's own library for writing tests against the
+   emulator with per-user auth contexts, without needing real ID tokens.
+
+2. **Added an `emulators` block to `firebase.json`** (purely additive — this key is never read by `firebase
+   deploy`, so it has no effect on production configuration):
+   ```json
+   "emulators": {
+     "firestore": { "port": 8080 },
+     "ui": { "enabled": false },
+     "singleProjectMode": true
+   }
+   ```
+   The UI is disabled because it isn't needed for an automated test run and its emulator-UI bundle happens to be
+   served from a host this sandbox's egress policy blocks (see the network note below) — disabling it removes that
+   noise entirely; it has no effect on the Firestore emulator itself, which starts and serves on 8080 regardless.
+
+3. **Wrote `tests/phase-0-firestore-emulator.test.ts`**, using `@firebase/rules-unit-testing`'s
+   `initializeTestEnvironment` loaded with the repo's actual `firestore.rules`, rather than re-importing
+   `src/lib/firestoreService.ts` directly. That module transitively imports `src/lib/firebase.ts`, which calls
+   browser-only APIs (`indexedDBLocalPersistence`, `browserPopupRedirectResolver`, `window`, `sessionStorage`) at
+   module load time — the same class of "browser-only, not executable in this Node/tsx harness" limitation already
+   documented for `src/lib/fileParser.ts` in `docs/phase-0-audit.md` §3.4. The test instead replicates
+   `firestoreService.ts`'s exact collection paths (`users/{uid}/documents/{id}`, `users/{uid}/chat_messages/{id}`),
+   document shape, and query patterns against the real emulator and the real rules file — what matters for this
+   verification is whether Firestore itself behaves the way the fix assumes, not the exact calling syntax used to
+   reach it.
+
+4. **Ran it** via the standard, documented workflow (this is also the reproduction command for anyone re-running
+   this later):
+   ```
+   npx firebase emulators:exec --project demo-signal87-test --only firestore \
+     "npx tsx tests/phase-0-firestore-emulator.test.ts"
+   ```
+
+**Network note, for reproducing this in a similarly locked-down environment:** this sandbox's egress policy
+explicitly denied `firebase.google.com` and `firebase-public.firebaseio.com` (the emulator's MOTD/remote-config and
+hub-telemetry endpoints — both non-fatal to block). The Firestore emulator JAR itself downloaded successfully from
+a different, allowed host on the first `emulators:start` invocation and was cached locally after that. If the JAR
+download is blocked in a stricter environment, it needs to be fetched once from an unrestricted network and the
+resulting `~/.cache/firebase/emulators/` cache reused.
+
+**Simplification, stated explicitly rather than left implicit:** production uses a *named* Firestore database
+(`ai-studio-signal87ai-d3ac9818-22c6-408f-9f91-6cc2fa426bf0`, per `firebase-applet-config.json` and `firebase.json`),
+not `(default)`. The installed version of `@firebase/rules-unit-testing` (5.0.2) does not expose a `databaseId`
+option on `initializeTestEnvironment`, so this verification runs against the emulator's `(default)` database. This
+is judged not to affect validity: named databases are Firestore Native-mode instances with identical rules
+enforcement, identical per-document size limits, and identical indexing behavior to the default database — naming
+is an isolation mechanism, not a behavioral variant. If that assumption ever needs to be re-checked, the Firestore
+emulator does support multi-database emulation directly (`firebase emulators:start` reads the database ID from
+`firebase.json`'s `firestore` block); the gap is specifically in this test *library's* current API, not the
+emulator.
+
+`firebase-tools` and `@firebase/rules-unit-testing` were installed with `--no-save` and are not added to
+`package.json` — they're emulator/test-only tooling, not a production or build dependency, consistent with how this
+repository already keeps `bun.lock`/`package-lock.json` free of anything not required to build or run the app. A
+follow-up decision (outside this task's scope) is whether to add them as a checked-in `devDependency` so this suite
+can run in CI rather than needing a one-off local install each time — see §4.
+
+### Results
+
+```
+=== Firestore Emulator Verification — Results ===
+
+[PASS] R1: Authenticated user can write to their own users/{uid}/documents subtree (matches saveDocumentToFirestore)
+[PASS] R4: Round-tripped document data matches exactly what was written (matches fetchDocumentsFromFirestore read shape)
+       got: {"title":"Test Doc","fullText":"hello world","userId":"alice-uid"}
+[PASS] R2: A different authenticated user CANNOT read/write alice's documents subtree
+[PASS] R3: An unauthenticated request is denied (defense in depth — saveDocumentToFirestore also short-circuits on !uid client-side)
+[PASS] R5: A write to a legacy/root-level collection outside users/{uid}/** is denied (the "legacy shared collections are closed" rule)
+[PASS] R6: A document whose fullText pushes it past Firestore's 1 MiB limit is rejected by Firestore itself (the exact failure saveDocumentToFirestore now surfaces instead of swallowing)
+       invalid-argument: 3 INVALID_ARGUMENT: The value of property "fullText" is longer than 1048487 bytes.
+[PASS] R7: All 5 documents (4 large fillers + the Rockland Trust statement) round-trip through a real collection write+read with content intact
+       allPresent=true, contentIntact=true, readBackIds=["doc-filler-1","doc-filler-2","doc-filler-3","doc-filler-4","doc-rt-march"]
+[PASS] R8: orderBy("timestampAsc")+limit(50) — the one query pattern the app uses — runs against the emulator with no composite index required
+       orderCorrect=true
+
+TOTAL: 8/8 passed
+```
+
+### Task-specific checks, called out explicitly
+
+- **Composite index requirements:** none exist to check, and none were introduced by this fix. A repo-wide search
+  confirms exactly one `orderBy` in the entire Firestore access layer
+  (`src/lib/firestoreService.ts:101`, `fetchChatMessagesFromFirestore`'s `orderBy('timestampAsc','asc'),
+  limit(50)`), paired with no `where()` clause — a single-field sort never requires a composite index, only a
+  `where` + `orderBy` on different fields does. `firestore.indexes.json` does not exist and does not need to;
+  nothing in `firebase.json` references one. Test R8 confirms this empirically rather than by inference alone: the
+  identical query pattern, run against the real emulator, returns correctly ordered results with no
+  `FAILED_PRECONDITION`/"requires an index" error. The Phase 0 retrieval fix itself (`src/lib/retrieval.ts`) issues
+  no Firestore queries at all — it operates entirely on documents already supplied in the request body — so it
+  introduces no new query surface to check in the first place.
+- **Security rules:** R1–R5 confirm the exact read/write pattern `firestoreService.ts` uses
+  (`users/{uid}/{collection}/{id}`) is permitted for that user and denied for every other case the current
+  `firestore.rules` intends to deny: a different authenticated user, an unauthenticated request, and a legacy
+  root-level collection. The fix did not change `firestore.rules` and did not need to — it changes what
+  `saveDocumentToFirestore` *does* with a rules rejection or size-limit rejection (surface it, per §1.4), not what
+  the rules themselves permit.
+- **Behavior at the volume this fix targets:** R7 writes and reads back the identical five-document fixture set
+  (`tests/fixtures/phase-0-audit/synthetic-documents.ts`) used throughout `tests/phase-0-audit.test.ts` and
+  `tests/phase-0-fixes.test.ts` — four large filler documents plus the Rockland Trust/Verizon statement — through a
+  real Firestore collection, not an in-memory array, and confirms all five persist and read back with their content
+  intact, including the specific Verizon line item. R6 additionally confirms the actual, real failure mode
+  `saveDocumentToFirestore`'s new `{ ok, error }` return exists to catch: Firestore's own emulator rejects an
+  oversized `fullText` with `3 INVALID_ARGUMENT: The value of property "fullText" is longer than 1048487 bytes` —
+  the exact scenario §1.4 was written to address, now confirmed to actually occur exactly as assumed rather than
+  merely asserted from reading Firestore's documented limits.
+
+### Did anything behave differently against the real emulator vs. the mocks used elsewhere?
+
+**No.** `tests/phase-0-audit.test.ts` (21/22) and `tests/phase-0-fixes.test.ts` (11/11) were both re-run with the
+real Firestore emulator live in the background (`firebase emulators:exec --only firestore "npx tsx ... && npx tsx
+..."`) and produced byte-for-byte identical pass/fail results to running them standalone with no emulator present
+at all — including the same single expected baseline failure, A1b. This is not a coincidence to be suspicious of:
+neither suite touches Firestore. `api/chat.ts`, `api/research.ts`, and `api/compare.ts` all take a `documents` array
+directly in the request body; the only Firestore-touching code path in the whole application is
+`src/lib/firestoreService.ts` (upload/save/list), which those two suites never call. That's precisely why the
+emulator work in this section was necessary as a *separate* suite (R1–R8) rather than something the existing mocks
+could have exercised by being pointed at a different backend — the existing suites structurally cannot reach
+Firestore at all, mocked or real.
 
 ---
 
@@ -179,12 +323,18 @@ oversight:
 
 **What still needs attention before this can be called fully closed, in priority order:**
 
-1. **Verify the Firestore silent-write-failure fix (§1.4) against a real or emulated Firestore project.** This is
-   the one change in this pass that could not be exercised by an executed test in this environment. Upload a
-   deliberately oversized synthetic document, confirm the write actually fails as expected, and confirm the
-   document flips to the "Failed" status badge in the UI rather than silently showing "Ready."
+1. ~~Verify the Firestore silent-write-failure fix against a real or emulated Firestore project.~~ **Done — see
+   §2.5.** Verified against a real Firestore emulator (rules, size-limit rejection, and realistic multi-document
+   volume all confirmed, 8/8), not the mocks the rest of this pass necessarily relies on. The one remaining gap
+   from that verification is narrower than "unverified": it was checked against the emulator's `(default)` database
+   rather than production's named database, for the reason given in §2.5 (the installed test library doesn't expose
+   a `databaseId` option) — worth re-confirming with a direct multi-database emulator setup if that assumption is
+   ever in doubt, but not blocking.
 2. Load-test the embeddings integration against realistic document library sizes to confirm the 400-chunk /
    20-second timeout ceiling in `src/lib/retrieval.ts` doesn't become the new bottleneck for large accounts, and
    confirm the actual latency/cost impact of embedding on every request before deciding whether a persistent chunk
    cache (deliberately not built in this pass — see §1.1) is worth its own write-path risk.
-3. Items 5 and 6 above, as their own scoped passes.
+3. Decide whether to add `firebase-tools` and `@firebase/rules-unit-testing` as checked-in `devDependencies` so
+   `tests/phase-0-firestore-emulator.test.ts` can run in CI (per `.github/workflows/signal87-build.yml`) rather than
+   needing a one-off local install each time — see §2.5's closing note.
+4. Items 5 and 6 above, as their own scoped passes.
