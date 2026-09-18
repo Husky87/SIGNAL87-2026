@@ -52,7 +52,7 @@ const RUNTIME_OPTS = {
  * it was given in the prompt context.
  */
 function extractCitationManifest(text: string): { cleanedText: string; entries: Array<{ source?: string }> } {
-  const match = text.match(/```citation_manifest\s*([\s\S]*?)```/i);
+  const match = text.match(/```(?:citation_manifest|json)?\s*(\[[\s\S]*?\])\s*```/i);
   if (!match || match.index === undefined) return { cleanedText: text, entries: [] };
 
   const cleanedText = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
@@ -83,7 +83,7 @@ function resolveCitations(
   const citations: Array<{ docId: string; docTitle: string; snippet?: string }> = [];
 
   for (const entry of entries) {
-    const source = String(entry?.source || '').trim();
+    const source = String(entry?.source || (entry as any)?.context || '').trim();
     const docMatch = source.match(/^DOCUMENT\s+(\d+)$/i);
     const attachedMatch = source.match(/^INGESTED ACTIVE FILE\s+(\d+)$/i);
 
