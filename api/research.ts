@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
 import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
+import { retrieveRelevantChunks } from '../src/lib/retrieval.js';
 
 const DEFAULT_PRIMARY_MODEL = 'gpt-4o';
 const DEFAULT_FALLBACK_MODEL = 'gemini-3.6-flash';
@@ -104,32 +105,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const readableDocs = selectedDocs.filter((doc) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary));
     const unreadableTitles = selectedDocs.filter((doc) => !readableDocs.includes(doc)).map((doc) => doc.title || 'Untitled document');
+    const readableAttached = allAttached.filter((file) => hasUsableText(file.extractedText));
+    const unreadableAttached = allAttached.filter((file) => !readableAttached.includes(file)).map((file) => file.fileName || 'Untitled attachment');
 
-    let remainingChars = MAX_CONTEXT_CHARS;
-    const docSections: string[] = [];
-    for (const [idx, doc] of readableDocs.entries()) {
-      const bodyText = doc.fullText || doc.contentPreview || doc.summary || '';
-      const section = `Doc ${idx + 1}: ${doc.title || 'Untitled document'}\n${trimContext(bodyText, remainingChars)}`;
-      docSections.push(section);
-      remainingChars -= section.length;
-      if (remainingChars <= 0) break;
+    // Retrieval by relevance to researchGoal, not array order — see
+    // docs/phase-0-audit.md §1.2 row 6: the previous `remainingChars` loop
+    // dropped every document/attachment past the ceiling with zero trace.
+    // Falls back to the old blind-concatenation-with-disclosure behavior
+    // whenever retrieval can't run (no OPENAI_API_KEY, embeddings failure).
+    const retrievalSources = [
+      ...readableDocs.map((doc, i) => ({ key: `doc:${i}`, title: doc.title || 'Untitled document', fullText: String(doc.fullText || doc.contentPreview || doc.summary || '') })),
+      ...readableAttached.map((file, i) => ({ key: `att:${i}`, title: file.fileName || 'Untitled attachment', fullText: String(file.extractedText || '') }))
+    ];
+    const retrieval = await retrieveRelevantChunks(researchGoal, retrievalSources, MAX_CONTEXT_CHARS);
+
+    let docContext: string;
+    let attachedFilesContext: string;
+    let usedRetrieval = retrieval.usedRetrieval;
+
+    if (!retrieval.usedRetrieval) {
+      let remainingChars = MAX_CONTEXT_CHARS;
+      const docSections: string[] = [];
+      for (const [idx, doc] of readableDocs.entries()) {
+        const bodyText = doc.fullText || doc.contentPreview || doc.summary || '';
+        const section = `Doc ${idx + 1}: ${doc.title || 'Untitled document'}\n${trimContext(bodyText, remainingChars)}`;
+        docSections.push(section);
+        remainingChars -= section.length;
+        if (remainingChars <= 0) break;
+      }
+      docContext = docSections.join('\n\n');
+      const attachedSections: string[] = [];
+      for (const [idx, file] of readableAttached.entries()) {
+        if (remainingChars <= 0) break;
+        const section = `Attachment ${idx + 1}: ${file.fileName || 'Untitled attachment'} (${file.summaryInfo || ''})\nRaw Content:\n${trimContext(file.extractedText || '', remainingChars)}`;
+        attachedSections.push(section);
+        remainingChars -= section.length;
+      }
+      attachedFilesContext = attachedSections.join('\n\n');
+    } else {
+      const omittedForLength: string[] = [];
+      const excerptNote = (partial: boolean) => partial ? '\n[Additional content in this source exists but was not included in this excerpt.]' : '';
+      const docSections = readableDocs.map((doc, i) => {
+        const key = `doc:${i}`; const body = retrieval.selectedText.get(key);
+        if (body === undefined) { omittedForLength.push(doc.title || 'Untitled document'); return ''; }
+        return `Doc ${i + 1}: ${doc.title || 'Untitled document'}\n${body}${excerptNote(retrieval.partialKeys.has(key))}`;
+      }).filter(Boolean);
+      docContext = docSections.join('\n\n');
+      const attachedSections = readableAttached.map((file, i) => {
+        const key = `att:${i}`; const body = retrieval.selectedText.get(key);
+        if (body === undefined) { omittedForLength.push(file.fileName || 'Untitled attachment'); return ''; }
+        return `Attachment ${i + 1}: ${file.fileName || 'Untitled attachment'} (${file.summaryInfo || ''})\nRaw Content:\n${body}${excerptNote(retrieval.partialKeys.has(key))}`;
+      }).filter(Boolean);
+      attachedFilesContext = attachedSections.join('\n\n');
+      if (omittedForLength.length > 0) {
+        docContext += `\n\nSOURCES OMITTED FOR LENGTH — these exist and are readable but no part of them was relevant enough to this specific research goal to include; never say they do not exist, instead name them and say a narrower goal could surface them:\n${omittedForLength.map((n) => `- ${n}`).join('\n')}`;
+      }
     }
 
-    let docContext = docSections.join('\n\n');
     if (unreadableTitles.length > 0) {
       docContext += `\n\nDOCUMENTS THAT COULD NOT BE READ (no text extracted — do not answer from them, name them and say they must be re-uploaded):\n${unreadableTitles.map((title) => `- ${title}`).join('\n')}`;
     }
-
-    const readableAttached = allAttached.filter((file) => hasUsableText(file.extractedText));
-    const unreadableAttached = allAttached.filter((file) => !readableAttached.includes(file)).map((file) => file.fileName || 'Untitled attachment');
-    const attachedSections: string[] = [];
-    for (const [idx, file] of readableAttached.entries()) {
-      if (remainingChars <= 0) break;
-      const section = `Attachment ${idx + 1}: ${file.fileName || 'Untitled attachment'} (${file.summaryInfo || ''})\nRaw Content:\n${trimContext(file.extractedText || '', remainingChars)}`;
-      attachedSections.push(section);
-      remainingChars -= section.length;
-    }
-    let attachedFilesContext = attachedSections.join('\n\n');
     if (unreadableAttached.length > 0) attachedFilesContext += `\n\nATTACHMENTS THAT COULD NOT BE READ:\n${unreadableAttached.map((name) => `- ${name}`).join('\n')}`;
 
     const systemInstruction = `You are the official Signal87 AI Platform Research Assistant executing multi-document deep research for authenticated user ${userId}.
@@ -157,6 +192,7 @@ For spreadsheet requests, output the required excel_export JSON object at the en
       'Input validated and authenticated',
       `Resolved ${selectedDocs.length} authorized document(s); ${readableDocs.length} contained readable text`,
       `Prepared ${readableAttached.length} readable attachment(s)`,
+      usedRetrieval ? 'Selected the most relevant excerpts by embedding similarity to the research goal' : `Included sources in request order up to the context budget${retrieval.fallbackReason ? ` (relevance ranking unavailable: ${retrieval.fallbackReason})` : ''}`,
       `Generated response with ${aiResult.provider === 'none' ? 'no available provider' : `${aiResult.provider.toUpperCase()} (${aiResult.modelUsed})`}`,
       ...(aiResult.fallbackTriggered ? [`OpenAI failed; Gemini fallback was used: ${aiResult.fallbackReason || 'primary provider failure'}`] : []),
       'Returned response with source-readability and execution metadata'
@@ -181,6 +217,8 @@ For spreadsheet requests, output the required excel_export JSON object at the en
         readableDocumentCount: readableDocs.length,
         readableAttachmentCount: readableAttached.length,
         unreadableSourceCount: unreadableTitles.length + unreadableAttached.length,
+        usedRetrieval,
+        ...(retrieval.fallbackReason ? { retrievalFallbackReason: retrieval.fallbackReason } : {}),
         contextCharsProcessed: prompt.length,
         latencyMs
       }

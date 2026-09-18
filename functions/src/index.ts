@@ -1080,7 +1080,6 @@ export const chat = onRequest(RUNTIME_OPTS, async (req, res) => {
       citations,
       verificationTrace: {
         steps: [
-          'Received query and mapped doc identifiers to repository vector space',
           `Parsed ${documents?.length || 0} document contexts and ${ingestedFilesData?.length || 0} active attachments`,
           `Executed synthesis using ${aiResult.modelUsed} (${aiResult.provider.toUpperCase()})`,
           ...(aiResult.fallbackTriggered ? [`Fallback triggered from Gemini to OpenAI (${aiResult.fallbackReason})`] : []),

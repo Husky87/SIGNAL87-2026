@@ -7,6 +7,7 @@ import { DocumentItem } from '../types';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { fileDataCache } from '../lib/pdfGenerator';
 import { auth, uploadDocumentFile } from '../lib/firebase';
+import { hasUsableText } from '../lib/extractedText';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -169,8 +170,12 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         owner,
         organization,
         status: 'ready',
-        aiIndexed: Boolean(backendData && Object.keys(backendData).length),
-        embeddingsComplete: Boolean(backendData && Object.keys(backendData).length),
+        // Tied to whether usable text was actually extracted — the real
+        // prerequisite for this document to ever be found by retrieval —
+        // rather than to whether the unrelated /api/documents/process
+        // enrichment call happened to return a non-empty response.
+        aiIndexed: hasUsableText(extractedText),
+        embeddingsComplete: hasUsableText(extractedText),
         versionHistory: [{ version: 1, updatedAt: now, updatedBy: owner, changeNote: 'Initial upload' }],
         permissions: 'Organization',
         summary: aiSummary || backendData.summary || (parsedResult ? `Ready — ${parsedResult.summaryInfo}` : 'Document uploaded and ready to search.'),
@@ -243,7 +248,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     <div className="fixed inset-0 bg-[#131C25]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="bg-[#FFFFFF] rounded-2xl max-w-xl w-full border border-[#D3D9DE] text-[#131C25] overflow-hidden flex flex-col max-h-[90vh]">
         <div className="px-5 py-4 border-b border-[#D3D9DE] flex items-center justify-between bg-[#F8F9FA]">
-          <div className="flex items-center gap-2.5"><div className="p-2 bg-[#131C25] text-white rounded-xl"><Upload size={18} className="text-[#F0B429]" /></div><div><h2 className="text-base font-extrabold text-[#131C25]">{uploadingFiles.length > 0 ? 'Document Ingestion' : 'Upload Documents'}</h2><span className="font-mono text-[10px] font-bold text-[#6E7C89] uppercase tracking-wider block">{uploadingFiles.length > 0 ? `${completedCount} of ${uploadingFiles.length} files processed` : 'AI Vector Indexing & Text Extraction'}</span></div></div>
+          <div className="flex items-center gap-2.5"><div className="p-2 bg-[#131C25] text-white rounded-xl"><Upload size={18} className="text-[#F0B429]" /></div><div><h2 className="text-base font-extrabold text-[#131C25]">{uploadingFiles.length > 0 ? 'Document Ingestion' : 'Upload Documents'}</h2><span className="font-mono text-[10px] font-bold text-[#6E7C89] uppercase tracking-wider block">{uploadingFiles.length > 0 ? `${completedCount} of ${uploadingFiles.length} files processed` : 'AI-Powered Semantic Search & Text Extraction'}</span></div></div>
           <button onClick={handleCloseModal} className="p-1.5 text-[#3D4B58] hover:text-[#131C25] hover:bg-[#EDEFF2] rounded-lg cursor-pointer transition-colors"><X size={18} /></button>
         </div>
         <div className="p-5 overflow-y-auto space-y-5 flex-1">
@@ -251,7 +256,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             <input ref={fileInputRef} type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp" onChange={(e) => { if (e.target.files?.length) handleFilesSelected((Array.from(e.target.files) as File[]).filter((f) => f.size > 0)); }} />
             <div className="w-12 h-12 rounded-full bg-[#131C25] text-[#F0B429] flex items-center justify-center"><Cloud size={24} /></div>
             <div className="space-y-1"><p className="text-sm font-extrabold text-[#131C25]">Drag and drop files here, or <span className="text-[#0F6E66] underline">browse files</span></p><p className="text-xs text-[#6E7C89] font-medium">Supports PDF, DOC, DOCX, XLS, XLSX, CSV, PPTX, TXT, and Images up to 50MB</p></div>
-            <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#0F6E66] font-bold"><ShieldCheck size={14} /><span>We read and index every file automatically</span></div>
+            <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#0F6E66] font-bold"><ShieldCheck size={14} /><span>We read and extract every file automatically</span></div>
           </div>
           {uploadingFiles.length > 0 && <div className="p-4 bg-[#F8F9FA] border border-[#D3D9DE] rounded-xl space-y-3"><div className="flex items-center justify-between"><div className="flex items-center gap-2">{isProcessing ? <Loader2 size={16} className="text-[#0F6E66] animate-spin" /> : <CheckCircle2 size={16} className="text-[#0F6E66]" />}<span className="font-bold text-xs text-[#131C25]">{isProcessing ? 'Processing & Indexing Files...' : 'Upload Complete'}</span></div><span className="font-mono text-xs font-extrabold text-[#0F6E66]">{totalProgress}%</span></div><div className="w-full h-3 bg-[#D3D9DE] rounded-full overflow-hidden p-0.5 relative"><div className="h-full bg-gradient-to-r from-[#0F6E66] to-[#F0B429] rounded-full transition-all duration-300" style={{ width: `${totalProgress}%` }} /></div><p className="text-[11px] font-mono text-[#6E7C89] flex items-center justify-between"><span>{isProcessing ? 'Reading your documents...' : 'All documents ready to search'}</span><span className="font-bold text-[#131C25]">{completedCount}/{uploadingFiles.length}</span></p></div>}
           {uploadingFiles.length > 0 && <div className="space-y-2.5"><h4 className="text-xs font-bold text-[#6E7C89] uppercase font-mono">Uploaded Files Queue ({uploadingFiles.length})</h4><div className="space-y-2 max-h-56 overflow-y-auto pr-1">{uploadingFiles.map((file) => <div key={file.id} className="p-3 bg-[#FFFFFF] border border-[#D3D9DE] rounded-xl space-y-2"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2 min-w-0"><FileIcon size={16} className="text-[#131C25] flex-shrink-0" /><div className="min-w-0"><h5 className="font-bold text-xs text-[#131C25] truncate">{file.name}</h5><p className="font-mono text-[10px] text-[#6E7C89]">{(file.sizeBytes / (1024 * 1024)).toFixed(2)} MB</p></div></div><div>{file.status === 'ready' ? <span className="font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E8F2F0] text-[#0F6E66] uppercase flex items-center gap-1"><Check size={11} /> Ready</span> : file.status === 'error' ? <span className="font-mono text-[10px] font-bold text-red-600 uppercase flex items-center gap-1"><AlertCircle size={12} /> Error</span> : <span className="font-mono text-[10px] text-[#6E7C89] uppercase">{file.progress}%</span>}</div></div><div className="w-full h-1.5 bg-[#EDEFF2] rounded-full overflow-hidden"><div className="h-full bg-[#0F6E66] transition-all duration-300" style={{ width: `${file.progress}%` }} /></div><p className="text-[10px] text-[#6E7C89] font-mono">{file.stepMessage}</p></div>)}</div></div>}

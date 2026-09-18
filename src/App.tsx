@@ -34,7 +34,7 @@ import {
   INITIAL_ORG_STATS
 } from './data/mockData';
 
-import { DocumentItem, FolderItem, ChatMessage, SavedItem, SavedAnswer } from './types';
+import { DocumentItem, DocumentStatus, FolderItem, ChatMessage, SavedItem, SavedAnswer } from './types';
 import {
   fetchDocumentsFromFirestore,
   saveDocumentToFirestore,
@@ -599,6 +599,22 @@ export default function App() {
   );
 
   // Handlers
+  // saveDocumentToFirestore rewrites the whole document, fullText included,
+  // on every call — a rename or star toggle carries the same
+  // over-the-1-MiB-limit persistence risk as the original upload (see
+  // docs/phase-0-audit.md §1.2 row 4). A failed write used to be silently
+  // swallowed, leaving the UI's optimistic state disagreeing with the
+  // database with no visible sign of it. Route every call through here so a
+  // failure flips the document to the existing status='error' ("Failed")
+  // badge instead of disappearing quietly.
+  const persistDocument = async (doc: DocumentItem) => {
+    const result = await saveDocumentToFirestore(doc);
+    if (!result.ok) {
+      console.error(`Failed to save document "${doc.title}" (${doc.id}):`, result.error);
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, status: 'error' as DocumentStatus } : d)));
+    }
+  };
+
   const handleUploadSuccess = (newDoc: DocumentItem, parsedFile?: any) => {
     const withText: DocumentItem = {
       ...newDoc,
@@ -607,7 +623,7 @@ export default function App() {
       userId: currentUser?.uid
     };
     setDocuments((prev) => [withText, ...prev.filter((d) => d.id !== withText.id)]);
-    saveDocumentToFirestore(withText);
+    void persistDocument(withText);
     setStats((prev) => ({
       ...prev,
       totalDocs: prev.totalDocs + 1,
@@ -622,7 +638,7 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, trashed: true, trashedAt: new Date().toISOString() } : d))
     );
     const doc = documents.find((d) => d.id === docId);
-    if (doc) saveDocumentToFirestore({ ...doc, trashed: true, trashedAt: new Date().toISOString() });
+    if (doc) void persistDocument({ ...doc, trashed: true, trashedAt: new Date().toISOString() });
   };
 
   const handleRestoreDocument = (docId: string) => {
@@ -630,7 +646,7 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, trashed: false, trashedAt: undefined } : d))
     );
     const doc = documents.find((d) => d.id === docId);
-    if (doc) saveDocumentToFirestore({ ...doc, trashed: false, trashedAt: undefined });
+    if (doc) void persistDocument({ ...doc, trashed: false, trashedAt: undefined });
   };
 
   const handlePermanentlyDeleteDocument = (docId: string) => {
@@ -649,7 +665,7 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, starred: !d.starred } : d))
     );
     const doc = documents.find((d) => d.id === docId);
-    if (doc) saveDocumentToFirestore({ ...doc, starred: !doc.starred });
+    if (doc) void persistDocument({ ...doc, starred: !doc.starred });
   };
 
   const handleRenameDocument = (docId: string, newTitle: string) => {
@@ -657,7 +673,7 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, title: newTitle } : d))
     );
     const doc = documents.find((d) => d.id === docId);
-    if (doc) saveDocumentToFirestore({ ...doc, title: newTitle });
+    if (doc) void persistDocument({ ...doc, title: newTitle });
   };
 
   const handleChangeDocumentPermissions = (docId: string, permissions: DocumentItem['permissions']) => {
@@ -665,7 +681,7 @@ export default function App() {
       prev.map((d) => (d.id === docId ? { ...d, permissions } : d))
     );
     const doc = documents.find((d) => d.id === docId);
-    if (doc) saveDocumentToFirestore({ ...doc, permissions });
+    if (doc) void persistDocument({ ...doc, permissions });
   };
 
   // Carry the library's selection into the compare view — it holds its own

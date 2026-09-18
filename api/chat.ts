@@ -3,6 +3,7 @@ import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
 import { buildChatMessages } from '../src/lib/chatPayload.js';
 import { requireFirebaseUser } from '../src/lib/firebaseAuth.js';
+import { retrieveRelevantChunks } from '../src/lib/retrieval.js';
 
 const MAX_DOC_CHARS = 28000;
 const MAX_TOTAL_CONTEXT_CHARS = 90000;
@@ -36,6 +37,47 @@ function buildBoundedContext(readableDocs: any[], readableAttached: any[], unrea
   if (omittedForLength.length) sections.push(`DOCUMENTS OMITTED FOR LENGTH — these exist and are readable but could not fit in this request's context budget, so no content from them is available here; never say they do not exist or contain no information, instead tell the user to ask a narrower question that attaches fewer documents so these can be included:\n${omittedForLength.map((n) => `- ${n}`).join('\n')}`);
   return sections.join('\n\n');
 }
+
+/**
+ * Selects context by relevance to the question (chunk + embed + rank) instead
+ * of by array order. Falls back to buildBoundedContext's blind concatenation
+ * whenever retrieval can't run (no OPENAI_API_KEY, embeddings call failure) —
+ * never worse than the previous behavior, only better when it can run.
+ * See docs/phase-0-audit.md test A1b: this is what turns it from a "document
+ * silently doesn't reach the model" failure into an actual answer.
+ */
+async function buildContext(userPrompt: string, readableDocs: any[], readableAttached: any[], unreadableDocs: any[], unreadableAttached: any[]): Promise<{ context: string; usedRetrieval: boolean; retrievalFallbackReason?: string }> {
+  const sources = [
+    ...readableDocs.map((doc: any, i: number) => ({ key: `doc:${i}`, title: doc.title, fullText: String(doc.fullText || doc.contentPreview || doc.summary || '') })),
+    ...readableAttached.map((file: any, i: number) => ({ key: `att:${i}`, title: file.fileName, fullText: String(file.extractedText || '') }))
+  ];
+  const outcome = await retrieveRelevantChunks(userPrompt, sources, MAX_TOTAL_CONTEXT_CHARS);
+  if (!outcome.usedRetrieval) {
+    return { context: buildBoundedContext(readableDocs, readableAttached, unreadableDocs, unreadableAttached), usedRetrieval: false, retrievalFallbackReason: outcome.fallbackReason };
+  }
+
+  const sections: string[] = []; const omittedForLength: string[] = [];
+  const excerptNote = (partial: boolean) => partial ? '\n[Additional content in this source exists but was not included in this excerpt — ask a narrower question naming it directly to see more.]' : '';
+
+  const docSections = readableDocs.map((doc: any, i: number) => {
+    const key = `doc:${i}`; const body = outcome.selectedText.get(key);
+    if (body === undefined) { omittedForLength.push(doc.title); return ''; }
+    return `--- DOCUMENT ${i + 1}: ${doc.title} ---\n${body}${excerptNote(outcome.partialKeys.has(key))}\n--- END DOCUMENT ${i + 1} ---`;
+  }).filter(Boolean);
+  if (docSections.length) sections.push(`REPOSITORY DOCUMENTS (excerpts selected for relevance to this question):\n${docSections.join('\n\n')}`);
+
+  const attachedSections = readableAttached.map((file: any, i: number) => {
+    const key = `att:${i}`; const body = outcome.selectedText.get(key);
+    if (body === undefined) { omittedForLength.push(file.fileName); return ''; }
+    return `=== INGESTED ACTIVE FILE ${i + 1}: ${file.fileName} ===\n${body}${excerptNote(outcome.partialKeys.has(key))}\n=== END FILE ===`;
+  }).filter(Boolean);
+  if (attachedSections.length) sections.push(`ACTIVE ATTACHED FILES (excerpts selected for relevance to this question):\n${attachedSections.join('\n\n')}`);
+
+  if (unreadableDocs.length || unreadableAttached.length) { const names = [...unreadableDocs.map((d: any) => d.title), ...unreadableAttached.map((f: any) => f.fileName)]; sections.push(`UNREADABLE FILES — their contents are unavailable; do not answer questions about them:\n${names.map((n) => `- ${n}`).join('\n')}`); }
+  if (omittedForLength.length) sections.push(`DOCUMENTS OMITTED FOR LENGTH — these exist and are readable but no part of them was relevant enough to this specific question to include; never say they do not exist, instead tell the user to ask about them directly by name:\n${omittedForLength.map((n) => `- ${n}`).join('\n')}`);
+
+  return { context: sections.join('\n\n'), usedRetrieval: true };
+}
 const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are the official Signal87 AI Platform Assistant: precise, direct, evidence-grounded, and useful.\n\nDOCUMENT GROUNDING IS MANDATORY.\n- Every factual claim about supplied documents must come only from the supplied extracted text.\n- If the supplied documents do not establish an answer, say so. Never invent dates, amounts, parties, clauses, page numbers, confidence scores, or citations.\n- Distinguish document facts from reasonable inferences.\n- For quantitative questions, show the figures and calculations used.\n- For comparisons, identify contradictions instead of silently resolving them.\n- Match answer length to the question. A simple lookup should be concise.\n- You may answer general platform questions without document evidence.\n\nCITATIONS.\n- When using document evidence, place [1], [2], etc. directly after the relevant claim.\n- At the very end, on its own line, output a fenced code block labeled exactly \`\`\`citation_manifest containing a JSON array that maps every bracket number you used to the exact document label it came from — the literal "DOCUMENT N" or "INGESTED ACTIVE FILE N" label given to you in the context above, never a made-up or paraphrased title. Example: \`\`\`citation_manifest\n[{"marker": 1, "source": "DOCUMENT 2"}, {"marker": 2, "source": "INGESTED ACTIVE FILE 1"}]\n\`\`\`.\n- If no document evidence was used, output an empty citation_manifest array: \`\`\`citation_manifest\n[]\n\`\`\`.\n- Never cite a document that was not actually used.\n\nNever output internal IDs, database keys, or system metadata.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -50,8 +92,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     mark(`request received; model=${model}`);
     const allDocs: any[] = Array.isArray(documents) ? documents : []; const readableDocs = allDocs.filter((doc: any) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary)); const unreadableDocs = allDocs.filter((doc: any) => !readableDocs.includes(doc));
     const allAttached: any[] = Array.isArray(ingestedFilesData) ? ingestedFilesData : []; const readableAttached = allAttached.filter((file: any) => hasUsableText(file.extractedText)); const unreadableAttached = allAttached.filter((file: any) => !readableAttached.includes(file));
-    const context = buildBoundedContext(readableDocs, readableAttached, unreadableDocs, unreadableAttached) || 'NO DOCUMENTS ARE AVAILABLE. If the question asks about document contents, say that no document is attached and ask the user to attach it. Do not answer from prior knowledge.';
     const userPrompt = String(prompt || messages[messages.length - 1]?.content || '');
+    const { context: builtContext, usedRetrieval, retrievalFallbackReason } = await buildContext(userPrompt, readableDocs, readableAttached, unreadableDocs, unreadableAttached);
+    const context = builtContext || 'NO DOCUMENTS ARE AVAILABLE. If the question asks about document contents, say that no document is attached and ask the user to attach it. Do not answer from prior knowledge.';
     const boundedHistory = Array.isArray(messages) ? messages.slice(-MAX_HISTORY_MESSAGES).map((message: any) => ({ role: message.role, content: compactText(message.content, Math.floor(MAX_HISTORY_CHARS / MAX_HISTORY_MESSAGES)) })) : [];
     const groundedPrompt = `${context}\n\nUSER QUESTION:\n${userPrompt}`; const modelMessages = buildChatMessages({ systemInstruction: SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION, messages: boundedHistory, groundedPrompt }); mark('context prepared');
     const imageData = (Array.isArray(attachedFiles) ? attachedFiles : []).filter((file: any) => typeof file.dataUrl === 'string' && file.dataUrl.startsWith('data:image/')).slice(0, 5);
@@ -84,6 +127,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const totalMs = mark('response complete');
     res.setHeader('X-Signal87-Total-Ms', String(totalMs)); res.setHeader('X-Signal87-Provider-Ms', String(providerMs));
-    return res.json({ text: citationResult.cleanedText || aiResult.text, citations, provider: aiResult.provider, modelUsed: aiResult.modelUsed, fallbackTriggered: aiResult.fallbackTriggered, fallbackReason: aiResult.fallbackReason, latencyMs: totalMs, verificationTrace: { provider: aiResult.provider, model: aiResult.modelUsed, groundedDocuments: readableDocs.length, groundedAttachments: readableAttached.length, unreadableDocuments: unreadableDocs.length + unreadableAttached.length, latencyMs: totalMs } });
+    return res.json({ text: citationResult.cleanedText || aiResult.text, citations, provider: aiResult.provider, modelUsed: aiResult.modelUsed, fallbackTriggered: aiResult.fallbackTriggered, fallbackReason: aiResult.fallbackReason, latencyMs: totalMs, verificationTrace: { provider: aiResult.provider, model: aiResult.modelUsed, groundedDocuments: readableDocs.length, groundedAttachments: readableAttached.length, unreadableDocuments: unreadableDocs.length + unreadableAttached.length, usedRetrieval, ...(retrievalFallbackReason ? { retrievalFallbackReason } : {}), latencyMs: totalMs } });
   } catch (error: any) { console.error('Error in /api/chat:', error); return res.status(500).json({ error: 'AI request failed', details: error?.message || String(error) }); }
 }

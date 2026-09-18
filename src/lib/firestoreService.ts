@@ -59,10 +59,23 @@ export async function fetchDocumentsFromFirestore(): Promise<DocumentItem[]> {
     return docsList;
   } catch(error){ handleFirestoreError(error,OperationType.LIST,userPath(DOCS_COLLECTION)); return []; }
 }
-export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<string> {
+export interface SaveDocumentResult { id: string; ok: boolean; error?: string }
+
+/**
+ * Writes the full document, including fullText, on every call — a rename,
+ * star, or trash toggle rewrites the same document-size risk as the
+ * original upload. Previously a failure here (most commonly a document
+ * whose fullText pushes the write past Firestore's 1 MiB per-document
+ * limit) was only console.warn'd — the caller, and the user, had no way to
+ * know the change (or the document itself) never actually persisted. See
+ * docs/phase-0-audit.md §1.2 row 4. Callers now get an explicit ok/error so
+ * they can revert optimistic UI state and surface it via the existing
+ * status='error' badge instead of silently disagreeing with the database.
+ */
+export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<SaveDocumentResult> {
   const docPath=userPath(DOCS_COLLECTION,docItem.id);
   const uid=currentUid();
-  if(!uid) return docItem.id;
+  if(!uid) return { id: docItem.id, ok: false, error: 'Not signed in' };
   try {
     await setDoc(userDocRef(DOCS_COLLECTION,docItem.id),{
       title:docItem.title,type:docItem.type,sizeBytes:docItem.sizeBytes,uploadDate:docItem.uploadDate,tags:docItem.tags||[],
@@ -71,8 +84,8 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
       fileUrl:docItem.fileUrl&&!docItem.fileUrl.startsWith('blob:')?docItem.fileUrl:'',starred:docItem.starred||false,trashed:docItem.trashed||false,
       trashedAt:docItem.trashedAt||null,folderId:docItem.folderId||null,permissions:docItem.permissions||'Private',projectIds:docItem.projectIds||[],fullText:docItem.fullText||'',userId:uid
     },{merge:true});
-    return docItem.id;
-  } catch(error){ handleFirestoreError(error,OperationType.WRITE,docPath); return docItem.id; }
+    return { id: docItem.id, ok: true };
+  } catch(error){ handleFirestoreError(error,OperationType.WRITE,docPath); return { id: docItem.id, ok: false, error: error instanceof Error ? error.message : String(error) }; }
 }
 export async function deleteDocumentFromFirestore(docId:string):Promise<void>{
   const docPath=userPath(DOCS_COLLECTION,docId); if(!currentUid()) return;
