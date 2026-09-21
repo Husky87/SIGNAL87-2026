@@ -4,7 +4,6 @@ import {
   Search,
   X,
   Upload,
-  Folder,
   FolderOpen,
   FolderPlus,
   MoreVertical,
@@ -35,6 +34,7 @@ import { DocumentItem, FolderItem } from '../types';
 import { useScrollMemory } from '../lib/useScrollMemory';
 import { DocumentGridSkeleton, DocumentListSkeleton, LoadingAnnouncement } from './DocumentSkeleton';
 import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
+import { FolderTabIcon } from './FolderTabIcon';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
 
@@ -925,7 +925,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               onClick={(e) => { e.stopPropagation(); if (variant === 'context') setContextMoveOpen((v) => !v); }}
               className="w-full px-3 py-2 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer"
             >
-              <span className="flex items-center gap-2"><Folder size={13} /> Move to folder</span>
+              <span className="flex items-center gap-2"><FolderTabIcon size={13} /> Move to folder</span>
               <ChevronRight size={13} />
             </button>
             {(variant === 'dropdown' || contextMoveOpen) && (
@@ -1382,7 +1382,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     }}
                     className="px-2.5 py-1.5 text-[12.5px] text-[var(--ink)] hover:bg-[var(--raised)] rounded-full cursor-pointer flex items-center gap-1.5"
                   >
-                    <Folder size={14} /> Move <ChevronDown size={12} />
+                    <FolderTabIcon size={14} /> Move <ChevronDown size={12} />
                   </button>
                   {selectionMoveOpen && selectionMoveMenuPos && createPortal(
                     <>
@@ -1480,7 +1480,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <Folder size={18} className="flex-shrink-0 text-[var(--muted)]" />
+                        <FolderTabIcon size={18} className="flex-shrink-0 text-[var(--muted)]" />
                         {isEditing ? (
                           <input
                             type="text"
