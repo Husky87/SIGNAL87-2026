@@ -37,6 +37,25 @@ export const rocklandTrustMarch = rocklandTrustStatement('doc-rt-march', 'March 
 export const rocklandTrustApril = rocklandTrustStatement('doc-rt-april', 'April 2026', '184.22', '04/14');
 export const rocklandTrustMay = rocklandTrustStatement('doc-rt-may', 'May 2026', '191.87', '05/14');
 
+/**
+ * A second, independently-readable source reporting a DIFFERENT amount for
+ * the same 03/14 Verizon payment already recorded in rocklandTrustMarch
+ * ($184.22 vs $204.50). Both documents are perfectly readable — this is not
+ * an unreadable-file case — they simply disagree. Exists to give a genuine,
+ * specific, document-grounded contradiction to test against, distinct from a
+ * generic invented caveat.
+ */
+export const rocklandTrustMarchDisputed = {
+  id: 'doc-rt-march-bankcopy',
+  title: 'Rockland Trust Statement - March 2026 (Bank Copy).pdf',
+  fullText:
+    `[Page 1]\nRockland Trust Company - Business Checking Statement - March 2026 (bank-provided copy)\n` +
+    `Account holder: Mount Horeb Lodging LLC\n\n` +
+    `TRANSACTION HISTORY\n` +
+    `03/14  VERIZON WIRELESS PAYMENT              -$204.50\n` +
+    `[Page 2]\nEnding balance carried forward to next statement.\n`
+};
+
 /** A small, single-fact control document — should always be answerable. */
 export const mtHorebLease = {
   id: 'doc-lease',

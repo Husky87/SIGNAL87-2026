@@ -338,3 +338,171 @@ oversight:
    `tests/phase-0-firestore-emulator.test.ts` can run in CI (per `.github/workflows/signal87-build.yml`) rather than
    needing a one-off local install each time — see §2.5's closing note.
 4. Items 5 and 6 above, as their own scoped passes.
+
+---
+
+## 5. Structured Ask response format, citation-leak hardening, and an honest "Documents reviewed" count
+
+Follow-up pass, scoped to `api/chat.ts` only (the "Ask" pathway — `src/components/ResearchAssistantView.tsx` — per
+the request that prompted it; `api/research.ts` still returns unstructured prose and would need the same treatment
+as its own scoped follow-up, consistent with how items 5/6 above were deliberately deferred rather than bundled).
+
+**Context this pass depends on, and confirmed still true:** real retrieval (§1.1 above) already existed before this
+pass started. That mattered directly — the request that started this pass explicitly said to stop and report back,
+rather than fake a plausible-looking number, if the current implementation was still "concatenate-until-truncated"
+instead of a real chunk/retrieve mechanism. It is not: `buildContext` (`api/chat.ts`) already calls
+`retrieveRelevantChunks` and only falls back to blind concatenation when retrieval itself can't run. That existing
+mechanism is what makes an honest per-request document count possible at all.
+
+### 5.1. What was fixed
+
+1. **Response structure.** `SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION` gained a `RESPONSE STRUCTURE` block: a one-sentence
+   lead with its citation marker; a "Key facts" section, explicitly conditional on there being two or more distinct
+   facts worth listing separately (never forced onto a single-fact answer just to fill the section); one further
+   section with a topic-specific header (never a generic "Analysis"/"Summary") for facts that benefit from
+   synthesis; and the two closing lines below. A genuinely general question (the context is exactly the existing
+   `NO DOCUMENTS ARE AVAILABLE...` string) skips all of this and answers directly, unchanged from before.
+2. **An honest `Documents reviewed: N` line, computed server-side, never model-generated.** `buildBoundedContext`
+   and `buildContext`'s retrieval branch (`api/chat.ts`) already computed, and then discarded, exactly which
+   documents/attachments actually contributed text to the prompt versus were omitted for length or never selected
+   by retrieval. That count is now returned (`documentsReviewed`) instead of thrown away. The model is instructed to
+   emit a literal placeholder — `Documents reviewed: {{DOCUMENTS_REVIEWED}}` — and is told explicitly not to count
+   or invent a number itself; a new `applyDocumentsReviewed` helper substitutes the real count in after the model
+   responds. If a non-compliant model drops the placeholder entirely, the honest count is still appended rather than
+   silently lost (FIX-19). If no documents were supplied at all, nothing is added (FIX-18) — a general question
+   never gets a spurious "Documents reviewed: 0" line.
+3. **`Potential issue identified` stays entirely model-owned, with a stronger anti-fabrication instruction.** The
+   server has no code path that adds, removes, or alters this line — it is either present in the model's own text or
+   it isn't (FIX-17). What changed is the instruction: it must be a real, specific, document-grounded finding
+   (missing signature/authorization, undated document, contradictory figures, an expired or missing term) and a
+   generic caveat ("consult a professional", "documents may be incomplete") is called out by name as exactly the
+   kind of fabrication already forbidden elsewhere in the prompt, not a softer, separate rule.
+4. **Citation-leak hardening, defense in depth.** The existing fenced-block extraction (`extractCitationManifest`)
+   already handled the documented json-tagged/`"context"`-keyed variant (baseline test C3, still passing). This
+   pass adds two more layers so the same class of bug can't recur in a different shape: a manifest-shaped JSON
+   *array* found anywhere in the text even without a code fence, and — the literal shape reported in the request
+   that started this pass, `{"marker":1,"context":"DOCUMENT 14"}` — a single bare manifest *object* with no array
+   wrapper and no fence at all. Both are now stripped from the visible answer and still resolved into real citations
+   (FIX-14, FIX-15) rather than leaking as raw JSON.
+5. **The `[1]`/`[2]` inline citation markers were already real, clickable references**, not new work this pass:
+   `src/components/ActionRouterComponents.tsx`'s `parseInlineStyles` already turns them into buttons that open the
+   cited document (`onSelectDocument`), and `tests/chat-response-render.test.tsx` already regression-guards that. No
+   page-number claim is made or should be — `Citation.paragraphRef` (`src/types.ts`) is explicitly never invented
+   (per the false-claim fix in §1.1 item 3 above, which replaced "exact page and paragraph" with "source document"
+   sitewide), so a `[Source]` reference is a real link to the correct *document*, not a fabricated page/paragraph.
+
+### 5.2. Before / after, across four question types
+
+Reconstructed from the old system instruction's actual, unchanged-until-this-pass behavior (single unstructured
+paragraph, inline `[N]` markers, no `Documents reviewed` field existed at all) against this pass's new instruction,
+verified live via FIX-11/FIX-12/FIX-16/FIX-17 (§5.3) rather than asserted from the prompt text alone.
+
+**1. Single-fact lookup** ("What is the rent?", one document):
+```
+Before:  The monthly rent is $4,200.00, effective January 1, 2025 [1].
+
+After:   The rent is $4,200.00 [1].
+
+         Documents reviewed: 1
+```
+No forced "Key facts" section repeating the one fact already in the lead sentence (FIX-10b/FIX-17).
+
+**2. Multi-document synthesis** ("Summarize the Verizon payments across these statements.", three documents):
+```
+Before:  Verizon was paid $184.22 on 03/14 per the March statement [1], and other
+         Rockland Trust records were also reviewed [2][3].
+
+After:   Verizon was paid across the reviewed statements [1][2].
+
+         Documents reviewed: 3
+```
+(FIX-12; the third, unrelated document was genuinely considered by retrieval but not cited, which is correct — it
+contributes to the honest count without being forced into a citation it doesn't support.)
+
+**3. A genuine, document-grounded issue** ("Compare the Verizon payment across statements.", two documents that
+actually disagree):
+```
+Before:  The March Verizon payment was $184.22 [1].
+         (the second document's contradicting figure either went uncited or was
+         silently reconciled — the old prompt had no instruction to surface a
+         contradiction as a named issue)
+
+After:   The March Verizon payment is reported as $184.22 in one statement and
+         $204.50 in another [1][2].
+
+         Key facts
+         - March Verizon payment (Statement A): $184.22 [1]
+         - March Verizon payment (Bank Copy): $204.50 [2]
+
+         Documents reviewed: 2
+         Potential issue identified: the two statements report different
+         amounts for the same 03/14 Verizon payment [1][2].
+```
+(FIX-16a/b/c — both citation markers resolve to the two distinct real source documents, not a guess.)
+
+**4. A clean document with no genuine issue** ("What is the rent?", the same single document as case 1):
+```
+Before:  The monthly rent is $4,200.00, effective January 1, 2025 [1].
+
+After:   The rent is $4,200.00 [1].
+
+         Documents reviewed: 1
+```
+No `Potential issue identified` line — omitted entirely, not filled with a placeholder caveat (FIX-17). This is the
+same input as case 1, included separately here specifically to make the point: the structure this pass adds does
+not, by itself, invent a issue where none exists — case 3 and case 4 are the same document count and citation shape,
+differing only in whether the underlying documents actually disagree.
+
+### 5.3. New verification suite results (`tests/phase-0-fixes.test.ts`, FIX-10 through FIX-19)
+
+```
+[PASS] FIX-10a: system instruction leads with a one-sentence-summary-first structure
+[PASS] FIX-10b: "Key facts" is instructed as conditional on 2+ distinct facts, not forced on every answer
+[PASS] FIX-10c: a topic-specific narrative section is instructed as conditional, with a real (non-generic) header example
+[PASS] FIX-10d: the model is told to use the server-substituted documents-reviewed placeholder verbatim, never to count or invent a number itself
+[PASS] FIX-10e: a generic/invented "Potential issue" caveat is explicitly forbidden, not just discouraged
+[PASS] FIX-11:  a single-document answer reports "Documents reviewed: 1" — the stub only ever emitted the literal placeholder, so the number can only have come from the server
+[PASS] FIX-12:  a 3-document synthesis question reports "Documents reviewed: 3"
+[PASS] FIX-13:  "Documents reviewed" reports the real, budget-limited inclusion count (4 of 6 supplied), never the naive supplied-array length
+[PASS] FIX-14:  an UNFENCED manifest-shaped JSON leak (the exact reported {"marker":1,"context":"DOCUMENT 14"} bug shape) is stripped and resolved
+[PASS] FIX-15:  a fenced manifest with no language tag at all still strips and resolves
+[PASS] FIX-16a: a genuine, model-identified issue grounded in two real documents passes through unaltered
+[PASS] FIX-16b: the Documents reviewed placeholder is still correctly substituted alongside a Potential issue line
+[PASS] FIX-16c: both citation markers in a multi-source claim resolve to two distinct real documents
+[PASS] FIX-17:  a clean, unambiguous document never gets a "Potential issue" line added server-side
+[PASS] FIX-18:  a general platform question with zero documents supplied never gets a "Documents reviewed" line
+[PASS] FIX-19:  a non-compliant model that drops the placeholder still gets the honest count appended, never silently lost
+
+TOTAL (full suite, FIX-1 through FIX-19): 27/27 passed
+```
+
+The frozen baseline (`tests/phase-0-audit.test.ts`) was re-run and is still 21/22, byte-for-byte identical to every
+prior re-run recorded in §3 — this pass changed prompt content and citation-extraction robustness, not the
+retrieval/omission mechanics §3 already proved unchanged.
+
+### 5.4. What backs each field, stated plainly
+
+- **`Documents reviewed: N`** — computed in `api/chat.ts` from `buildContext`'s real return value (`documentsReviewed`),
+  itself derived from which documents/attachments actually produced a non-empty section in the prompt that was sent
+  to the model (`docSections`/`attachedSections` in the retrieval branch; `docs`/`files` in the legacy
+  `buildBoundedContext` fallback). Never the model's own count, never the raw `documents[]`/`ingestedFilesData[]`
+  array length. Substituted into the model's placeholder after the fact, or appended if the model dropped it.
+- **`Potential issue identified`** — entirely model-generated, never added or altered by the server. Its honesty
+  depends on prompt compliance (the anti-fabrication instruction in §5.1 item 3), which this pass can verify the
+  instruction text of (FIX-10e) and verify the server never fabricates in its absence (FIX-17), but — same
+  limitation already true of every other qualitative instruction in this prompt (grounding, no-invented-citations,
+  etc.) — cannot verify a real model's actual judgment without a live provider call, which this environment does not
+  have. This is a stated limitation, not a gap papered over.
+
+### 5.5. What this pass did not do, and why
+
+- **`api/research.ts` was not given the same structured-format treatment.** The request that started this pass
+  scoped it to "Ask" (`api/chat.ts`); `api/research.ts` already has its own, different reasoning-step/verification
+  format (§1.1 item 2 above) and changing it was out of scope here. Worth its own pass if the same structure is
+  wanted there.
+- **No live-model verification.** Every check in §5.3 verifies what the server does with a given model response
+  (correctly built prompt, correctly substituted count, correctly stripped/resolved citations, never a fabricated
+  field) — the same approach already used throughout this file — not whether a real OpenAI/Gemini call reliably
+  produces the requested structure across arbitrary questions. No live provider credentials or network access to
+  api.openai.com/generativelanguage.googleapis.com were available in this environment. This should be spot-checked
+  against a real model before being called fully verified.

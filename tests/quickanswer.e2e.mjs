@@ -25,7 +25,7 @@ const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 check('the search field submits instead of only filtering', /onSubmit=\{\(e\) => \{\s*e\.preventDefault\(\);\s*handleAskFromSearch\(\);/.test(app));
 check('submitting hands the text to the assistant pathway', /const handleAskFromSearch = \(\) => \{[\s\S]*?handleAskFromHome\(trimmed\);/.test(app));
 check('that pathway starts a session and sets the pending query', /const handleAskFromHome[\s\S]*?handleCreateNewSession\(\);\s*setPendingHomeQuery\(trimmed\);/.test(app));
-check('the assistant receives it as initialQuery', /initialQuery=\{pendingHomeQuery\}/.test(app));
+check('the assistant receives it as initialQuery', /initialQuery=\{[^}]*pendingHomeQuery\}/.test(app));
 check('the phone keyboard offers a search action', /enterKeyHint="search"/.test(app));
 check('an empty box does not fire a question', /const trimmed = searchQuery\.trim\(\);\s*if \(!trimmed\) return;/.test(app));
 

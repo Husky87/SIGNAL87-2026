@@ -20,6 +20,7 @@ import researchHandler from '../api/research';
 import compareHandler from '../api/compare';
 import {
   rocklandTrustMarch,
+  rocklandTrustMarchDisputed,
   mtHorebLease,
   fillerDocument
 } from './fixtures/phase-0-audit/synthetic-documents';
@@ -59,6 +60,32 @@ function stubEmbeddingsFailure() {
     return realFetch(url, init);
   }) as any;
   return { restore: () => { globalThis.fetch = realFetch; } };
+}
+
+/**
+ * Stubs the model's exact reply text (so a specific structured-format /
+ * citation-leak / placeholder scenario can be simulated), while still
+ * exercising real retrieval by default — pass embeddingsOk: false to force
+ * the deterministic legacy buildBoundedContext path instead, when a test
+ * needs exact, already-proven cutoff arithmetic (see FIX-13).
+ */
+function stubChat(content: string, opts: { embeddingsOk?: boolean } = {}) {
+  const embeddingsOk = opts.embeddingsOk !== false;
+  let chatSentBody: any = null;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: any, init: any) => {
+    if (typeof url === 'string' && url.includes('/v1/embeddings')) {
+      if (!embeddingsOk) return { ok: false, status: 500, text: async () => 'embedding service down' } as any;
+      const body = JSON.parse(init.body); const inputs: string[] = body.input;
+      return { ok: true, json: async () => ({ data: inputs.map((t: string, i: number) => ({ embedding: fakeEmbed(t), index: i })) }) } as any;
+    }
+    if (typeof url === 'string' && url.includes('/v1/chat/completions')) {
+      chatSentBody = JSON.parse(init.body);
+      return { ok: true, json: async () => ({ choices: [{ message: { content } }] }) } as any;
+    }
+    return realFetch(url, init);
+  }) as any;
+  return { restore: () => { globalThis.fetch = realFetch; }, getSentBody: () => chatSentBody };
 }
 
 async function run() {
@@ -156,6 +183,138 @@ async function main() {
     const fnSrc = readFileSync(new URL('../functions/src/index.ts', import.meta.url), 'utf8');
     const fabricatedStringRemoved = !fnSrc.includes('mapped doc identifiers to repository vector space');
     check('FIX-8', 'functions/src/index.ts: fabricated "mapped doc identifiers to repository vector space" verificationTrace string removed', fabricatedStringRemoved, '');
+  }
+
+  // ── FIX-10: the structured-answer-format instructions actually reach the model ──
+  {
+    const stub = stubWithRealEmbeddings();
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'What is the monthly rent?', documents: [mtHorebLease] } } as any, res);
+    const system = (stub.getSentBody()?.messages || []).find((m: any) => m.role === 'system')?.content || '';
+    stub.restore();
+    check('FIX-10a', 'chat.ts: system instruction leads with a one-sentence-summary-first structure', /Lead with exactly one sentence/i.test(system));
+    check('FIX-10b', 'chat.ts: "Key facts" is instructed as conditional on 2+ distinct facts, not forced on every answer', /ONLY when there are two or more distinct facts/i.test(system));
+    check('FIX-10c', 'chat.ts: a topic-specific narrative section is instructed as conditional, with a real (non-generic) header example', /never a generic "Analysis" or "Summary"/i.test(system));
+    check('FIX-10d', 'chat.ts: the model is told to use the server-substituted documents-reviewed placeholder verbatim, never to count or invent a number itself', system.includes('Documents reviewed: {{DOCUMENTS_REVIEWED}}') && /the real count is filled in automatically/i.test(system));
+    check('FIX-10e', 'chat.ts: a generic/invented "Potential issue" caveat is explicitly forbidden, not just discouraged', /expressly forbidden here too/i.test(system));
+  }
+
+  // ── FIX-11: "Documents reviewed" is substituted by the server from the retrieval layer, not left to the model — single document ──
+  {
+    const stub = stubChat('The rent is $4,200.00 [1].\n\nDocuments reviewed: {{DOCUMENTS_REVIEWED}}\n\n```citation_manifest\n[{"marker": 1, "source": "DOCUMENT 1"}]\n```');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'What is the rent?', documents: [mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-11', 'chat.ts: a single-document answer reports "Documents reviewed: 1" — the stub only ever emitted the literal placeholder, so the number can only have come from the server',
+      text.includes('Documents reviewed: 1') && !text.includes('{{DOCUMENTS_REVIEWED}}') && res.payload?.verificationTrace?.documentsReviewed === 1,
+      `text=${JSON.stringify(text)}, trace=${res.payload?.verificationTrace?.documentsReviewed}`);
+  }
+
+  // ── FIX-12: multi-document synthesis — three small, unrelated-sized documents, all genuinely used ──
+  {
+    const stub = stubChat('Verizon was paid across the reviewed statements [1][2].\n\nDocuments reviewed: {{DOCUMENTS_REVIEWED}}\n\n```citation_manifest\n[{"marker": 1, "source": "DOCUMENT 1"}, {"marker": 2, "source": "DOCUMENT 2"}]\n```');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'Summarize the Verizon payments across these statements.', documents: [rocklandTrustMarch, rocklandTrustMarchDisputed, mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-12', 'chat.ts: a 3-document synthesis question reports "Documents reviewed: 3" — all three small documents fit comfortably under budget and are genuinely included',
+      text.includes('Documents reviewed: 3') && res.payload?.verificationTrace?.documentsReviewed === 3, `text=${JSON.stringify(text)}`);
+  }
+
+  // ── FIX-13: the count reflects REAL inclusion, not the naive supplied count — reuses the baseline's own proven B2 cutoff arithmetic ──
+  {
+    const fillers = [1, 2, 3, 4].map((n) => fillerDocument(`doc-f13-${n}`, `Filing ${n}.pdf`, 28000));
+    const stub = stubChat('answer\n\nDocuments reviewed: {{DOCUMENTS_REVIEWED}}\n\n```citation_manifest\n[]\n```', { embeddingsOk: false });
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'Verizon spend and rent?', documents: [...fillers, rocklandTrustMarch, mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    // Ground truth, verified by hand against buildBoundedContext's own
+    // arithmetic (api/chat.ts) and cross-checked against this exact run's
+    // output, not assumed: 6 documents supplied. Fillers 1-3 (28,000 chars
+    // each) fit at 28,000/56,000/84,000 used chars; filler 4 gets a final
+    // truncated 6,000-char excerpt (still genuinely included — usedChars
+    // was 84,000 < 90,000 when it was reached), pushing usedChars to
+    // ~90,050. rocklandTrustMarch and mtHorebLease are then both reached
+    // with usedChars already >= 90,000, so both are fully omitted. That is
+    // 4 documents actually reviewed, not the 6 supplied — the same cutoff
+    // test B2 (tests/phase-0-audit.test.ts) already proves for this exact
+    // construction, just asserted here as an exact count instead of B2's
+    // "first three present" / "last two omitted" pair of loose checks.
+    const documentsReviewed = res.payload?.verificationTrace?.documentsReviewed;
+    check('FIX-13', 'chat.ts: "Documents reviewed" reports the real, budget-limited inclusion count (4) — never the naive 6-document supplied count, and never a number the stub (which only echoed the placeholder) could have invented',
+      documentsReviewed === 4 && text.includes('Documents reviewed: 4'),
+      `documentsReviewed=${documentsReviewed}, text=${JSON.stringify(text)}`);
+  }
+
+  // ── FIX-14: citation-leak defense in depth — a manifest-shaped JSON leak with NO code fence at all (the exact reported bug shape) ──
+  {
+    const stub = stubChat('The rent is $4,200.00 [1].\n\n{"marker": 1, "context": "DOCUMENT 1"}');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'rent?', documents: [mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    const noRawJsonLeak = !text.includes('"marker"');
+    const citationResolved = res.payload?.citations?.[0]?.docId === mtHorebLease.id;
+    check('FIX-14', 'chat.ts: an UNFENCED manifest-shaped JSON leak (no ``` at all — the reported {"marker":1,"context":"DOCUMENT 14"} bug shape) is still stripped from the visible answer and resolved into a real citation',
+      noRawJsonLeak && citationResolved, `noRawJsonLeak=${noRawJsonLeak}, citationResolved=${citationResolved}, text=${JSON.stringify(text)}`);
+  }
+
+  // ── FIX-15: citation-leak defense — a fenced manifest with no language tag at all ──
+  {
+    const stub = stubChat('The rent is $4,200.00 [1].\n\n```\n[{"marker": 1, "source": "DOCUMENT 1"}]\n```');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'rent?', documents: [mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    const noRawJsonLeak = !text.includes('"marker"');
+    const citationResolved = res.payload?.citations?.[0]?.docId === mtHorebLease.id;
+    check('FIX-15', 'chat.ts: a fenced manifest with no ```citation_manifest/```json language tag at all still strips and resolves (no regression from the stricter fence variant)',
+      noRawJsonLeak && citationResolved, `noRawJsonLeak=${noRawJsonLeak}, citationResolved=${citationResolved}`);
+  }
+
+  // ── FIX-16: a genuine, document-grounded issue (contradictory figures across two real sources) passes through untouched ──
+  {
+    const content = 'The March Verizon payment is reported as $184.22 in one statement and $204.50 in another [1][2].\n\nKey facts\n- March Verizon payment (Statement A): $184.22 [1]\n- March Verizon payment (Bank Copy): $204.50 [2]\n\nDocuments reviewed: {{DOCUMENTS_REVIEWED}}\nPotential issue identified: the two statements report different amounts for the same 03/14 Verizon payment [1][2].\n\n```citation_manifest\n[{"marker": 1, "source": "DOCUMENT 1"}, {"marker": 2, "source": "DOCUMENT 2"}]\n```';
+    const stub = stubChat(content);
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'Compare the Verizon payment across statements.', documents: [rocklandTrustMarch, rocklandTrustMarchDisputed] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-16a', 'chat.ts: a genuine, model-identified issue grounded in two real documents passes through to the visible answer unaltered', text.includes('Potential issue identified: the two statements report different amounts'), text);
+    check('FIX-16b', 'chat.ts: the Documents reviewed placeholder is still correctly substituted alongside a Potential issue line', text.includes('Documents reviewed: 2'), text);
+    check('FIX-16c', 'chat.ts: both citation markers in a multi-source claim resolve to two distinct real documents', res.payload?.citations?.length === 2 && res.payload.citations.some((c: any) => c.docId === rocklandTrustMarch.id) && res.payload.citations.some((c: any) => c.docId === rocklandTrustMarchDisputed.id), JSON.stringify(res.payload?.citations));
+  }
+
+  // ── FIX-17: no "Potential issue" line is ever fabricated server-side when the model did not produce one ──
+  {
+    const stub = stubChat('The monthly rent is $4,200.00 [1].\n\nDocuments reviewed: {{DOCUMENTS_REVIEWED}}\n\n```citation_manifest\n[{"marker": 1, "source": "DOCUMENT 1"}]\n```');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'What is the rent?', documents: [mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-17', 'chat.ts: a clean, unambiguous document never gets a "Potential issue" line added — the server has no code path that fabricates one', !/potential issue/i.test(text), text);
+  }
+
+  // ── FIX-18: a genuinely general question (no documents supplied at all) never gets a "Documents reviewed" line ──
+  {
+    const stub = stubChat('Signal87 supports OpenAI and Gemini as AI providers, with automatic fallback between them.');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'What AI models does Signal87 use?' } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-18', 'chat.ts: a general platform question with zero documents supplied never has a "Documents reviewed" line appended — it would be noise, not honesty, on a question that was never about documents', !/documents reviewed/i.test(text), text);
+  }
+
+  // ── FIX-19: if a non-compliant model drops the placeholder, the server still appends the honest count rather than silently losing the field ──
+  {
+    const stub = stubChat('The monthly rent is $4,200.00 [1].\n\n```citation_manifest\n[{"marker": 1, "source": "DOCUMENT 1"}]\n```');
+    const res = await run();
+    await chatHandler({ method: 'POST', headers: {}, body: { prompt: 'What is the rent?', documents: [mtHorebLease] } } as any, res);
+    stub.restore();
+    const text = res.payload?.text || '';
+    check('FIX-19', 'chat.ts: a non-compliant model that drops the placeholder still gets the honest count appended by the server, never a silently missing field', text.includes('Documents reviewed: 1'), text);
   }
 
   // FIX-9 (Firestore silent-write-failure surfacing) is not executable in this
