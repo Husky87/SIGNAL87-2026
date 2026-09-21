@@ -13,7 +13,7 @@ export const Signal87LandingShell: React.FC<Signal87LandingShellProps> = ({ onOp
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-10 sm:py-5 lg:px-14">
         <button className="flex min-h-11 items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><Signal87Logo size={25} /><span className="text-base font-semibold tracking-[-0.04em]">Signal87</span></button>
         <nav className="hidden items-center gap-8 text-xs text-[#72746d] md:flex"><a href="#product">Product</a><a href="#solutions">Solutions</a><a href="#platform">Platform</a></nav>
-        <div className="flex items-center gap-1 sm:gap-4"><button className="min-h-11 px-1.5 text-xs text-[#686a63] sm:px-2" onClick={() => onOpenEmailAuth('signin')}>Log in</button><button className="flex min-h-10 items-center gap-1.5 rounded-full bg-[#20211e] px-3 text-xs font-medium text-white sm:gap-2 sm:px-4" onClick={() => onOpenEmailAuth('signup')}>Get started <ArrowRight size={14} /></button></div>
+        <div className="flex items-center gap-1 sm:gap-4"><button className="min-h-11 px-1.5 text-xs text-[#686a63] sm:px-2" onClick={() => onOpenEmailAuth('signin')}>Log in</button><button className="flex min-h-11 items-center gap-1.5 rounded-full bg-[#20211e] px-3 text-xs font-medium text-white sm:gap-2 sm:px-4" onClick={() => onOpenEmailAuth('signup')}>Get started <ArrowRight size={14} /></button></div>
       </header>
       <main>
         <section id="product" className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-10 sm:gap-14 sm:px-10 sm:pb-24 sm:pt-24 lg:grid-cols-[.9fr_1.1fr] lg:px-14 lg:pt-28">

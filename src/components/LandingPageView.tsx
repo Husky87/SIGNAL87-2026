@@ -44,9 +44,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#7b7d75]">Company</div>
             <div className="mt-3 space-y-2.5 text-xs sm:mt-4 sm:space-y-3">
-              <a href="/team" className="block text-[#555850] hover:text-[#20211e]">Team</a>
-              <button type="button" onClick={onOpenBlog} className="block text-[#555850] hover:text-[#20211e]">Blog</button>
-              <button type="button" onClick={onOpenMedia} className="block text-[#555850] hover:text-[#20211e]">Media</button>
+              <a href="/team" className="flex min-h-[44px] w-full items-center text-[#555850] hover:text-[#20211e]">Team</a>
+              <button type="button" onClick={onOpenBlog} className="block w-full text-left text-[#555850] hover:text-[#20211e]">Blog</button>
+              <button type="button" onClick={onOpenMedia} className="block w-full text-left text-[#555850] hover:text-[#20211e]">Media</button>
             </div>
           </div>
 
@@ -57,7 +57,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <button type="button" onClick={() => onSelectTab('documents')} className="block text-[#555850] hover:text-[#20211e]">Documents</button>
               <button type="button" onClick={() => onSelectTab('research')} className="block text-[#555850] hover:text-[#20211e]">AI Research</button>
               <button type="button" onClick={() => onSelectTab('compare')} className="block text-[#555850] hover:text-[#20211e]">Compare</button>
-              <button type="button" onClick={() => onSelectTab('saved')} className="block text-[#555850] hover:text-[#20211e]">Saved</button>
+              <button type="button" onClick={() => onSelectTab('saved')} className="block w-full text-left text-[#555850] hover:text-[#20211e]">Saved</button>
               <button type="button" onClick={() => onSelectTab('organization')} className="block text-[#555850] hover:text-[#20211e]">Organization</button>
               <button type="button" onClick={() => onSelectTab('admin')} className="block text-[#555850] hover:text-[#20211e]">Settings</button>
             </div>
@@ -66,8 +66,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#7b7d75]">Legal</div>
             <div className="mt-3 space-y-2.5 text-xs sm:mt-4 sm:space-y-3">
-              <a href="/privacy" className="block text-[#555850] hover:text-[#20211e]">Privacy Policy</a>
-              <a href="/terms" className="block text-[#555850] hover:text-[#20211e]">Terms of Service</a>
+              <a href="/privacy" className="flex min-h-[44px] w-full items-center text-[#555850] hover:text-[#20211e]">Privacy Policy</a>
+              <a href="/terms" className="flex min-h-[44px] w-full items-center text-[#555850] hover:text-[#20211e]">Terms of Service</a>
               <button type="button" onClick={onOpenPrivacy} className="block text-[#555850] hover:text-[#20211e]">Privacy & Data Security</button>
             </div>
           </div>

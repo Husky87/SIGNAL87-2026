@@ -27,23 +27,8 @@ app.get('/api/health', async (req, res) => {
 
 // Transactional Welcome Email Endpoint
 app.post('/api/auth/welcome-email', async (req, res) => {
-  try {
-    const { email, name } = req.body;
-    console.log(`[Transactional Email] Firing Welcome to Signal87 AI email for ${email} (${name || 'New Executive User'})`);
-
-    // In a production setup, this integrates Resend/SendGrid/Postmark.
-    // We log and return structured delivery confirmation.
-    return res.json({
-      success: true,
-      emailSent: true,
-      recipient: email || 'user@signal87.ai',
-      subject: 'Welcome to Signal87 AI — Your Document Memory & AI Workspace is Live',
-      deliveredAt: new Date().toISOString()
-    });
-  } catch (err: any) {
-    console.error('Welcome Email Error:', err);
-    return res.status(500).json({ error: 'Failed to dispatch welcome email' });
-  }
+  const { default: h } = await import('./api/auth/welcome-email');
+  return h(req as any, res as any);
 });
 
 // AI Chat Endpoint.
