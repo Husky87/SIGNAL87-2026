@@ -98,18 +98,19 @@ export const Signal87LandingShell: React.FC<Signal87LandingShellProps> = ({ onOp
             ))}
           </svg>
         </div></section>
-        <section id="platform" className="px-5 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-14"><div ref={platformRef} className="mx-auto grid max-w-7xl gap-x-10 gap-y-6 lg:grid-cols-2 lg:items-end lg:gap-y-4"><div><div className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#7b817e]">Platform</div><h2 className="mt-5 text-[clamp(2.4rem,5vw,4.5rem)] font-medium leading-[1] tracking-[-.07em]">A secure intelligence workspace for the information that matters.</h2></div><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Database size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Connect</div><p className="mt-2 text-xs leading-5 text-[#777970]">Bring documents, data sources, and web research into one workspace.</p></div><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Search size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Analyze</div><p className="mt-2 text-xs leading-5 text-[#777970]">Ask questions and surface evidence across connected information.</p></div><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Sparkles size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Decide</div><p className="mt-2 text-xs leading-5 text-[#777970]">Turn complex source material into clear, defensible insights.</p></div></div>
-          <svg aria-hidden="true" className="mx-auto w-full max-w-sm lg:col-span-2" viewBox="0 55 400 195" fill="none">
+        <section id="platform" className="px-5 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-14"><div ref={platformRef} className="mx-auto grid max-w-7xl gap-x-10 gap-y-6 lg:grid-cols-2 lg:items-center"><div><div className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#7b817e]">Platform</div><h2 className="mt-5 text-[clamp(2.4rem,5vw,4.5rem)] font-medium leading-[1] tracking-[-.07em]">A secure intelligence workspace for the information that matters.</h2></div>
+          <svg aria-hidden="true" className="mx-auto w-full max-w-md" viewBox="0 0 400 120" fill="none">
             <g style={{
               animation: platformInView ? 'strata-drift 6s ease-in-out infinite' : 'none',
               opacity: platformInView ? 1 : 0,
               transition: 'opacity 0.8s ease',
             }}>
-              <path d="M0 100 C 90 70, 160 130, 240 95 S 360 60, 400 90 L 400 250 L 0 250 Z" fill="#20211e" opacity="0.9" />
-              <path d="M0 145 C 100 118, 170 178, 260 143 S 370 113, 400 138 L 400 250 L 0 250 Z" fill="#69b9c5" />
-              <path d="M0 188 C 110 168, 180 213, 270 183 S 380 158, 400 178 L 400 250 L 0 250 Z" fill="#8ed0d7" opacity="0.85" />
+              <path d="M0 45 C 90 30, 160 59, 240 42 S 360 25, 400 40" fill="none" stroke="#20211e" strokeWidth="1.5" opacity="0.35" />
+              <path d="M0 67 C 100 53, 170 83, 260 66 S 370 51, 400 63" fill="none" stroke="#69b9c5" strokeWidth="1.5" opacity="0.65" />
+              <path d="M0 88 C 110 78, 180 100, 270 85 S 380 73, 400 83" fill="none" stroke="#8ed0d7" strokeWidth="1.5" opacity="0.75" />
             </g>
           </svg>
+          <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2"><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Database size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Connect</div><p className="mt-2 text-xs leading-5 text-[#777970]">Bring documents, data sources, and web research into one workspace.</p></div><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Search size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Analyze</div><p className="mt-2 text-xs leading-5 text-[#777970]">Ask questions and surface evidence across connected information.</p></div><div className="rounded-2xl border border-[#dedfd8] bg-white p-5"><Sparkles size={18} className="text-[#69b9c5]" /><div className="mt-8 text-sm font-medium">Decide</div><p className="mt-2 text-xs leading-5 text-[#777970]">Turn complex source material into clear, defensible insights.</p></div></div>
         </div></section>
         <section className="border-t border-[#e3e4dd] px-5 py-10 sm:px-10 sm:py-14 lg:px-14"><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-5 sm:flex-row sm:items-center"><div><div className="text-sm font-medium">Ready to explore Signal87?</div><p className="mt-1 text-xs text-[#777970]">Open the workspace and start working with your information.</p></div><button onClick={() => onSelectTab('dashboard')} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#20211e] px-5 text-xs font-medium text-white sm:w-auto">Open workspace <ArrowRight size={14} /></button></div></section>
       </main>
