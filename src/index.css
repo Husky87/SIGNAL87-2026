@@ -234,6 +234,69 @@
 }
 
 /* =========================================================================
+   Marketing homepage decorative graphics — Signal Dial (hero) and Radial
+   Aperture ("One intelligence layer"). Both are inline SVG, aria-hidden,
+   animated with plain CSS keyframes; no new dependencies.
+   ========================================================================= */
+@keyframes s87-spin-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes s87-spin-ccw {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes s87-core-beat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.75; }
+}
+@keyframes s87-aperture-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes s87-aperture-ping {
+  0% { transform: scale(0.3); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.s87-dial-ring-1, .s87-dial-ring-2, .s87-dial-ring-3, .s87-dial-ring-4, .s87-dial-ring-5,
+.s87-dial-particle-1, .s87-dial-particle-2, .s87-dial-particle-3, .s87-dial-particle-4,
+.s87-dial-core, .s87-aperture-spokes, .s87-aperture-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.s87-dial-ring-1 { animation: s87-spin-cw 30s linear infinite; }
+.s87-dial-ring-2 { animation: s87-spin-ccw 45s linear infinite; }
+.s87-dial-ring-3 { animation: s87-spin-cw 60s linear infinite; }
+.s87-dial-ring-4 { animation: s87-spin-ccw 80s linear infinite; }
+.s87-dial-ring-5 { animation: s87-spin-cw 100s linear infinite; }
+
+.s87-dial-particle-1 { animation: s87-spin-cw 30s linear infinite; }
+.s87-dial-particle-2 { animation: s87-spin-ccw 45s linear infinite; }
+.s87-dial-particle-3 { animation: s87-spin-cw 60s linear infinite; }
+.s87-dial-particle-4 { animation: s87-spin-ccw 80s linear infinite; }
+
+.s87-dial-core { animation: s87-core-beat 3.2s ease-in-out infinite; }
+
+.s87-aperture-spokes { animation: s87-aperture-spin 70s linear infinite; }
+.s87-aperture-ping { animation: s87-aperture-ping 4.6s ease-out infinite; }
+.s87-aperture-ping-1 { animation-delay: 0s; }
+.s87-aperture-ping-2 { animation-delay: 2.3s; }
+
+/* Belt-and-suspenders on top of the generic rule above: these decorative
+   loops should render as a still image under reduced motion, not just an
+   imperceptibly fast single pass (which leaves the ping rings invisible
+   mid-fade and rings at an arbitrary rotation). */
+@media (prefers-reduced-motion: reduce) {
+  .s87-dial-ring-1, .s87-dial-ring-2, .s87-dial-ring-3, .s87-dial-ring-4, .s87-dial-ring-5,
+  .s87-dial-particle-1, .s87-dial-particle-2, .s87-dial-particle-3, .s87-dial-particle-4,
+  .s87-dial-core, .s87-aperture-spokes, .s87-aperture-ping {
+    animation: none;
+  }
+}
+
+/* =========================================================================
    GENERATED — Clear palette overrides for legacy "Chambers" color classes.
    Scanned from every .tsx under src/. Do not hand-edit stale entries here;
    regenerate instead if new legacy colors are introduced.
