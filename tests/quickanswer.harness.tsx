@@ -34,6 +34,17 @@ const documents: DocumentItem[] = [
   } as DocumentItem
 ];
 
+// The assistant now refuses to send a message without a signed-in user
+// (`if (!currentUser) throw ...` in ResearchAssistantView). Mock the shape it
+// actually reads: getIdToken() plus the profile fields the header renders.
+const mockCurrentUser = {
+  uid: 'test-user',
+  displayName: 'Test User',
+  email: 'test-user@example.com',
+  photoURL: null,
+  getIdToken: async () => 'test-token'
+} as any;
+
 function Harness() {
   const [chatHistory, setChatHistory] = React.useState<any[]>([]);
   return (
@@ -46,6 +57,7 @@ function Harness() {
         onChangeModel={() => {}}
         chatHistory={chatHistory}
         setChatHistory={setChatHistory as any}
+        currentUser={mockCurrentUser}
         initialQuery="What is the start date?"
         onInitialQueryConsumed={() => {
           (window as any).__consumed = true;

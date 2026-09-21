@@ -12,5 +12,17 @@
     { "source": "/media", "destination": "/media.html" },
     { "source": "/__/auth/:path*", "destination": "https://gen-lang-client-0608802366.firebaseapp.com/__/auth/:path*" },
     { "source": "/__/firebase/:path*", "destination": "https://gen-lang-client-0608802366.firebaseapp.com/__/firebase/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self)" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    }
   ]
 }

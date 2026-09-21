@@ -14,6 +14,7 @@
  */
 process.env.OPENAI_API_KEY = 'stub';
 delete process.env.GEMINI_API_KEY;
+process.env.SIGNAL87_TEST_AUTH = '1';
 
 import { readFileSync } from 'fs';
 import handler from '../api/chat';
@@ -35,7 +36,7 @@ async function ask(body: any) {
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async (_u: any, init: any) => {
     sent = JSON.parse(init.body);
-    return { ok: true, json: async () => ({ choices: [{ message: { content: 'stub' } }] }) };
+    return { ok: true, json: async () => ({ choices: [{ message: { content: 'stub [1].' } }] }) };
   }) as any;
 
   const res: any = {
@@ -44,7 +45,7 @@ async function ask(body: any) {
     json(p: any) { this.payload = p; return this; }
   };
   try {
-    await handler({ method: 'POST', body } as any, res);
+    await handler({ method: 'POST', headers: {}, body } as any, res);
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -179,8 +180,8 @@ async function run() {
     });
     const system = turns.find((t) => t.role === 'system')?.content ?? '';
     check('the model is told never to answer from prior knowledge', /never fall back on prior knowledge/i.test(system));
-    check('the model is told not to invent confidence or page refs', /Never state a confidence level/i.test(system));
-    check('the model is told to match answer length to the question', /ANSWER LENGTH/.test(system));
+    check('the model is told not to invent confidence or page refs', /never invent dates, amounts, parties, clauses, page numbers, confidence scores/i.test(system));
+    check('the model is told to match answer length to the question', /match answer length to the question/i.test(system));
   }
 
   // ---- Nothing fabricated on the way back out ----

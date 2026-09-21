@@ -9,6 +9,7 @@
  */
 process.env.OPENAI_API_KEY = 'test-key-not-used';
 delete process.env.GEMINI_API_KEY;
+process.env.SIGNAL87_TEST_AUTH = '1';
 
 import handler from '../api/chat';
 
@@ -39,7 +40,7 @@ async function capture(body: any): Promise<{ role: string; content: string }[]> 
   };
 
   try {
-    await handler({ method: 'POST', body } as any, res);
+    await handler({ method: 'POST', headers: {}, body } as any, res);
   } finally {
     globalThis.fetch = realFetch;
   }
