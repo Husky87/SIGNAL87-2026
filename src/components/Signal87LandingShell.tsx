@@ -43,7 +43,7 @@ export const Signal87LandingShell: React.FC<Signal87LandingShellProps> = ({ onOp
         <div className="flex items-center gap-1 sm:gap-4"><button className="min-h-11 px-1.5 text-xs text-[#686a63] sm:px-2" onClick={() => onOpenEmailAuth('signin')}>Log in</button><button className="flex min-h-11 items-center gap-1.5 rounded-full bg-[#20211e] px-3 text-xs font-medium text-white sm:gap-2 sm:px-4" onClick={() => onOpenEmailAuth('signup')}>Get started <ArrowRight size={14} /></button></div>
       </header>
       <main>
-        <section id="product" className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-10 sm:gap-14 sm:px-10 sm:pb-24 sm:pt-24 lg:grid-cols-[.9fr_1.1fr] lg:px-14 lg:pt-28">
+        <section id="product" className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-10 sm:gap-14 sm:px-10 sm:pb-20 sm:pt-16 lg:grid-cols-[.9fr_1.1fr] lg:px-14 lg:pb-16 lg:pt-14">
           <svg aria-hidden="true" className="pointer-events-none absolute -left-24 top-4 h-[480px] w-[480px] opacity-70" viewBox="0 0 400 400" fill="none">
             <circle cx="200" cy="200" r="16" fill="#69b9c5" opacity="0.5" />
             {[55, 100, 150, 195].map((r, i) => (
