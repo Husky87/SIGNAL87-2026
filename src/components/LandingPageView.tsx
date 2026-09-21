@@ -33,7 +33,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
     <footer className="border-t border-[#dedfd8] bg-[#eff0ea] px-5 py-10 sm:px-10 sm:py-14 lg:px-14">
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-10 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-10 lg:grid-cols-5">
           <div className="col-span-2 lg:col-span-1">
             <div className="text-sm font-semibold tracking-[-0.03em] text-[#20211e]">Signal87</div>
             <p className="mt-3 max-w-xs text-xs leading-6 text-[#74766f]">
@@ -57,6 +57,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <button type="button" onClick={() => onSelectTab('documents')} className="block text-[#555850] hover:text-[#20211e]">Documents</button>
               <button type="button" onClick={() => onSelectTab('research')} className="block text-[#555850] hover:text-[#20211e]">AI Research</button>
               <button type="button" onClick={() => onSelectTab('compare')} className="block text-[#555850] hover:text-[#20211e]">Compare</button>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#7b7d75]">Account</div>
+            <div className="mt-3 space-y-2.5 text-xs sm:mt-4 sm:space-y-3">
               <button type="button" onClick={() => onSelectTab('saved')} className="block w-full text-left text-[#555850] hover:text-[#20211e]">Saved</button>
               <button type="button" onClick={() => onSelectTab('organization')} className="block text-[#555850] hover:text-[#20211e]">Organization</button>
               <button type="button" onClick={() => onSelectTab('admin')} className="block text-[#555850] hover:text-[#20211e]">Settings</button>
