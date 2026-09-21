@@ -1040,9 +1040,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           place rather than sharing one position between them. */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)] min-h-full w-full max-w-full overflow-x-hidden"
+        className="s87-page flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)] min-h-full w-full max-w-full overflow-x-hidden"
       >
-        <div className="max-w-[1008px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div className="s87-column space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>

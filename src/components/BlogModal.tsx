@@ -169,7 +169,15 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
           <span>Signal87 AI Engineering & Publications</span>
-          <span>Updated July 2026</span>
+          <div className="flex items-center gap-4">
+            <span>Updated July 2026</span>
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-[var(--ink)] hover:opacity-90 text-[var(--teal-ink)] font-bold rounded-xl transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
