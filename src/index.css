@@ -549,3 +549,29 @@
 .s87-app .s87-home-input { min-height: 24px; max-height: 160px; resize: none; }
 @media (max-width: 639px) { .s87-app .s87-page { padding: 24px 16px 32px; } .s87-app .s87-page-title { font-size: 25px; } }
 @media (prefers-reduced-motion: reduce) { .s87-app *, .s87-app *::before, .s87-app *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+
+/* Decorative motion on the marketing landing page (Signal87LandingShell).
+   Both graphics are aria-hidden and sit behind / beside real copy, so the
+   keyframes are only defined when motion is welcome — under `reduce` the name
+   resolves to nothing and the graphics simply render static. The explicit
+   `animation: none` rules below are belt-and-braces for the same thing. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Hero: rings ping outward from the centre dot, staggered, forever. */
+  @keyframes hero-ping {
+    0% { opacity: 0.5; transform: scale(0.85); }
+    70% { opacity: 0; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.15); }
+  }
+
+  /* Platform: a slow few-px breath on the layered bands. Ambient, not a
+     one-shot — it starts when the section scrolls into view. */
+  @keyframes strata-drift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  svg [style*="hero-ping"] { animation: none !important; }
+  [style*="strata-drift"] { animation: none !important; }
+}
