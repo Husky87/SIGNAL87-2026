@@ -35,7 +35,7 @@ try {
   await page.screenshot({path:`${output}/${label}-ask.png`});
   for(const name of ['Files','Notes']) {
    await page.getByRole('button',{name,exact:true}).click();
-   await page.getByRole('heading',{name,exact:true}).waitFor();
+   await page.getByRole('heading',{name,exact:true,level:1}).waitFor();
    await page.screenshot({path:`${output}/${label}-${name.toLowerCase()}.png`});
   }
   if(label==='desktop') {
