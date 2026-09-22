@@ -1,14 +1,67 @@
 import React from "react";
-import { FileText, FileSpreadsheet, FileType, Presentation, File as FileIcon, Download } from "lucide-react";
+import { Presentation, File as FileIcon, Download } from "lucide-react";
 import { DocumentItem } from "../types";
+
+type ThumbnailIconProps = React.SVGProps<SVGSVGElement> & { size?: number };
+
+interface FilledFileIconProps extends ThumbnailIconProps {
+  fillColor: string;
+  foldColor: string;
+  label: string;
+}
+
+const FilledFileIcon: React.FC<FilledFileIconProps> = ({
+  size = 24,
+  fillColor,
+  foldColor,
+  label,
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 38 44"
+    fill="none"
+    focusable="false"
+    {...props}
+  >
+    <path d="M7 2h18l8 8v29a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z" fill={fillColor} />
+    <path d="M25 2v5a3 3 0 0 0 3 3h5z" fill={foldColor} />
+    <text
+      x="18.5"
+      y="27"
+      textAnchor="middle"
+      fill="white"
+      fontFamily="Inter, system-ui, sans-serif"
+      fontSize="7.2"
+      fontWeight="800"
+      letterSpacing="0.2"
+    >
+      {label}
+    </text>
+    <path d="M11 32h15M11 36h11" stroke="white" strokeOpacity="0.55" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const PdfFileIcon: React.FC<ThumbnailIconProps> = (props) => (
+  <FilledFileIcon {...props} fillColor="#df5752" foldColor="#f7aaa4" label="PDF" />
+);
+
+const WordFileIcon: React.FC<ThumbnailIconProps> = (props) => (
+  <FilledFileIcon {...props} fillColor="#3578c4" foldColor="#9fc3eb" label="DOC" />
+);
+
+const SpreadsheetFileIcon: React.FC<ThumbnailIconProps> = (props) => (
+  <FilledFileIcon {...props} fillColor="#2f9b64" foldColor="#9bd1b4" label="XLS" />
+);
 
 export function getTypeMeta(type?: string) {
   const t = (type || "").toLowerCase();
-  if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", icon: "", Icon: FileText, iconColor: "#d94b4b" };
-  if (t.includes("ppt") || t.includes("presentation")) return { label: "PowerPoint", color: "#d97735", icon: "", Icon: Presentation, iconColor: "#d97735" };
-  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Spreadsheet", color: "#2f9b64", icon: "", Icon: FileSpreadsheet, iconColor: "#2f9b64" };
-  if (t.includes("doc") || t.includes("word")) return { label: "Word", color: "#3578c4", icon: "", Icon: FileType, iconColor: "#3578c4" };
-  return { label: type || "File", color: "#7c817d", icon: "", Icon: FileIcon, iconColor: "#7c817d" };
+  if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", Icon: PdfFileIcon, branded: true };
+  if (t.includes("ppt") || t.includes("presentation")) return { label: "PowerPoint", color: "#d97735", Icon: Presentation, branded: false };
+  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Spreadsheet", color: "#2f9b64", Icon: SpreadsheetFileIcon, branded: true };
+  if (t.includes("doc") || t.includes("word")) return { label: "Word", color: "#3578c4", Icon: WordFileIcon, branded: true };
+  return { label: type || "File", color: "#7c817d", Icon: FileIcon, branded: false };
 }
 
 interface DocumentThumbnailProps {
@@ -53,11 +106,21 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
       }}
       className="group w-full h-full min-h-[250px] overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--card)] transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
     >
-      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-5">
-        <div className="mx-auto h-[122px] max-w-[210px] rounded-t-lg border border-[var(--rule)] bg-[var(--paper)] p-4">
+      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--surface-2)] px-5 pt-5">
+        {meta.branded ? (
+          <div className="flex h-[123px] items-center justify-center pb-4">
+            <meta.Icon size={94} className="drop-shadow-[0_8px_10px_rgba(20,33,61,0.16)]" aria-hidden="true" />
+          </div>
+        ) : (
+          <div className="mx-auto h-[122px] max-w-[210px] rounded-t-xl border border-[var(--rule)] bg-[var(--paper)] p-4 shadow-[0_8px_22px_rgba(20,33,61,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <meta.Icon size={15} className="shrink-0" style={{ color: meta.color }} aria-hidden="true" />
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center ${meta.branded ? "" : "rounded-lg text-white shadow-sm"}`}
+                style={{ backgroundColor: meta.branded ? "transparent" : meta.color }}
+              >
+                <meta.Icon size={meta.branded ? 32 : 17} strokeWidth={1.9} aria-hidden="true" />
+              </span>
               <span className="truncate text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
                 {meta.label}
               </span>
@@ -78,7 +141,8 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
               <div className="h-1.5 w-[58%] rounded-full bg-[var(--rule)]" />
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="flex min-h-[102px] flex-col justify-between p-4">
@@ -87,7 +151,7 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
             <meta.Icon size={12} aria-hidden="true" />
             <span>{meta.label}</span>
           </div>
-          <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--text)]" title={docName}>
+          <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--ink)]" title={docName}>
             {docName}
           </h3>
         </div>

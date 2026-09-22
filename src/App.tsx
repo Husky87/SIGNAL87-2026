@@ -13,7 +13,7 @@ import { Footer } from './components/Footer';
 import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
-import { LandingPageView } from './components/LandingPageView';
+import { SignalFieldLanding } from './components/SignalFieldLanding';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
@@ -896,33 +896,18 @@ export default function App() {
   if (!currentUser) {
     return (
       <>
-        <LandingPageView
-          onOpenEmailAuth={(mode = 'signup') => {
-            setEmailAuthMode(mode);
-            setIsEmailAuthOpen(true);
-          }}
-          onAskQuestion={(question) => {
-            setPendingLandingQuery(question);
-            try { sessionStorage.setItem('s87_pending_landing_query', question); } catch { /* Keep the in-memory fallback. */ }
-            setEmailAuthMode('signup');
-            setIsEmailAuthOpen(true);
-          }}
-          onOpenPrivacy={() => setIsPrivacyOpen(true)}
-          onOpenBlog={() => setIsBlogOpen(true)}
-          onOpenMedia={() => setIsMediaOpen(true)}
-          onSelectTab={(tab) => {
-            if (tab === 'team') {
-              const el = document.getElementById('team');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            } else if (tab === 'privacy') {
-              setIsPrivacyOpen(true);
-            } else if (tab === 'terms') {
-              setIsTermsOpen(true);
-            } else {
+          <SignalFieldLanding
+            onOpenEmailAuth={(mode = 'signup') => {
+              setEmailAuthMode(mode);
               setIsEmailAuthOpen(true);
-            }
-          }}
-        />
+            }}
+            onAskQuestion={(question) => {
+              setPendingLandingQuery(question);
+              try { sessionStorage.setItem('s87_pending_landing_query', question); } catch { /* Keep the in-memory fallback. */ }
+              setEmailAuthMode('signup');
+              setIsEmailAuthOpen(true);
+            }}
+          />
 
         <AuthErrorModal
           isOpen={Boolean(authError)}

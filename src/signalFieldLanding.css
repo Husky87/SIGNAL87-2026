@@ -1,0 +1,415 @@
+.signal-landing {
+  min-height: 100vh;
+  overflow: hidden;
+  background: #0b0e0c;
+  color: #eef3ef;
+  font-family:
+    "Manrope Variable",
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.signal-landing * {
+  box-sizing: border-box;
+}
+.signal-header {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 1440px);
+  margin: auto;
+  padding: 22px clamp(22px, 4vw, 66px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.signal-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.signal-header nav {
+  display: flex;
+  gap: 34px;
+  color: #9ca6a0;
+  font-size: 12px;
+}
+.signal-header nav a,
+.signal-header button {
+  transition: opacity 0.2s ease;
+}
+.signal-header nav a:hover,
+.signal-header button:hover {
+  opacity: 0.58;
+}
+.signal-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.signal-header__actions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.signal-header__actions .signal-primary {
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #f2f5f1;
+  color: #0b0e0c;
+  font-weight: 650;
+}
+.signal-hero {
+  position: relative;
+  min-height: 840px;
+  padding: 30px clamp(24px, 6vw, 92px) 64px;
+  isolation: isolate;
+}
+.signal-hero:after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 0 0;
+  height: 42%;
+  background: linear-gradient(transparent, #090b0a);
+}
+.signal-hero__eyebrow {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 16px;
+  color: #718079;
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.signal-hero__copy {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1030px;
+  margin: 85px auto 0;
+  text-align: center;
+}
+.signal-hero h1 {
+  font-size: clamp(4.5rem, 8vw, 8rem);
+  font-weight: 420;
+  line-height: 0.82;
+  letter-spacing: -0.072em;
+}
+.signal-hero h1 em {
+  color: #9be7ed;
+  font-style: normal;
+}
+.signal-hero__copy > p {
+  max-width: 680px;
+  margin-top: 38px;
+  color: #c2cbc5;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.72;
+}
+.signal-question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+  min-height: 62px;
+  margin-top: 34px;
+  padding: 7px 8px 7px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+}
+.signal-question > svg {
+  flex: none;
+  color: #65bfc9;
+}
+.signal-question input {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+.signal-question input::placeholder {
+  color: #949b95;
+}
+.signal-question button {
+  display: grid;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d9fbff;
+  color: #0b0e0c;
+  transition: transform 0.2s ease;
+}
+.signal-question button:hover {
+  transform: scale(1.04);
+}
+.signal-field {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  overflow: hidden;
+}
+.signal-field__glow {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 70vw;
+  height: 45vw;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(80, 202, 211, 0.21),
+    rgba(28, 83, 76, 0.08) 38%,
+    transparent 70%
+  );
+  filter: blur(12px);
+  transform: translate(-50%, -50%);
+  animation: signal-field-glow 8s ease-in-out infinite;
+}
+.signal-field i {
+  --offset: calc((var(--line) - 4) * 7%);
+  position: absolute;
+  left: -8%;
+  top: calc(45% + var(--offset));
+  width: 116%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(167, 232, 231, 0.08) 10%,
+    rgba(167, 232, 231, 0.36) 50%,
+    rgba(167, 232, 231, 0.08) 90%,
+    transparent
+  );
+  transform: rotate(calc((var(--line) - 4) * 1.5deg));
+  animation: signal-field-line calc(5.5s + var(--line) * 0.35s) ease-in-out
+    calc(var(--line) * -0.4s) infinite;
+}
+.signal-field__pulse {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 270px;
+  height: 270px;
+  border: 1px solid rgba(155, 231, 237, 0.26);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: signal-field-pulse 4s ease-out infinite;
+}
+.signal-field .pulse-two {
+  animation-delay: 2s;
+}
+.signal-rail {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1120px;
+  margin: 90px auto 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+}
+.signal-rail > div {
+  display: grid;
+  grid-template-columns: 35px 1fr;
+  gap: 4px 16px;
+  padding: 24px 26px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+.signal-rail > div:last-child {
+  border-right: 0;
+}
+.signal-rail strong {
+  grid-row: 1/3;
+  color: #60716a;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.signal-rail span {
+  font-size: 13px;
+  font-weight: 650;
+}
+.signal-rail p {
+  max-width: 240px;
+  color: #7d8982;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.signal-trust {
+  display: grid;
+  grid-template-columns: 1fr 2.3fr;
+  gap: 32px;
+  align-items: center;
+  padding: 26px clamp(22px, 4vw, 66px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #090b0a;
+}
+.signal-trust__intro span {
+  font-size: 13px;
+  font-weight: 700;
+}
+.signal-trust__intro p {
+  margin-top: 3px;
+  color: #717b74;
+  font-size: 10px;
+}
+.signal-trust__links {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.signal-trust__links > a,
+.signal-trust__links > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 39px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #a9b2ac;
+  font-size: 9px;
+  font-weight: 650;
+}
+.signal-trust__links svg,
+.signal-trust__links img {
+  width: 16px;
+  height: 16px;
+}
+.taaft-mark {
+  display: grid;
+  width: 25px;
+  height: 19px;
+  place-items: center;
+  border-radius: 4px;
+  background: #e8ece9;
+  color: #0a0c0b;
+  font-size: 6px;
+  letter-spacing: 0.04em;
+}
+@keyframes signal-field-glow {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@keyframes signal-field-line {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: translateY(-8px) rotate(calc((var(--line) - 4) * 1.5deg));
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(8px) rotate(calc((var(--line) - 4) * 1.5deg));
+  }
+}
+@keyframes signal-field-pulse {
+  0% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.4);
+  }
+}
+@media (max-width: 760px) {
+  .signal-header {
+    padding: 14px 18px;
+  }
+  .signal-header nav {
+    display: none;
+  }
+  .signal-brand span {
+    font-size: 14px;
+  }
+  .signal-header__actions {
+    gap: 8px;
+  }
+  .signal-header__actions > button:first-child {
+    display: none;
+  }
+  .signal-header__actions .signal-primary {
+    min-height: 39px;
+    padding: 0 13px;
+  }
+  .signal-hero {
+    min-height: 780px;
+    padding: 26px 20px 45px;
+  }
+  .signal-hero__eyebrow span:last-child {
+    display: none;
+  }
+  .signal-hero__copy {
+    margin-top: 105px;
+  }
+  .signal-hero h1 {
+    font-size: clamp(3.65rem, 18vw, 5.6rem);
+    line-height: 0.86;
+  }
+  .signal-hero__copy > p {
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .signal-rail {
+    grid-template-columns: 1fr;
+    margin-top: 70px;
+  }
+  .signal-rail > div {
+    padding: 17px 4px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .signal-trust {
+    grid-template-columns: 1fr;
+    padding: 24px 18px;
+  }
+  .signal-trust__links {
+    justify-content: flex-start;
+  }
+  .signal-trust__links > a,
+  .signal-trust__links > div {
+    flex: 1 1 calc(50% - 8px);
+    padding: 0 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-landing *,
+  .signal-landing *:before,
+  .signal-landing *:after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
