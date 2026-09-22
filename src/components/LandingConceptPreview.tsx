@@ -1,12 +1,17 @@
 import React, { FormEvent, useState } from 'react';
 import { ArrowRight, ArrowUpRight, Search } from 'lucide-react';
 import { Signal87Logo } from './Signal87Logo';
+import '@fontsource-variable/manrope';
+import '@fontsource-variable/space-grotesk';
+import '@fontsource-variable/newsreader';
 import '../landingConcepts.css';
 
 export type LandingConcept = '1' | '2' | '3';
+export type LandingFont = 'manrope' | 'space' | 'editorial';
 
 interface LandingConceptPreviewProps {
   concept: LandingConcept;
+  font?: LandingFont;
   onOpenEmailAuth: (mode?: 'signup' | 'signin') => void;
   onAskQuestion: (question: string) => void;
 }
@@ -16,6 +21,23 @@ const conceptNames: Record<LandingConcept, string> = {
   '2': 'Signal field',
   '3': 'Living index',
 };
+
+const fontNames: Record<LandingFont, string> = {
+  manrope: 'Manrope',
+  space: 'Space Grotesk',
+  editorial: 'Newsreader',
+};
+
+const FontSwitcher: React.FC<{ active: LandingFont }> = ({ active }) => (
+  <aside className="font-switcher" aria-label="Typography options">
+    <span>Typography</span>
+    {(Object.keys(fontNames) as LandingFont[]).map((font, index) => (
+      <a key={font} href={`?landing=2&font=${font}`} className={font === active ? 'is-active' : ''} aria-current={font === active ? 'page' : undefined}>
+        <small>0{index + 1}</small>{fontNames[font]}
+      </a>
+    ))}
+  </aside>
+);
 
 const ConceptSwitcher: React.FC<{ active: LandingConcept; dark?: boolean }> = ({ active, dark = false }) => (
   <aside className={`concept-switcher ${dark ? 'concept-switcher--dark' : ''}`} aria-label="Landing page concepts">
@@ -109,9 +131,10 @@ const OrbitalClarity: React.FC<Omit<LandingConceptPreviewProps, 'concept'>> = ({
   </div>
 );
 
-const SignalField: React.FC<Omit<LandingConceptPreviewProps, 'concept'>> = ({ onOpenEmailAuth, onAskQuestion }) => (
-  <div className="concept-page concept-two">
+const SignalField: React.FC<Omit<LandingConceptPreviewProps, 'concept'>> = ({ font = 'manrope', onOpenEmailAuth, onAskQuestion }) => (
+  <div className={`concept-page concept-two concept-two--${font}`}>
     <ConceptSwitcher active="2" dark />
+    <FontSwitcher active={font} />
     <Header dark onLogin={() => onOpenEmailAuth('signin')} onStart={() => onOpenEmailAuth('signup')} />
     <main>
       <section className="concept-two__hero">
@@ -168,4 +191,3 @@ export const LandingConceptPreview: React.FC<LandingConceptPreviewProps> = ({ co
   if (concept === '3') return <LivingIndex {...props} />;
   return <OrbitalClarity {...props} />;
 };
-

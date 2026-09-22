@@ -14,7 +14,7 @@ import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
 import { LandingPageView } from './components/LandingPageView';
-import { LandingConceptPreview, LandingConcept } from './components/LandingConceptPreview';
+import { LandingConceptPreview, LandingConcept, LandingFont } from './components/LandingConceptPreview';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
@@ -899,11 +899,16 @@ export default function App() {
     const landingConcept = landingParam === '1' || landingParam === '2' || landingParam === '3'
       ? landingParam as LandingConcept
       : null;
+    const fontParam = new URLSearchParams(window.location.search).get('font');
+    const landingFont = fontParam === 'space' || fontParam === 'editorial' || fontParam === 'manrope'
+      ? fontParam as LandingFont
+      : 'manrope';
     return (
       <>
         {landingConcept ? (
           <LandingConceptPreview
             concept={landingConcept}
+            font={landingFont}
             onOpenEmailAuth={(mode = 'signup') => {
               setEmailAuthMode(mode);
               setIsEmailAuthOpen(true);
