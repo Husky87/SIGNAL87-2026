@@ -14,6 +14,7 @@ import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
 import { LandingPageView } from './components/LandingPageView';
+import { LandingConceptPreview, LandingConcept } from './components/LandingConceptPreview';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
@@ -894,8 +895,27 @@ export default function App() {
   };
 
   if (!currentUser) {
+    const landingParam = new URLSearchParams(window.location.search).get('landing');
+    const landingConcept = landingParam === '1' || landingParam === '2' || landingParam === '3'
+      ? landingParam as LandingConcept
+      : null;
     return (
       <>
+        {landingConcept ? (
+          <LandingConceptPreview
+            concept={landingConcept}
+            onOpenEmailAuth={(mode = 'signup') => {
+              setEmailAuthMode(mode);
+              setIsEmailAuthOpen(true);
+            }}
+            onAskQuestion={(question) => {
+              setPendingLandingQuery(question);
+              try { sessionStorage.setItem('s87_pending_landing_query', question); } catch { /* Keep the in-memory fallback. */ }
+              setEmailAuthMode('signup');
+              setIsEmailAuthOpen(true);
+            }}
+          />
+        ) : (
         <LandingPageView
           onOpenEmailAuth={(mode = 'signup') => {
             setEmailAuthMode(mode);
@@ -923,6 +943,7 @@ export default function App() {
             }
           }}
         />
+        )}
 
         <AuthErrorModal
           isOpen={Boolean(authError)}
