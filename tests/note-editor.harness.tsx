@@ -20,6 +20,7 @@ function Harness() {
   return (
     <div className="s87-app flex h-[100dvh] overflow-hidden">
       <button type="button" onClick={() => setNoteRequest((n) => n + 1)}>Harness new note</button>
+      <button type="button" onClick={() => setItems((prev) => [{ ...seeded[0], id: 'note-unsafe', title: 'Unsafe note', body: '<b>safe text</b>', bodyHtml: '<p onclick="x()">safe text <a href="javascript:alert(1)">bad</a><img src=x onerror="alert(1)"><span style="background-image: url(https://evil.test/x)">styled</span></p>' }, ...prev])}>Harness unsafe note</button>
       <SavedView
         savedItems={items}
         onSaveItem={(item) => setItems((prev) => [item, ...prev.filter((p) => p.id !== item.id)])}
