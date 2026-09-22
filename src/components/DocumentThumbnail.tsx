@@ -53,11 +53,13 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
       }}
       className="group w-full h-full min-h-[250px] overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--card)] transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
     >
-      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-5">
-        <div className="mx-auto h-[122px] max-w-[210px] rounded-t-lg border border-[var(--rule)] bg-[var(--paper)] p-4">
+      <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--surface-2)] px-5 pt-5">
+        <div className="mx-auto h-[122px] max-w-[210px] rounded-t-xl border border-[var(--rule)] bg-[var(--paper)] p-4 shadow-[0_8px_22px_rgba(20,33,61,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <meta.Icon size={15} className="shrink-0" style={{ color: meta.color }} aria-hidden="true" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm" style={{ backgroundColor: meta.color }}>
+                <meta.Icon size={17} strokeWidth={1.9} aria-hidden="true" />
+              </span>
               <span className="truncate text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
                 {meta.label}
               </span>
@@ -87,7 +89,7 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
             <meta.Icon size={12} aria-hidden="true" />
             <span>{meta.label}</span>
           </div>
-          <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--text)]" title={docName}>
+          <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-5 text-[var(--ink)]" title={docName}>
             {docName}
           </h3>
         </div>
