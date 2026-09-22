@@ -1215,7 +1215,7 @@ export default function App() {
 
           {currentTab === 'compare' && (
             <ScrollArea id="tab:compare" className="flex-1 min-h-0 overflow-y-auto">
-              <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} />
+              <MultiDocCompareView documents={myDocuments} initialSelectedIds={pendingCompareIds} onBack={() => setCurrentTab('documents')} />
             </ScrollArea>
           )}
 
