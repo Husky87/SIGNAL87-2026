@@ -1718,7 +1718,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                           handleItemClick(e, doc.id);
                         }
                       }}
-                      className={`relative bg-[var(--surface)] border rounded-xl p-2.5 cursor-pointer transition-colors group ${
+                      className={`relative bg-[var(--surface)] border rounded-xl p-2.5 cursor-pointer transition-[border-color,box-shadow] hover:shadow-sm group ${
                         isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
@@ -1762,8 +1762,8 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       </div>
 
                       {/* Page preview */}
-                      <div className="relative aspect-[4/3] rounded-lg bg-[var(--raised)] border border-[var(--rule-2)] flex items-center justify-center overflow-hidden">
-                        <DocumentThumbnail doc={doc} />
+                      <div className="relative aspect-[4/3] rounded-lg bg-[var(--raised)] flex items-center justify-center overflow-hidden">
+                        <DocumentThumbnail doc={doc} variant="preview" />
                       </div>
 
                       <div className="text-[11px] text-[var(--muted)] mt-2 truncate">

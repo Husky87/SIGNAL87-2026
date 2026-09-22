@@ -18,7 +18,7 @@ const FilledFileIcon: React.FC<FilledFileIconProps> = ({
   ...props
 }) => (
   <svg
-    width={size}
+    width={(size * 38) / 44}
     height={size}
     viewBox="0 0 38 44"
     fill="none"
@@ -111,6 +111,7 @@ interface DocumentThumbnailProps {
   name?: string;
   type?: string;
   onClick?: () => void;
+  variant?: "card" | "preview";
 }
 
 const formatBytes = (bytes?: number) => {
@@ -126,10 +127,29 @@ const formatDate = (value?: string) => {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name: propName, type: propType, onClick }) => {
+export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name: propName, type: propType, onClick, variant = "card" }) => {
   const docName = doc?.title || propName || "Untitled Document";
   const docType = doc?.type || propType || "PDF";
   const meta = getTypeMeta(docType);
+
+  if (variant === "preview") {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        {meta.branded ? (
+          <meta.Icon size={52} aria-hidden="true" className="drop-shadow-sm transition-transform duration-200 group-hover:scale-105" />
+        ) : (
+          <FilledFileIcon
+            size={52}
+            fillColor={meta.color}
+            foldColor="#d9dcda"
+            label={previewLabel(docType, meta.label)}
+            aria-hidden="true"
+            className="drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
