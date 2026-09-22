@@ -14,7 +14,8 @@ import {
   ZoomIn,
   ZoomOut,
   Printer,
-  StickyNote
+  StickyNote,
+  Loader2
 } from 'lucide-react';
 import { Page } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
@@ -23,6 +24,12 @@ import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
 import { getTypeMeta } from './DocumentThumbnail';
 import { getDocumentPdfUrl, hasRenderablePdf } from '../lib/pdfGenerator';
+import { buildHighlightRenderer, extractPageTexts, findMatches, PageText } from '../lib/pdfSearch';
+import { printPdfDocument, printSheetsDocument, printTextDocument } from '../lib/printDocument';
+
+/** Thumbnails are drawn only within this distance of the rail's visible part. */
+const RAIL_MARGIN_PX = 480;
+const THUMB_WIDTH = 92;
 
 interface ParsedSheet {
   name: string;
@@ -212,6 +219,11 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const [activeMatchIndex, setActiveMatchIndex] = useState<number>(0);
   const [pdfProxy, setPdfProxy] = useState<PDFDocumentProxy | null>(null);
   const thumbRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const railRef = useRef<HTMLElement>(null);
+  const [nearThumbs, setNearThumbs] = useState<Set<number>>(() => new Set([1]));
+  const [thumbHeight, setThumbHeight] = useState(119);
+  const [pageTexts, setPageTexts] = useState<PageText[] | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const pdfUrl = useMemo(() => (doc ? getDocumentPdfUrl(doc) : ''), [doc]);
   // Only PDFs with a real file can be rendered. Everything else shows its
@@ -227,6 +239,8 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     setTotalPages(doc?.type === 'xlsx' || doc?.type === 'csv' ? 1 : 3);
     setActiveTab('pdf');
     setPdfProxy(null);
+    setPageTexts(null);
+    setNearThumbs(new Set([1]));
   }, [doc]);
 
   useEffect(() => {
@@ -238,38 +252,93 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     thumbRefs.current.get(currentPage)?.scrollIntoView({ block: 'nearest' });
   }, [currentPage]);
 
+  const showRail = activeTab === 'pdf' && canRenderPdf && pdfProxy !== null;
+
+  // Placeholders take the first page's proportions so the rail does not jump as thumbnails arrive.
+  useEffect(() => {
+    if (!pdfProxy) return;
+    let cancelled = false;
+    void pdfProxy.getPage(1).then((page) => {
+      const { width, height } = page.getViewport({ scale: 1 });
+      if (!cancelled && width > 0) setThumbHeight(Math.round((THUMB_WIDTH * height) / width));
+    });
+    return () => { cancelled = true; };
+  }, [pdfProxy]);
+
+  // Lazy rail: only pages near the visible part of the rail render a thumbnail.
+  useEffect(() => {
+    const root = railRef.current;
+    if (!showRail || !root || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setNearThumbs((prev) => {
+          const next = new Set(prev);
+          entries.forEach((entry) => {
+            const n = Number((entry.target as HTMLElement).dataset.page);
+            if (entry.isIntersecting) next.add(n); else next.delete(n);
+          });
+          return next;
+        });
+      },
+      { root, rootMargin: `${RAIL_MARGIN_PX}px 0px` }
+    );
+    thumbRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [showRail, totalPages]);
+
+  // Search reads the PDF's own text, once per document, the first time it is needed.
+  const wantsPdfText = canRenderPdf && pdfProxy !== null && docSearchQuery.trim() !== '';
+  useEffect(() => {
+    if (!wantsPdfText || pageTexts || !pdfProxy) return;
+    let cancelled = false;
+    extractPageTexts(pdfProxy)
+      .then((texts) => { if (!cancelled) setPageTexts(texts); })
+      .catch((err) => { console.error('Could not read the PDF text for search:', err); if (!cancelled) setPageTexts([]); });
+    return () => { cancelled = true; };
+  }, [wantsPdfText, pageTexts, pdfProxy]);
+
+  const searchesPdf = canRenderPdf && pdfProxy !== null;
+  const plainText = doc ? doc.contentPreview || doc.summary || 'No text content preview available.' : '';
+  const matches = useMemo(
+    () => (searchesPdf ? (pageTexts ? findMatches(pageTexts, docSearchQuery) : []) : findMatches([{ text: plainText, items: [] }], docSearchQuery)),
+    [searchesPdf, pageTexts, docSearchQuery, plainText]
+  );
+  const searchPending = searchesPdf && docSearchQuery.trim() !== '' && pageTexts === null;
+
+  const highlightRenderer = useMemo(
+    () => (searchesPdf && pageTexts && matches.length > 0 ? buildHighlightRenderer(pageTexts, matches, activeMatchIndex) : undefined),
+    [searchesPdf, pageTexts, matches, activeMatchIndex]
+  );
+
+  // Bring the current match into view: open its page, then scroll once its highlight has rendered.
+  useEffect(() => {
+    const match = matches[activeMatchIndex];
+    if (!match) return;
+    if (searchesPdf) setCurrentPage(match.page);
+    let frame = 0;
+    const deadline = performance.now() + 2000;
+    const seek = () => {
+      const el = document.querySelector(`.s87-search-hit-active[data-match="${activeMatchIndex}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else if (performance.now() < deadline) frame = requestAnimationFrame(seek);
+    };
+    frame = requestAnimationFrame(seek);
+    return () => cancelAnimationFrame(frame);
+  }, [matches, activeMatchIndex, searchesPdf]);
+
   if (!doc) return null;
 
-  const fullText = doc.contentPreview || doc.summary || 'No text content preview available.';
-
-  const getMatchesCount = () => {
-    if (!docSearchQuery.trim()) return 0;
-    const escaped = docSearchQuery.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-    const matches = fullText.match(new RegExp(escaped, 'gi'));
-    return matches ? matches.length : 0;
-  };
-
-  const matchesCount = getMatchesCount();
-
-  const scrollToActiveMatch = () => {
-    setTimeout(() => {
-      const activeEl = document.getElementById('active-search-match');
-      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 60);
-  };
+  const fullText = plainText;
+  const matchesCount = matches.length;
 
   const handleNextMatch = () => {
     if (matchesCount === 0) return;
-    const nextIdx = (activeMatchIndex + 1) % matchesCount;
-    setActiveMatchIndex(nextIdx);
-    scrollToActiveMatch();
+    setActiveMatchIndex((activeMatchIndex + 1) % matchesCount);
   };
 
   const handlePrevMatch = () => {
     if (matchesCount === 0) return;
-    const prevIdx = (activeMatchIndex - 1 + matchesCount) % matchesCount;
-    setActiveMatchIndex(prevIdx);
-    scrollToActiveMatch();
+    setActiveMatchIndex((activeMatchIndex - 1 + matchesCount) % matchesCount);
   };
 
   const handleDownloadText = () => {
@@ -290,16 +359,29 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => window.print();
+  // Prints only the document, from a frame of its own, instead of the whole app page.
+  const handlePrint = async () => {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      if (canRenderPdf && pdfProxy) await printPdfDocument(pdfProxy, doc.title);
+      else if (parsedSheets) await printSheetsDocument(doc.title, parsedSheets);
+      else await printTextDocument(doc.title, fullText);
+    } catch (err) {
+      console.error('Printing failed:', err);
+      alert('This document could not be prepared for printing.');
+    } finally {
+      setPrinting(false);
+    }
+  };
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(200, prev + 15));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(50, prev - 15));
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
 
   const iconButtonClass = 'flex h-9 w-9 items-center justify-center rounded-lg text-[#b3b3ad] hover:text-white hover:bg-white/10 transition-colors cursor-pointer';
-  const subButtonClass = 'flex h-7 w-7 items-center justify-center rounded-md text-[#b3b3ad] hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer';
+  const subButtonClass = 'flex h-7 min-h-0 w-7 items-center justify-center rounded-md text-[#b3b3ad] hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer';
   const typeMeta = getTypeMeta(doc.type);
-  const showRail = activeTab === 'pdf' && canRenderPdf && pdfProxy !== null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
@@ -352,8 +434,8 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             <button onClick={handleDownloadText} className={iconButtonClass} title="Download" aria-label="Download">
               <Download size={17} />
             </button>
-            <button onClick={handlePrint} className={`${iconButtonClass} hidden sm:flex`} title="Print" aria-label="Print">
-              <Printer size={17} />
+            <button onClick={() => void handlePrint()} disabled={printing} className={`${iconButtonClass} hidden sm:flex disabled:cursor-wait`} title="Print" aria-label={printing ? 'Preparing to print' : 'Print'}>
+              {printing ? <Loader2 size={17} className="animate-spin" /> : <Printer size={17} />}
             </button>
             <button onClick={onClose} className={iconButtonClass} title="Close" aria-label="Close viewer">
               <X size={18} />
@@ -383,7 +465,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
               {docSearchQuery && (
                 <>
                   <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-[#8c8c86]" aria-live="polite">
-                    {matchesCount > 0 ? `${activeMatchIndex + 1} of ${matchesCount}` : 'No matches'}
+                    {searchPending ? 'Searching…' : matchesCount > 0 ? `${activeMatchIndex + 1} of ${matchesCount}` : 'No matches'}
                   </span>
                   <button onClick={handlePrevMatch} disabled={matchesCount === 0} className={subButtonClass} title="Previous match" aria-label="Previous match">
                     <ChevronUp size={14} />
@@ -398,6 +480,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
               )}
             </div>
 
+            {canRenderPdf && (
             <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="flex items-center gap-0.5">
                 <button onClick={handlePrevPage} disabled={currentPage <= 1} className={subButtonClass} title="Previous page" aria-label="Previous page">
@@ -419,7 +502,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 </button>
                 <button
                   onClick={() => setZoomLevel(100)}
-                  className="min-w-[44px] h-7 rounded-md text-center tabular-nums text-[#f2f2ee] hover:bg-white/10 cursor-pointer"
+                  className="min-w-[44px] h-7 min-h-0 rounded-md text-center tabular-nums text-[#f2f2ee] hover:bg-white/10 cursor-pointer"
                   title="Reset zoom to 100%"
                   aria-label={`Zoom ${zoomLevel}%, reset to 100%`}
                 >
@@ -430,19 +513,21 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 </button>
               </div>
             </div>
+            )}
           </div>
         )}
 
         <div className="flex-1 flex min-h-0">
           {/* Page thumbnails. Rendered from the PDF the viewer already loaded. */}
           {showRail && (
-            <nav aria-label="Pages" className="hidden md:flex flex-col items-center gap-3 w-[132px] flex-shrink-0 overflow-y-auto bg-[#1a1b1d] border-r border-[#2c2e32] py-4">
+            <nav ref={railRef} aria-label="Pages" className="hidden md:flex flex-col items-center gap-3 w-[132px] flex-shrink-0 overflow-y-auto bg-[#1a1b1d] border-r border-[#2c2e32] py-4">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => {
                 const isCurrent = n === currentPage;
                 return (
                   <button
                     key={n}
                     ref={(el) => { if (el) thumbRefs.current.set(n, el); else thumbRefs.current.delete(n); }}
+                    data-page={n}
                     onClick={() => setCurrentPage(n)}
                     aria-label={`Go to page ${n}`}
                     aria-current={isCurrent ? 'page' : undefined}
@@ -453,7 +538,19 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                         isCurrent ? 'border-[var(--teal)]' : 'border-transparent group-hover:border-[#4a4c50]'
                       }`}
                     >
-                      <Page pdf={pdfProxy} pageNumber={n} width={92} renderTextLayer={false} renderAnnotationLayer={false} className="block" loading={<span className="block w-[92px] h-[119px]" />} />
+                      {nearThumbs.has(n) ? (
+                        <Page
+                          pdf={pdfProxy}
+                          pageNumber={n}
+                          width={THUMB_WIDTH}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                          className="block"
+                          loading={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}
+                        />
+                      ) : (
+                        <span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />
+                      )}
                     </span>
                     <span className={`text-[11px] tabular-nums ${isCurrent ? 'text-[#f2f2ee]' : 'text-[#8c8c86]'}`}>{n}</span>
                   </button>
@@ -490,7 +587,23 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 className="whitespace-pre-wrap text-[14px] text-[var(--ink-2)] bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-5"
                 style={{ lineHeight: 1.7 }}
               >
-                {fullText}
+                {searchesPdf || matches.length === 0
+                  ? fullText
+                  : matches.reduce<React.ReactNode[]>((nodes, match, index) => {
+                      const prevEnd = index === 0 ? 0 : matches[index - 1].end;
+                      nodes.push(fullText.slice(prevEnd, match.start));
+                      nodes.push(
+                        <mark
+                          key={index}
+                          data-match={index}
+                          className={`s87-search-hit${index === activeMatchIndex ? ' s87-search-hit-active' : ''}`}
+                        >
+                          {fullText.slice(match.start, match.end)}
+                        </mark>
+                      );
+                      if (index === matches.length - 1) nodes.push(fullText.slice(match.end));
+                      return nodes;
+                    }, [])}
               </div>
             </div>
           ) : activeTab === 'pdf' ? (
@@ -505,25 +618,8 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 onPageChange={setCurrentPage}
                 zoomLevel={zoomLevel}
                 onDocumentLoaded={setPdfProxy}
+                customTextRenderer={highlightRenderer}
               />
-
-              <div className="flex items-center justify-between px-2 py-3 mt-4 w-full max-w-3xl border-t border-[#2c2e32] text-[13px] text-[#b3b3ad]">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage <= 1}
-                  className="flex items-center gap-1 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <ChevronLeft size={16} /> Previous
-                </button>
-                <span>Page {currentPage} of {totalPages}</span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage >= totalPages}
-                  className="flex items-center gap-1 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
           ) : (
             <div className="max-w-[680px] w-full space-y-6 text-[14.5px] text-[var(--ink-2)]" style={{ lineHeight: 1.6 }}>
@@ -567,26 +663,6 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
         </div>
 
-        {/* Bottom bar — same edge-to-edge reasoning as the header above, for the
-            home-indicator inset instead of the notch. */}
-        <div
-          className="p-3 bg-[#1f2124] border-t border-[#2c2e32] flex items-center justify-between gap-3"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-        >
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 px-4 text-[#b3b3ad] hover:text-white font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center"
-          >
-            Back to workspace
-          </button>
-          <button
-            onClick={() => onOpenCompare(doc)}
-            className="flex-1 py-2.5 px-4 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
-          >
-            <GitFork size={14} />
-            <span>Compare documents</span>
-          </button>
-        </div>
       </div>
     </div>
   );
