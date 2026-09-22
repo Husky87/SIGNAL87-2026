@@ -32,6 +32,12 @@ export const SavedView: React.FC<SavedViewProps> = ({
   const [noteBody, setNoteBody] = useState('');
   const [noteLinkedDocId, setNoteLinkedDocId] = useState('');
   const [recentlyDeleted, setRecentlyDeleted] = useState<SavedItem | null>(null);
+  // Bumped whenever a different note is loaded into the editor. The body is a
+  // contentEditable element, so React must not own its children: re-rendering it
+  // would replace the DOM nodes the caret lives in and drop the selection back to
+  // offset 0, making every keystroke prepend. Its html is pushed in imperatively
+  // on a session change only, and the browser owns it from then on.
+  const [editorSession, setEditorSession] = useState(0);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const noteBodyHtmlRef = useRef('');
@@ -65,8 +71,16 @@ export const SavedView: React.FC<SavedViewProps> = ({
     setNoteTitle('');
     setNoteBody('');
     noteBodyHtmlRef.current = '';
+    setEditorSession((session) => session + 1);
     setNoteLinkedDocId(prelinkedDocId || '');
   }, [newNoteRequestId, prelinkedDocId]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (editorRef.current.innerHTML !== noteBodyHtmlRef.current) {
+      editorRef.current.innerHTML = noteBodyHtmlRef.current;
+    }
+  }, [editorSession]);
 
   useEffect(() => {
     if (!titleRef.current) return;
@@ -113,6 +127,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
     setNoteTitle('');
     setNoteBody('');
     noteBodyHtmlRef.current = '';
+    setEditorSession((session) => session + 1);
     setNoteLinkedDocId('');
   };
 
@@ -123,6 +138,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
       setNoteTitle(item.title);
       setNoteBody(item.body);
       noteBodyHtmlRef.current = sanitizeNoteHtml(item.bodyHtml || plainTextToHtml(item.body));
+      setEditorSession((session) => session + 1);
       setNoteLinkedDocId(item.linkedDocId || '');
     }
   };
@@ -224,7 +240,6 @@ export const SavedView: React.FC<SavedViewProps> = ({
                 aria-multiline="true"
                 data-placeholder="Start writing..."
                 className="s87-note-editor min-h-[480px] w-full px-6 py-5 text-[15px] leading-8 text-[var(--ink-2)] outline-none"
-                dangerouslySetInnerHTML={{ __html: noteBodyHtmlRef.current }}
                 onInput={(event) => {
                   noteBodyHtmlRef.current = sanitizeNoteHtml(event.currentTarget.innerHTML);
                   setNoteBody(event.currentTarget.innerText);
