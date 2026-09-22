@@ -55,6 +55,48 @@ const SpreadsheetFileIcon: React.FC<ThumbnailIconProps> = (props) => (
   <FilledFileIcon {...props} fillColor="#2f9b64" foldColor="#9bd1b4" label="XLS" />
 );
 
+/** The large preview glyph: the file-type silhouette drawn in the type's colour, with no filled shape behind it. */
+const OutlineFileIcon: React.FC<ThumbnailIconProps & { color: string; label: string }> = ({
+  size = 24,
+  color,
+  label,
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={(size * 44) / 38}
+    viewBox="0 0 38 44"
+    fill="none"
+    focusable="false"
+    {...props}
+  >
+    <path d="M7 2h18l8 8v29a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M25 2v5a3 3 0 0 0 3 3h5" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+    <text
+      x="18.5"
+      y="27"
+      textAnchor="middle"
+      fill={color}
+      fontFamily="Inter, system-ui, sans-serif"
+      fontSize="7.2"
+      fontWeight="800"
+      letterSpacing="0.2"
+    >
+      {label}
+    </text>
+    <path d="M11 32h15M11 36h11" stroke={color} strokeOpacity="0.5" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const previewLabel = (type: string, label: string) => {
+  if (label === "PDF") return "PDF";
+  if (label === "PowerPoint") return "PPT";
+  if (label === "Spreadsheet") return "XLS";
+  if (label === "Word") return "DOC";
+  const ext = type.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 4);
+  return ext || "FILE";
+};
+
 export function getTypeMeta(type?: string) {
   const t = (type || "").toLowerCase();
   if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", Icon: PdfFileIcon, branded: true };
@@ -88,10 +130,6 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
   const docName = doc?.title || propName || "Untitled Document";
   const docType = doc?.type || propType || "PDF";
   const meta = getTypeMeta(docType);
-  const previewText = (doc?.contentPreview || doc?.summary || "").replace(/\s+/g, " ").trim();
-  const previewLines = previewText
-    ? previewText.slice(0, 145).match(/.{1,42}(?:\s|$)/g)?.slice(0, 4) || []
-    : [];
 
   return (
     <div
@@ -107,42 +145,11 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
       className="group w-full h-full min-h-[250px] overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--card)] transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
     >
       <div className="relative h-[148px] overflow-hidden border-b border-[var(--rule)] bg-[var(--surface-2)] px-5 pt-5">
-        {meta.branded ? (
-          <div className="flex h-[123px] items-center justify-center pb-4">
-            <meta.Icon size={94} className="drop-shadow-[0_8px_10px_rgba(20,33,61,0.16)]" aria-hidden="true" />
-          </div>
-        ) : (
-          <div className="mx-auto h-[122px] max-w-[210px] rounded-t-xl border border-[var(--rule)] bg-[var(--paper)] p-4 shadow-[0_8px_22px_rgba(20,33,61,0.06)]">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center ${meta.branded ? "" : "rounded-lg text-white shadow-sm"}`}
-                style={{ backgroundColor: meta.branded ? "transparent" : meta.color }}
-              >
-                <meta.Icon size={meta.branded ? 32 : 17} strokeWidth={1.9} aria-hidden="true" />
-              </span>
-              <span className="truncate text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
-                {meta.label}
-              </span>
-            </div>
-            <span className="h-1.5 w-12 rounded-full bg-[var(--rule)]" />
-          </div>
-          {previewLines.length > 0 ? (
-            <div className="space-y-2">
-              {previewLines.map((line, index) => (
-                <div key={`${line}-${index}`} className="h-1.5 rounded-full bg-[var(--rule)]" style={{ width: `${92 - index * 11}%` }} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="h-1.5 w-[92%] rounded-full bg-[var(--rule)]" />
-              <div className="h-1.5 w-[78%] rounded-full bg-[var(--rule)]" />
-              <div className="h-1.5 w-[86%] rounded-full bg-[var(--rule)]" />
-              <div className="h-1.5 w-[58%] rounded-full bg-[var(--rule)]" />
-            </div>
-          )}
-          </div>
-        )}
+        {/* Anchored to the bottom: the Files grid crops this thumbnail from the
+            middle, so only roughly the lower 100px of this 148px area shows. */}
+        <div className="flex h-full items-end justify-center pb-6">
+          <OutlineFileIcon size={46} color={meta.color} label={previewLabel(docType, meta.label)} aria-hidden="true" />
+        </div>
       </div>
 
       <div className="flex min-h-[102px] flex-col justify-between p-4">

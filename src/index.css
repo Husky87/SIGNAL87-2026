@@ -598,3 +598,27 @@
   svg [style*="hero-ping"] { animation: none !important; }
   [style*="strata-drift"] { animation: none !important; }
 }
+
+/* The document viewer's search sits inside its own dark pill; the input itself stays plain. */
+.s87-app input.s87-viewer-search,
+.s87-app input.s87-viewer-search:focus {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+  color: #f2f2ee;
+}
+
+/* Document search hits. On a PDF the mark sits in the transparent text layer over
+   the drawn page, so only its background shows; in plain-text views the text stays visible. */
+.s87-search-hit {
+  background-color: rgba(255, 213, 0, 0.45);
+  color: inherit;
+  border-radius: 2px;
+}
+.s87-search-hit.s87-search-hit-active {
+  background-color: rgba(255, 128, 0, 0.6);
+  box-shadow: 0 0 0 1px rgba(214, 96, 0, 0.9);
+}
+.textLayer mark.s87-search-hit {
+  color: transparent;
+}

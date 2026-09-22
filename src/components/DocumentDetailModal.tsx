@@ -14,13 +14,22 @@ import {
   ZoomIn,
   ZoomOut,
   Printer,
-  BookOpen,
-  StickyNote
+  StickyNote,
+  Loader2
 } from 'lucide-react';
+import { Page } from 'react-pdf';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as XLSX from 'xlsx';
 import { DocumentItem } from '../types';
 import { PDFViewer } from './PDFViewer';
+import { getTypeMeta } from './DocumentThumbnail';
 import { getDocumentPdfUrl, hasRenderablePdf } from '../lib/pdfGenerator';
+import { buildHighlightRenderer, extractPageTexts, findMatches, PageText } from '../lib/pdfSearch';
+import { printPdfDocument, printSheetsDocument, printTextDocument } from '../lib/printDocument';
+
+/** Thumbnails are drawn only within this distance of the rail's visible part. */
+const RAIL_MARGIN_PX = 480;
+const THUMB_WIDTH = 92;
 
 interface ParsedSheet {
   name: string;
@@ -208,6 +217,13 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [docSearchQuery, setDocSearchQuery] = useState('');
   const [activeMatchIndex, setActiveMatchIndex] = useState<number>(0);
+  const [pdfProxy, setPdfProxy] = useState<PDFDocumentProxy | null>(null);
+  const thumbRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const railRef = useRef<HTMLElement>(null);
+  const [nearThumbs, setNearThumbs] = useState<Set<number>>(() => new Set([1]));
+  const [thumbHeight, setThumbHeight] = useState(119);
+  const [pageTexts, setPageTexts] = useState<PageText[] | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const pdfUrl = useMemo(() => (doc ? getDocumentPdfUrl(doc) : ''), [doc]);
   // Only PDFs with a real file can be rendered. Everything else shows its
@@ -222,44 +238,107 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     setActiveMatchIndex(0);
     setTotalPages(doc?.type === 'xlsx' || doc?.type === 'csv' ? 1 : 3);
     setActiveTab('pdf');
+    setPdfProxy(null);
+    setPageTexts(null);
+    setNearThumbs(new Set([1]));
   }, [doc]);
 
   useEffect(() => {
     setActiveMatchIndex(0);
   }, [docSearchQuery]);
 
+  // Keep the current page's thumbnail in view as pages change from anywhere.
+  useEffect(() => {
+    thumbRefs.current.get(currentPage)?.scrollIntoView({ block: 'nearest' });
+  }, [currentPage]);
+
+  const showRail = activeTab === 'pdf' && canRenderPdf && pdfProxy !== null;
+
+  // Placeholders take the first page's proportions so the rail does not jump as thumbnails arrive.
+  useEffect(() => {
+    if (!pdfProxy) return;
+    let cancelled = false;
+    void pdfProxy.getPage(1).then((page) => {
+      const { width, height } = page.getViewport({ scale: 1 });
+      if (!cancelled && width > 0) setThumbHeight(Math.round((THUMB_WIDTH * height) / width));
+    });
+    return () => { cancelled = true; };
+  }, [pdfProxy]);
+
+  // Lazy rail: only pages near the visible part of the rail render a thumbnail.
+  useEffect(() => {
+    const root = railRef.current;
+    if (!showRail || !root || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setNearThumbs((prev) => {
+          const next = new Set(prev);
+          entries.forEach((entry) => {
+            const n = Number((entry.target as HTMLElement).dataset.page);
+            if (entry.isIntersecting) next.add(n); else next.delete(n);
+          });
+          return next;
+        });
+      },
+      { root, rootMargin: `${RAIL_MARGIN_PX}px 0px` }
+    );
+    thumbRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [showRail, totalPages]);
+
+  // Search reads the PDF's own text, once per document, the first time it is needed.
+  const wantsPdfText = canRenderPdf && pdfProxy !== null && docSearchQuery.trim() !== '';
+  useEffect(() => {
+    if (!wantsPdfText || pageTexts || !pdfProxy) return;
+    let cancelled = false;
+    extractPageTexts(pdfProxy)
+      .then((texts) => { if (!cancelled) setPageTexts(texts); })
+      .catch((err) => { console.error('Could not read the PDF text for search:', err); if (!cancelled) setPageTexts([]); });
+    return () => { cancelled = true; };
+  }, [wantsPdfText, pageTexts, pdfProxy]);
+
+  const searchesPdf = canRenderPdf && pdfProxy !== null;
+  const plainText = doc ? doc.contentPreview || doc.summary || 'No text content preview available.' : '';
+  const matches = useMemo(
+    () => (searchesPdf ? (pageTexts ? findMatches(pageTexts, docSearchQuery) : []) : findMatches([{ text: plainText, items: [] }], docSearchQuery)),
+    [searchesPdf, pageTexts, docSearchQuery, plainText]
+  );
+  const searchPending = searchesPdf && docSearchQuery.trim() !== '' && pageTexts === null;
+
+  const highlightRenderer = useMemo(
+    () => (searchesPdf && pageTexts && matches.length > 0 ? buildHighlightRenderer(pageTexts, matches, activeMatchIndex) : undefined),
+    [searchesPdf, pageTexts, matches, activeMatchIndex]
+  );
+
+  // Bring the current match into view: open its page, then scroll once its highlight has rendered.
+  useEffect(() => {
+    const match = matches[activeMatchIndex];
+    if (!match) return;
+    if (searchesPdf) setCurrentPage(match.page);
+    let frame = 0;
+    const deadline = performance.now() + 2000;
+    const seek = () => {
+      const el = document.querySelector(`.s87-search-hit-active[data-match="${activeMatchIndex}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else if (performance.now() < deadline) frame = requestAnimationFrame(seek);
+    };
+    frame = requestAnimationFrame(seek);
+    return () => cancelAnimationFrame(frame);
+  }, [matches, activeMatchIndex, searchesPdf]);
+
   if (!doc) return null;
 
-  const fullText = doc.contentPreview || doc.summary || 'No text content preview available.';
-
-  const getMatchesCount = () => {
-    if (!docSearchQuery.trim()) return 0;
-    const escaped = docSearchQuery.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-    const matches = fullText.match(new RegExp(escaped, 'gi'));
-    return matches ? matches.length : 0;
-  };
-
-  const matchesCount = getMatchesCount();
-
-  const scrollToActiveMatch = () => {
-    setTimeout(() => {
-      const activeEl = document.getElementById('active-search-match');
-      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 60);
-  };
+  const fullText = plainText;
+  const matchesCount = matches.length;
 
   const handleNextMatch = () => {
     if (matchesCount === 0) return;
-    const nextIdx = (activeMatchIndex + 1) % matchesCount;
-    setActiveMatchIndex(nextIdx);
-    scrollToActiveMatch();
+    setActiveMatchIndex((activeMatchIndex + 1) % matchesCount);
   };
 
   const handlePrevMatch = () => {
     if (matchesCount === 0) return;
-    const prevIdx = (activeMatchIndex - 1 + matchesCount) % matchesCount;
-    setActiveMatchIndex(prevIdx);
-    scrollToActiveMatch();
+    setActiveMatchIndex((activeMatchIndex - 1 + matchesCount) % matchesCount);
   };
 
   const handleDownloadText = () => {
@@ -280,30 +359,44 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => window.print();
+  // Prints only the document, from a frame of its own, instead of the whole app page.
+  const handlePrint = async () => {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      if (canRenderPdf && pdfProxy) await printPdfDocument(pdfProxy, doc.title);
+      else if (parsedSheets) await printSheetsDocument(doc.title, parsedSheets);
+      else await printTextDocument(doc.title, fullText);
+    } catch (err) {
+      console.error('Printing failed:', err);
+      alert('This document could not be prepared for printing.');
+    } finally {
+      setPrinting(false);
+    }
+  };
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(200, prev + 15));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(50, prev - 15));
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
 
-  const menuButtonClass = 'flex flex-col items-center justify-center gap-1 px-3 py-2 text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer border-l border-[var(--rule)] first:border-l-0 min-w-fit';
+  const iconButtonClass = 'flex h-9 w-9 items-center justify-center rounded-lg text-[#b3b3ad] hover:text-white hover:bg-white/10 transition-colors cursor-pointer';
+  const subButtonClass = 'flex h-7 min-h-0 w-7 items-center justify-center rounded-md text-[#b3b3ad] hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer';
+  const typeMeta = getTypeMeta(doc.type);
 
   return (
-    <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
-      <div className="bg-[var(--surface)] rounded-none sm:rounded-2xl max-w-6xl w-full h-full sm:h-[94vh] overflow-hidden border-0 sm:border sm:border-[var(--rule)] flex flex-col text-[var(--ink)]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-3">
+      <div className="bg-[#1a1b1d] rounded-none sm:rounded-2xl max-w-6xl w-full h-full sm:h-[94vh] overflow-hidden border-0 sm:border sm:border-[#2c2e32] flex flex-col text-[#e8e8e4]">
 
-        {/* Single-row document controls. Search, page navigation, and zoom live
-            here so the PDF never loses vertical space to a second toolbar row. */}
+        {/* Header: what the document is on the left, icon-only actions on the right. */}
         <div
-          className="px-3 py-2 bg-[var(--surface)] border-b border-[var(--rule)] flex flex-wrap items-center gap-2.5"
+          className="flex items-center gap-3 px-3 sm:px-4 py-2 bg-[#1f2124] border-b border-[#2c2e32]"
           style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
-          <div className="min-w-0 flex-1 px-1">
-            <h2 className="text-[14.5px] font-medium text-[var(--ink)] truncate">{doc.title}</h2>
-            <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[12px] text-[var(--muted)]">
+          <typeMeta.Icon size={20} className="flex-shrink-0" style={{ color: typeMeta.color }} aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[14px] font-medium text-[#f2f2ee] truncate">{doc.title}</h2>
+            <div className="hidden sm:flex items-center gap-1.5 text-[11.5px] text-[#8c8c86]">
               <span>{doc.type.toUpperCase()}</span>
-              <span>·</span>
-              <span>{doc.category || 'General'}</span>
               <span>·</span>
               <span>{(doc.sizeBytes / 1000000).toFixed(2)} MB</span>
               <span>·</span>
@@ -311,140 +404,163 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </div>
           </div>
 
-          {activeTab === 'pdf' && (
-            <>
-              <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] flex-shrink-0">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage <= 1}
-                  className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  title="Previous page"
-                >
-                  <ChevronLeft size={15} />
-                </button>
-                <span className="whitespace-nowrap">
-                  Page <span className="text-[var(--ink)] font-medium">{currentPage}</span> of {totalPages}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage >= totalPages}
-                  className="p-1 rounded text-[var(--ink-2)] hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  title="Next page"
-                >
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1 bg-[var(--raised)] px-2 py-1 rounded-lg min-w-0 w-[190px] sm:w-[230px] flex-shrink-0">
-                <Search size={14} className="text-[var(--muted)] flex-shrink-0" />
-                <input
-                  type="text"
-                  value={docSearchQuery}
-                  onChange={(e) => setDocSearchQuery(e.target.value)}
-                  placeholder="Search this document"
-                  aria-label="Search this document"
-                  className="w-full min-w-0 bg-transparent text-[var(--ink)] text-[13px] placeholder-[var(--muted)] focus:outline-none"
-                />
-                {docSearchQuery && (
-                  <div className="flex items-center gap-1 text-[12px] text-[var(--muted)] flex-shrink-0">
-                    <span>{matchesCount > 0 ? `${activeMatchIndex + 1}/${matchesCount}` : '0'}</span>
-                    <button onClick={handlePrevMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Previous match">
-                      <ChevronUp size={12} />
-                    </button>
-                    <button onClick={handleNextMatch} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Next match">
-                      <ChevronDown size={12} />
-                    </button>
-                    <button onClick={() => setDocSearchQuery('')} className="p-0.5 hover:text-[var(--ink)] cursor-pointer" title="Clear search">
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5 bg-[var(--raised)] px-2 py-1 rounded-lg flex-shrink-0">
-                <button onClick={handleZoomOut} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom out">
-                  <ZoomOut size={14} />
-                </button>
-                <span className="w-9 text-center text-[12px]">{zoomLevel}%</span>
-                <button onClick={handleZoomIn} className="text-[var(--ink-2)] hover:text-[var(--ink)] cursor-pointer" title="Zoom in">
-                  <ZoomIn size={14} />
-                </button>
-                <button onClick={() => setZoomLevel(100)} className="ml-1 text-[12px] text-[var(--muted)] hover:text-[var(--ink)] underline cursor-pointer" title="Reset zoom">
-                  Reset
-                </button>
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center flex-wrap gap-0 border border-[var(--rule)] rounded-lg overflow-hidden flex-shrink-0">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             <button
-              onClick={() => setActiveTab('pdf')}
-              className={`${menuButtonClass} ${activeTab === 'pdf' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
-              title="Viewer — read and navigate the document"
-              aria-label="Viewer"
+              onClick={() => setActiveTab(activeTab === 'analysis' ? 'pdf' : 'analysis')}
+              className={`${iconButtonClass} ${activeTab === 'analysis' ? 'text-white bg-white/10' : ''}`}
+              title="AI analysis"
+              aria-label="AI analysis"
+              aria-pressed={activeTab === 'analysis'}
             >
-              <BookOpen size={16} />
-              <span className="text-[10px] leading-none font-medium">Viewer</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('analysis')}
-              className={`${menuButtonClass} ${activeTab === 'analysis' ? 'text-[var(--ink)] bg-[var(--raised)]' : ''}`}
-              title="AI Analysis — review document analysis"
-              aria-label="AI Analysis"
-            >
-              <Sparkles size={16} />
-              <span className="text-[10px] leading-none font-medium">AI Analysis</span>
+              <Sparkles size={17} />
             </button>
             <button
               onClick={() => { if (onAddNote) { onAddNote(doc.id); onClose(); } }}
-              className={menuButtonClass}
-              title="Add Note — create a linked note for this document"
-              aria-label="Add Note"
+              className={iconButtonClass}
+              title="Add note"
+              aria-label="Add note"
             >
-              <StickyNote size={16} />
-              <span className="text-[10px] leading-none font-medium">Add Note</span>
+              <StickyNote size={17} />
             </button>
             <button
               onClick={() => onOpenCompare(doc)}
-              className={`${menuButtonClass} hidden sm:flex`}
-              title="Compare — compare this document with another document"
-              aria-label="Compare"
+              className={`${iconButtonClass} hidden sm:flex`}
+              title="Compare"
+              aria-label="Compare with another document"
             >
-              <GitFork size={16} />
-              <span className="text-[10px] leading-none font-medium">Compare</span>
+              <GitFork size={17} />
             </button>
-            <button
-              onClick={handlePrint}
-              className={`${menuButtonClass} hidden sm:flex`}
-              title="Print — print the document"
-              aria-label="Print"
-            >
-              <Printer size={16} />
-              <span className="text-[10px] leading-none font-medium">Print</span>
+            <span className="mx-1 h-5 w-px bg-[#34363a]" aria-hidden="true" />
+            <button onClick={handleDownloadText} className={iconButtonClass} title="Download" aria-label="Download">
+              <Download size={17} />
             </button>
-            <button
-              onClick={handleDownloadText}
-              className={menuButtonClass}
-              title="Download — download the document"
-              aria-label="Download"
-            >
-              <Download size={16} />
-              <span className="text-[10px] leading-none font-medium">Download</span>
+            <button onClick={() => void handlePrint()} disabled={printing} className={`${iconButtonClass} hidden sm:flex disabled:cursor-wait`} title="Print" aria-label={printing ? 'Preparing to print' : 'Print'}>
+              {printing ? <Loader2 size={17} className="animate-spin" /> : <Printer size={17} />}
             </button>
-            <button
-              onClick={onClose}
-              className={`${menuButtonClass} text-[var(--muted)] hover:text-[var(--ink)]`}
-              title="Close — exit the document viewer"
-              aria-label="Close viewer"
-            >
-              <X size={17} />
-              <span className="text-[10px] leading-none font-medium">Close</span>
+            <button onClick={onClose} className={iconButtonClass} title="Close" aria-label="Close viewer">
+              <X size={18} />
             </button>
           </div>
         </div>
 
+        {/* Sub-toolbar: search, page counter, zoom. */}
+        {activeTab === 'pdf' && (
+          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 bg-[#26282b] border-b border-[#2c2e32] text-[12px] text-[#b3b3ad]">
+            <div className="flex items-center gap-1.5 bg-[#34363a] rounded-md px-2 h-8 min-w-0 flex-1 max-w-[340px]">
+              <Search size={14} className="flex-shrink-0 text-[#8c8c86]" />
+              <input
+                type="text"
+                value={docSearchQuery}
+                onChange={(e) => setDocSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.shiftKey) handlePrevMatch(); else handleNextMatch();
+                  }
+                }}
+                placeholder="Search this document"
+                aria-label="Search this document"
+                className="s87-viewer-search w-full min-w-0 bg-transparent text-[13px] text-[#f2f2ee] placeholder-[#8c8c86] focus:outline-none"
+              />
+              {docSearchQuery && (
+                <>
+                  <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-[#8c8c86]" aria-live="polite">
+                    {searchPending ? 'Searching…' : matchesCount > 0 ? `${activeMatchIndex + 1} of ${matchesCount}` : 'No matches'}
+                  </span>
+                  <button onClick={handlePrevMatch} disabled={matchesCount === 0} className={subButtonClass} title="Previous match" aria-label="Previous match">
+                    <ChevronUp size={14} />
+                  </button>
+                  <button onClick={handleNextMatch} disabled={matchesCount === 0} className={subButtonClass} title="Next match" aria-label="Next match">
+                    <ChevronDown size={14} />
+                  </button>
+                  <button onClick={() => setDocSearchQuery('')} className={subButtonClass} title="Clear search" aria-label="Clear search">
+                    <X size={13} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {canRenderPdf && (
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="flex items-center gap-0.5">
+                <button onClick={handlePrevPage} disabled={currentPage <= 1} className={subButtonClass} title="Previous page" aria-label="Previous page">
+                  <ChevronLeft size={15} />
+                </button>
+                <span className="min-w-[48px] text-center tabular-nums text-[#f2f2ee]" aria-label={`Page ${currentPage} of ${totalPages}`}>
+                  {currentPage} <span className="text-[#8c8c86]">/ {totalPages}</span>
+                </span>
+                <button onClick={handleNextPage} disabled={currentPage >= totalPages} className={subButtonClass} title="Next page" aria-label="Next page">
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <span className="h-4 w-px bg-[#3a3c40]" aria-hidden="true" />
+
+              <div className="flex items-center gap-0.5">
+                <button onClick={handleZoomOut} disabled={zoomLevel <= 50} className={subButtonClass} title="Zoom out" aria-label="Zoom out">
+                  <ZoomOut size={14} />
+                </button>
+                <button
+                  onClick={() => setZoomLevel(100)}
+                  className="min-w-[44px] h-7 min-h-0 rounded-md text-center tabular-nums text-[#f2f2ee] hover:bg-white/10 cursor-pointer"
+                  title="Reset zoom to 100%"
+                  aria-label={`Zoom ${zoomLevel}%, reset to 100%`}
+                >
+                  {zoomLevel}%
+                </button>
+                <button onClick={handleZoomIn} disabled={zoomLevel >= 200} className={subButtonClass} title="Zoom in" aria-label="Zoom in">
+                  <ZoomIn size={14} />
+                </button>
+              </div>
+            </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1 flex min-h-0">
+          {/* Page thumbnails. Rendered from the PDF the viewer already loaded. */}
+          {showRail && (
+            <nav ref={railRef} aria-label="Pages" className="hidden md:flex flex-col items-center gap-3 w-[132px] flex-shrink-0 overflow-y-auto bg-[#1a1b1d] border-r border-[#2c2e32] py-4">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => {
+                const isCurrent = n === currentPage;
+                return (
+                  <button
+                    key={n}
+                    ref={(el) => { if (el) thumbRefs.current.set(n, el); else thumbRefs.current.delete(n); }}
+                    data-page={n}
+                    onClick={() => setCurrentPage(n)}
+                    aria-label={`Go to page ${n}`}
+                    aria-current={isCurrent ? 'page' : undefined}
+                    className="group flex flex-shrink-0 flex-col items-center gap-1.5 cursor-pointer"
+                  >
+                    <span
+                      className={`block overflow-hidden rounded-[3px] bg-white border-2 transition-colors ${
+                        isCurrent ? 'border-[var(--teal)]' : 'border-transparent group-hover:border-[#4a4c50]'
+                      }`}
+                    >
+                      {nearThumbs.has(n) ? (
+                        <Page
+                          pdf={pdfProxy}
+                          pageNumber={n}
+                          width={THUMB_WIDTH}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                          className="block"
+                          loading={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}
+                        />
+                      ) : (
+                        <span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />
+                      )}
+                    </span>
+                    <span className={`text-[11px] tabular-nums ${isCurrent ? 'text-[#f2f2ee]' : 'text-[#8c8c86]'}`}>{n}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
         {/* Reading surface */}
-        <div className="flex-1 overflow-y-auto bg-[var(--bg)] px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start">
+        <div className={`flex-1 min-w-0 overflow-y-auto px-4 sm:px-10 py-6 sm:py-10 flex justify-center items-start ${activeTab === 'pdf' ? 'bg-[#1a1b1d]' : 'bg-[var(--bg)] text-[var(--ink)]'}`}>
           {activeTab === 'pdf' && sheetsLoading ? (
             <div className="text-[13.5px] text-[var(--muted)] pt-10">Loading spreadsheet…</div>
           ) : activeTab === 'pdf' && !canRenderPdf && parsedSheets ? (
@@ -471,7 +587,23 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 className="whitespace-pre-wrap text-[14px] text-[var(--ink-2)] bg-[var(--surface)] border border-[var(--rule)] rounded-xl p-5"
                 style={{ lineHeight: 1.7 }}
               >
-                {fullText}
+                {searchesPdf || matches.length === 0
+                  ? fullText
+                  : matches.reduce<React.ReactNode[]>((nodes, match, index) => {
+                      const prevEnd = index === 0 ? 0 : matches[index - 1].end;
+                      nodes.push(fullText.slice(prevEnd, match.start));
+                      nodes.push(
+                        <mark
+                          key={index}
+                          data-match={index}
+                          className={`s87-search-hit${index === activeMatchIndex ? ' s87-search-hit-active' : ''}`}
+                        >
+                          {fullText.slice(match.start, match.end)}
+                        </mark>
+                      );
+                      if (index === matches.length - 1) nodes.push(fullText.slice(match.end));
+                      return nodes;
+                    }, [])}
               </div>
             </div>
           ) : activeTab === 'pdf' ? (
@@ -485,25 +617,9 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 onTotalPagesChange={setTotalPages}
                 onPageChange={setCurrentPage}
                 zoomLevel={zoomLevel}
+                onDocumentLoaded={setPdfProxy}
+                customTextRenderer={highlightRenderer}
               />
-
-              <div className="flex items-center justify-between px-2 py-3 mt-4 w-full max-w-3xl border-t border-[var(--rule-2)] text-[13px] text-[var(--ink-2)]">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage <= 1}
-                  className="flex items-center gap-1 hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <ChevronLeft size={16} /> Previous
-                </button>
-                <span>Page {currentPage} of {totalPages}</span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage >= totalPages}
-                  className="flex items-center gap-1 hover:text-[var(--ink)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
           ) : (
             <div className="max-w-[680px] w-full space-y-6 text-[14.5px] text-[var(--ink-2)]" style={{ lineHeight: 1.6 }}>
@@ -545,26 +661,8 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
           )}
         </div>
 
-        {/* Bottom bar — same edge-to-edge reasoning as the header above, for the
-            home-indicator inset instead of the notch. */}
-        <div
-          className="p-3 bg-[var(--surface)] border-t border-[var(--rule)] flex items-center justify-between gap-3"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-        >
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 px-4 text-[var(--ink-2)] hover:text-[var(--ink)] font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center"
-          >
-            Back to workspace
-          </button>
-          <button
-            onClick={() => onOpenCompare(doc)}
-            className="flex-1 py-2.5 px-4 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
-          >
-            <GitFork size={14} />
-            <span>Compare documents</span>
-          </button>
         </div>
+
       </div>
     </div>
   );

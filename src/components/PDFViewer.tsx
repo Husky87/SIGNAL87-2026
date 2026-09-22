@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import type { PageProps } from 'react-pdf';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -22,6 +24,10 @@ interface PDFViewerProps {
   onTotalPagesChange: (total: number) => void;
   onPageChange: (page: number) => void;
   zoomLevel: number;
+  /** Hands the loaded document to the parent, e.g. for the page-thumbnail rail. */
+  onDocumentLoaded?: (pdf: PDFDocumentProxy) => void;
+  /** Rewrites the text layer, e.g. to wrap search matches in <mark>. */
+  customTextRenderer?: PageProps['customTextRenderer'];
 }
 
 function isFirebaseStorageUrl(value: string): boolean {
@@ -51,6 +57,8 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   onTotalPagesChange,
   onPageChange: _onPageChange,
   zoomLevel,
+  onDocumentLoaded,
+  customTextRenderer,
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,8 +163,9 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-    onTotalPagesChange(numPages);
+  function onDocumentLoadSuccess(pdf: PDFDocumentProxy) {
+    onTotalPagesChange(pdf.numPages);
+    onDocumentLoaded?.(pdf);
     setLoading(false);
     setError(null);
   }
@@ -183,7 +192,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         <div className="w-full flex justify-center min-w-0 overflow-visible">
           <div className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[var(--rule)] shadow-sm" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', width: `${basePageWidth}px` }}>
             <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError} loading={null} error={null}>
-              <Page pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)} width={pageWidth} renderTextLayer={true} renderAnnotationLayer={false} className="w-full" />
+              <Page pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)} width={pageWidth} renderTextLayer={true} renderAnnotationLayer={false} customTextRenderer={customTextRenderer} className="w-full" />
             </Document>
           </div>
         </div>
