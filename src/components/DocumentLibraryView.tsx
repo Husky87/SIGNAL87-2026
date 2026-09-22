@@ -230,7 +230,6 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     if (onFolderChange) onFolderChange(id);
   };
 
-  const categories = ['All', 'Contracts', 'Financials', 'Legal', 'Research'];
   const currentFolder = folders.find((f) => f.id === activeFolderId);
 
   const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
@@ -1331,24 +1330,6 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Category filter — text tabs, turquoise underline when active, no fill */}
-          <div className="flex items-center gap-4 overflow-x-auto scrollbar-none border-b border-[var(--rule-2)]">
-            {categories.map((cat) => {
-              const isActive = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-1 py-2 text-[13px] transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center border-b-2 -mb-px ${
-                    isActive ? 'text-[var(--ink)] font-semibold border-[var(--teal)]' : 'text-[var(--muted)] hover:text-[var(--ink)] border-transparent'
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
           </div>
 
           {/* Selection bar. Floated rather than placed in flow: as an in-flow band it
