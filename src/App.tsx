@@ -13,8 +13,7 @@ import { Footer } from './components/Footer';
 import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
-import { LandingPageView } from './components/LandingPageView';
-import { LandingConceptPreview, LandingConcept, LandingFont } from './components/LandingConceptPreview';
+import { SignalFieldLanding } from './components/SignalFieldLanding';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
@@ -895,20 +894,9 @@ export default function App() {
   };
 
   if (!currentUser) {
-    const landingParam = new URLSearchParams(window.location.search).get('landing');
-    const landingConcept = landingParam === '1' || landingParam === '2' || landingParam === '3'
-      ? landingParam as LandingConcept
-      : null;
-    const fontParam = new URLSearchParams(window.location.search).get('font');
-    const landingFont = fontParam === 'space' || fontParam === 'editorial' || fontParam === 'manrope'
-      ? fontParam as LandingFont
-      : 'manrope';
     return (
       <>
-        {landingConcept ? (
-          <LandingConceptPreview
-            concept={landingConcept}
-            font={landingFont}
+          <SignalFieldLanding
             onOpenEmailAuth={(mode = 'signup') => {
               setEmailAuthMode(mode);
               setIsEmailAuthOpen(true);
@@ -920,35 +908,6 @@ export default function App() {
               setIsEmailAuthOpen(true);
             }}
           />
-        ) : (
-        <LandingPageView
-          onOpenEmailAuth={(mode = 'signup') => {
-            setEmailAuthMode(mode);
-            setIsEmailAuthOpen(true);
-          }}
-          onAskQuestion={(question) => {
-            setPendingLandingQuery(question);
-            try { sessionStorage.setItem('s87_pending_landing_query', question); } catch { /* Keep the in-memory fallback. */ }
-            setEmailAuthMode('signup');
-            setIsEmailAuthOpen(true);
-          }}
-          onOpenPrivacy={() => setIsPrivacyOpen(true)}
-          onOpenBlog={() => setIsBlogOpen(true)}
-          onOpenMedia={() => setIsMediaOpen(true)}
-          onSelectTab={(tab) => {
-            if (tab === 'team') {
-              const el = document.getElementById('team');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            } else if (tab === 'privacy') {
-              setIsPrivacyOpen(true);
-            } else if (tab === 'terms') {
-              setIsTermsOpen(true);
-            } else {
-              setIsEmailAuthOpen(true);
-            }
-          }}
-        />
-        )}
 
         <AuthErrorModal
           isOpen={Boolean(authError)}
