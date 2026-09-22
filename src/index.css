@@ -598,3 +598,12 @@
   svg [style*="hero-ping"] { animation: none !important; }
   [style*="strata-drift"] { animation: none !important; }
 }
+
+/* The document viewer's search sits inside its own dark pill; the input itself stays plain. */
+.s87-app input.s87-viewer-search,
+.s87-app input.s87-viewer-search:focus {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+  color: #f2f2ee;
+}
