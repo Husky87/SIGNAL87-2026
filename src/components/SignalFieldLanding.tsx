@@ -1,5 +1,5 @@
 import React, { FormEvent, useState } from 'react';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight, Search, Users } from 'lucide-react';
 import { Signal87Logo } from './Signal87Logo';
 import '@fontsource-variable/manrope';
 import '../signalFieldLanding.css';
@@ -29,7 +29,7 @@ export const SignalFieldLanding: React.FC<SignalFieldLandingProps> = ({ onOpenEm
         <button type="button" className="signal-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Signal87 home">
           <Signal87Logo size={27} /><span>Signal87</span>
         </button>
-        <nav aria-label="Primary navigation"><a href="#platform">Platform</a><a href="#partners">Partners</a><a href="/privacy">Security</a></nav>
+        <nav aria-label="Primary navigation"><a href="#platform">Platform</a><a href="#partners">Partners</a><a href="/team">Team</a><a href="/privacy">Security</a></nav>
         <div className="signal-header__actions"><button type="button" onClick={() => onOpenEmailAuth('signin')}>Log in</button><button type="button" className="signal-primary" onClick={() => onOpenEmailAuth('signup')}>Start exploring <ArrowRight size={14} /></button></div>
       </header>
 
@@ -61,6 +61,7 @@ export const SignalFieldLanding: React.FC<SignalFieldLandingProps> = ({ onOpenEm
       <footer id="partners" className="signal-trust">
         <div className="signal-trust__intro"><span>Signal87</span><p>Intelligence for complex information.</p></div>
         <div className="signal-trust__links" aria-label="Signal87 partners and profiles">
+          <a href="/team" aria-label="Meet the Signal87 leadership team"><Users aria-hidden="true" /><span>Leadership Team</span></a>
           <a href="https://www.linkedin.com/company/108308342/" target="_blank" rel="noreferrer" aria-label="Signal87 on LinkedIn"><LinkedInMark /><span>LinkedIn</span></a>
           <a href="https://theresanaiforthat.com/ai/signal87-ai/" target="_blank" rel="noreferrer"><span className="taaft-mark">TAAFT</span><span>There's An AI For That</span></a>
           <div><img src="/partners/nvidia.svg" alt="" /><span>NVIDIA Inception</span></div>
