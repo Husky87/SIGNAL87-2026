@@ -85,7 +85,7 @@ const formatDate = (value?: string) => {
 };
 
 export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name: propName, type: propType, onClick }) => {
-  const docName = doc?.title || doc?.name || propName || "Untitled Document";
+  const docName = doc?.title || propName || "Untitled Document";
   const docType = doc?.type || propType || "PDF";
   const meta = getTypeMeta(docType);
   const previewText = (doc?.contentPreview || doc?.summary || "").replace(/\s+/g, " ").trim();

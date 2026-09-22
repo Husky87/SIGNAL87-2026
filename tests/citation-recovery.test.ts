@@ -11,7 +11,7 @@ async function ask(documents: Array<{ id: string; title: string; fullText: strin
   globalThis.fetch = (async () => ({
     ok: true,
     json: async () => ({ choices: [{ message: { content: 'The passphrase is copper sparrow 7319 [1].' } }] })
-  })) as typeof fetch;
+  })) as unknown as typeof fetch;
   const response: any = {
     statusCode: 200,
     setHeader() {},

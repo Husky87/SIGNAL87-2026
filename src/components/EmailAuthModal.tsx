@@ -31,6 +31,15 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
     }
   }, [isOpen, initialMode]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,12 +61,17 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-sm w-full p-6 text-[var(--ink)] space-y-5">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+        className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-sm w-full p-6 text-[var(--ink)] space-y-5"
+      >
         <div className="flex items-center justify-between">
-          <h2 className="text-[18px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
+          <h2 id="auth-modal-title" className="text-[18px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
             {mode === 'signup' ? 'Create your account' : 'Log in'}
           </h2>
-          <button onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
+          <button type="button" aria-label="Close authentication dialog" onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
             <X size={18} />
           </button>
         </div>
