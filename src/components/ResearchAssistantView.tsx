@@ -34,6 +34,7 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronDown,
+  Clock,
   Loader2,
   Menu,
   LogIn,
@@ -381,7 +382,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     citations?: Citation[];
     timestamp: string;
   } | null>(null);
-  const [showActionsDropdown, setShowActionsDropdown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -685,42 +685,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }, 500);
   };
 
-  const quickActionChips = [
-    {
-      id: 'draft',
-      label: '📝 Draft Executive Report',
-      prompt: 'Draft a comprehensive publication-grade executive brief synthesizing all active documents.',
-    },
-    {
-      id: 'compare',
-      label: '⚖️ Compare Key Documents',
-      prompt: 'Perform a side-by-side legal clause comparison across all active documents and flag key conflicts and risk escalation triggers.',
-    },
-    {
-      id: 'extract',
-      label: '📊 Extract Financial Metrics',
-      prompt: 'Extract all financial milestones, indemnification caps, and budget metrics into a clear Markdown table.',
-    },
-    {
-      id: 'audit',
-      label: '🔍 Audit Compliance & Deadlines',
-      prompt: 'Audit all compliance timelines, retroactive notice windows, and penalty triggers across active agreements.',
-    },
-    {
-      id: 'quantitative',
-      label: '📈 Quantitative Analysis',
-      prompt: 'Analyze all numerical data, calculations, percentages, trends, and metrics in the documents. Provide concrete numbers and statistical insights.',
-    },
-    {
-      id: 'reasoning',
-      label: '🧠 Logical Reasoning & Causality',
-      prompt: 'Explain the causal relationships, logical chains, and underlying mechanisms in these documents. What causes what and why?',
-    },
-    {
-      id: 'qa',
-      label: '❓ Ask a Question',
-      prompt: 'Ask me anything about these documents and I will provide direct, evidence-based answers with reasoning steps.',
-    }
+  const suggestionCards = [
+    { id: 'deadlines', icon: Clock, prompt: 'What compliance deadlines and notice windows are coming up across active agreements?' },
+    { id: 'metrics', icon: BarChart3, prompt: 'Extract the key financial metrics from these documents' },
+    { id: 'summary', icon: FileText, prompt: 'Draft an executive summary of the key findings across this corpus' },
+    { id: 'compare', icon: Columns, prompt: 'Compare terms across two documents I select' }
   ];
 
   const isEmptyChat = chatHistory.length === 0;
@@ -974,31 +943,25 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 {composer}
               </div>
 
-              <div className="s87-column flex flex-col items-start pt-5">
-                <div className="relative w-full max-w-md">
-                  <button
-                    onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-transparent hover:bg-[var(--surface-2)] rounded-full transition-colors cursor-pointer text-[13px] text-[var(--muted)] hover:text-[var(--ink)]"
-                  >
-                    <span>More questions to try</span>
-                    <ChevronDown size={14} />
-                  </button>
-                  {showActionsDropdown && (
-                    <div className="absolute top-full left-0 w-full mt-2 bg-[var(--surface-2)] border border-[var(--rule)] rounded-[12px] z-20 overflow-hidden text-left">
-                      {quickActionChips.map((chip) => (
-                        <button
-                          key={chip.id}
-                          onClick={() => {
-                            setInputQuery(chip.prompt);
-                            setShowActionsDropdown(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-[var(--surface-2)] text-[13px] text-[var(--muted)] hover:text-[var(--ink)] border-b border-[var(--rule)] last:border-b-0 cursor-pointer"
-                        >
-                          {chip.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              <div className="s87-column pt-7">
+                <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)] mb-3 px-0.5">
+                  Try one of these
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {suggestionCards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => setInputQuery(card.prompt)}
+                        className="flex items-start gap-3 text-left p-4 rounded-[12px] border border-[var(--rule)] bg-[var(--bg)] hover:bg-[var(--surface-2)] hover:border-[color-mix(in_srgb,var(--teal)_35%,var(--rule))] text-[14px] leading-[1.45] text-[var(--ink)] transition-colors cursor-pointer"
+                      >
+                        <Icon size={17} className="text-[var(--teal)] flex-shrink-0 mt-[1px]" />
+                        <span>{card.prompt}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
