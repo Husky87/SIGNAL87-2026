@@ -28,7 +28,8 @@ import {
   Info,
   CheckSquare,
   Square,
-  MinusSquare
+  MinusSquare,
+  Printer
 } from 'lucide-react';
 import { DocumentItem, FolderItem } from '../types';
 import { useScrollMemory } from '../lib/useScrollMemory';
@@ -167,6 +168,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   const [openMenu, setOpenMenu] = useState<'type' | 'owner' | 'modified' | 'create' | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'doc' | 'folder'; id: string } | null>(null);
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
   const [contextShareOpen, setContextShareOpen] = useState(false);
   const [contextMoveOpen, setContextMoveOpen] = useState(false);
 
@@ -848,6 +850,45 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   // Shared action list used by both the "..." dropdown and the right-click menu.
   const renderDocActions = (doc: DocumentItem, variant: 'dropdown' | 'context') => {
     const isTrash = filesView === 'trash';
+    if (variant === 'context' && !isTrash) {
+      return (
+        <>
+          <button onClick={() => { onSelectDocument(doc); closeAllMenus(); }} className="w-full px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer">
+            <Eye size={14} /> Open
+          </button>
+          {onRenameDocument && <button onClick={() => { startRenamingDoc(doc); closeAllMenus(); }} className="w-full px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer">
+            <Edit2 size={14} /> Rename
+          </button>}
+          {onMoveDocument && <div>
+            <button onClick={(event) => { event.stopPropagation(); setContextMoveOpen((value) => !value); }} className="w-full px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center justify-between cursor-pointer">
+              <span className="flex items-center gap-2"><FolderTabIcon size={14} /> Move to folder</span><ChevronRight size={14} />
+            </button>
+            {contextMoveOpen && <div className="max-h-40 space-y-0.5 overflow-y-auto bg-[var(--raised)] p-1">
+              <button onClick={() => { onMoveDocument(doc.id, undefined); closeAllMenus(); }} className="w-full rounded px-2 py-1.5 text-left text-[12px] text-[var(--ink)] hover:bg-[var(--surface)]">No folder</button>
+              {folderPaths.map(({ folder, depth }) => <button key={folder.id} onClick={() => { onMoveDocument(doc.id, folder.id); closeAllMenus(); }} className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-[12px] text-[var(--ink)] hover:bg-[var(--surface)]" style={{ paddingLeft: `${8 + depth * 12}px` }}><span className="max-w-[140px] truncate">{folder.name}</span>{doc.folderId === folder.id && <Check size={12} className="text-[var(--teal)]" />}</button>)}
+            </div>}
+          </div>}
+          <button onClick={() => {
+            if (doc.fileUrl) {
+              const printWindow = window.open(doc.fileUrl, '_blank');
+              if (printWindow) {
+                printWindow.opener = null;
+                window.setTimeout(() => { try { printWindow.print(); } catch { /* The opened document still exposes its native print control. */ } }, 700);
+              }
+            } else {
+              onSelectDocument(doc);
+            }
+            closeAllMenus();
+          }} className="w-full px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer">
+            <Printer size={14} /> Print
+          </button>
+          {doc.fileUrl && <a href={doc.fileUrl} download={doc.title} onClick={closeAllMenus} className="w-full px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--ink)] flex items-center gap-2 cursor-pointer"><Download size={14} /> Download</a>}
+          <button onClick={() => { onDeleteDocument(doc.id); closeAllMenus(); }} className="w-full border-t border-[var(--rule-2)] px-3 py-2.5 text-left hover:bg-[var(--raised)] text-[var(--warn)] flex items-center gap-2 cursor-pointer">
+            <Trash2 size={14} /> Delete
+          </button>
+        </>
+      );
+    }
     return (
       <>
         {!isTrash && (
@@ -1450,10 +1491,11 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
           {/* Folders — My Workspace only */}
           {showFolders && (
             <div>
-              <h2 className="text-[11px] font-medium text-[var(--muted)] uppercase pb-2" style={{ letterSpacing: '0.09em' }}>
-                Folders
-              </h2>
-              <div>
+              <button type="button" onClick={() => setFoldersExpanded((expanded) => !expanded)} aria-expanded={foldersExpanded} className="mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-1 text-[11px] font-medium uppercase text-[var(--muted)] hover:text-[var(--ink)]" style={{ letterSpacing: '0.09em' }}>
+                <span>Folders <span className="ml-1 text-[var(--muted)]">({childFolders.length})</span></span>
+                <ChevronDown size={14} className={`transition-transform ${foldersExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              {foldersExpanded && <div>
                 {childFolders.map((fld) => {
                   const fileCount = getFolderFileCount(fld.id);
                   const isEditing = editingFolderId === fld.id;
@@ -1519,7 +1561,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                     </div>
                   );
                 })}
-              </div>
+              </div>}
             </div>
           )}
 

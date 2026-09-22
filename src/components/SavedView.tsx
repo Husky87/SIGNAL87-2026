@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, StickyNote, FileText, ArrowLeft, Trash2, Link2, Check, Clock3 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Search, StickyNote, FileText, ArrowLeft, Trash2, Link2, Check, Clock3, Bold, Italic, List, ListOrdered, Heading2, Undo2, Redo2, RemoveFormatting } from 'lucide-react';
 import { SavedItem, SavedNote, DocumentItem } from '../types';
 import { ScrollArea } from './ScrollArea';
 
@@ -31,6 +31,32 @@ export const SavedView: React.FC<SavedViewProps> = ({
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [noteLinkedDocId, setNoteLinkedDocId] = useState('');
+  const [recentlyDeleted, setRecentlyDeleted] = useState<SavedItem | null>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const noteBodyHtmlRef = useRef('');
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDeletionRef = useRef<SavedItem | null>(null);
+  const onDeleteItemRef = useRef(onDeleteItem);
+  onDeleteItemRef.current = onDeleteItem;
+
+  const plainTextToHtml = (text: string) => text.split(/\n{2,}/).map((paragraph) => `<p>${paragraph.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`).join('');
+
+  const sanitizeNoteHtml = (html: string) => {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const allowed = new Set(['P', 'DIV', 'BR', 'STRONG', 'B', 'EM', 'I', 'UL', 'OL', 'LI', 'H2', 'H3']);
+    Array.from(template.content.querySelectorAll('*')).forEach((node) => {
+      if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') {
+        node.remove();
+      } else if (!allowed.has(node.tagName)) {
+        node.replaceWith(...Array.from(node.childNodes));
+      } else {
+        Array.from(node.attributes).forEach((attribute) => node.removeAttribute(attribute.name));
+      }
+    });
+    return template.innerHTML;
+  };
 
   useEffect(() => {
     if (!newNoteRequestId && !prelinkedDocId) return;
@@ -38,12 +64,25 @@ export const SavedView: React.FC<SavedViewProps> = ({
     setIsCreatingNote(true);
     setNoteTitle('');
     setNoteBody('');
+    noteBodyHtmlRef.current = '';
     setNoteLinkedDocId(prelinkedDocId || '');
   }, [newNoteRequestId, prelinkedDocId]);
+
+  useEffect(() => {
+    if (!titleRef.current) return;
+    titleRef.current.style.height = 'auto';
+    titleRef.current.style.height = `${titleRef.current.scrollHeight}px`;
+  }, [noteTitle, selectedItem, isCreatingNote]);
+
+  useEffect(() => () => {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    if (pendingDeletionRef.current) onDeleteItemRef.current(pendingDeletionRef.current.id);
+  }, []);
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return [...savedItems]
+      .filter((item) => item.id !== recentlyDeleted?.id)
       .filter((item) => activeFilter === 'all' || item.type === (activeFilter === 'notes' ? 'note' : 'answer'))
       .filter((item) => {
         if (!q) return true;
@@ -56,13 +95,14 @@ export const SavedView: React.FC<SavedViewProps> = ({
         const bTime = new Date(b.type === 'note' ? b.updatedAt : b.timestamp).getTime();
         return bTime - aTime;
       });
-  }, [savedItems, activeFilter, searchQuery]);
+  }, [savedItems, activeFilter, searchQuery, recentlyDeleted]);
 
   const closeEditor = () => {
     setSelectedItem(null);
     setIsCreatingNote(false);
     setNoteTitle('');
     setNoteBody('');
+    noteBodyHtmlRef.current = '';
     setNoteLinkedDocId('');
     onClearPrelinkedDoc?.();
   };
@@ -72,6 +112,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
     setIsCreatingNote(true);
     setNoteTitle('');
     setNoteBody('');
+    noteBodyHtmlRef.current = '';
     setNoteLinkedDocId('');
   };
 
@@ -81,6 +122,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
     if (item.type === 'note') {
       setNoteTitle(item.title);
       setNoteBody(item.body);
+      noteBodyHtmlRef.current = sanitizeNoteHtml(item.bodyHtml || plainTextToHtml(item.body));
       setNoteLinkedDocId(item.linkedDocId || '');
     }
   };
@@ -94,12 +136,50 @@ export const SavedView: React.FC<SavedViewProps> = ({
       type: 'note',
       title: noteTitle.trim() || 'Untitled Note',
       body: noteBody,
+      bodyHtml: sanitizeNoteHtml(noteBodyHtmlRef.current),
       linkedDocId: noteLinkedDocId || undefined,
       createdAt: existing?.createdAt || now,
       updatedAt: now
     };
     onSaveItem(note);
     closeEditor();
+  };
+
+  const formatNote = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      noteBodyHtmlRef.current = sanitizeNoteHtml(editorRef.current.innerHTML);
+      setNoteBody(editorRef.current.innerText);
+    }
+  };
+
+  const toolbarButton = (label: string, icon: React.ReactNode, command: string, value?: string, showLabel = false) => (
+    <button key={label} type="button" aria-label={label} title={label} onMouseDown={(event) => { event.preventDefault(); formatNote(command, value); }} className={`flex h-9 min-h-9 items-center justify-center gap-1.5 rounded-lg text-[var(--muted)] transition hover:bg-[var(--raised)] hover:text-[var(--ink)] ${showLabel ? 'px-2.5 text-[11px] font-semibold' : 'w-9'}`}>
+      {icon}{showLabel && <span>{label}</span>}
+    </button>
+  );
+
+  const deleteSelectedItem = () => {
+    if (!selectedItem) return;
+    if (pendingDeletionRef.current) onDeleteItem(pendingDeletionRef.current.id);
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    pendingDeletionRef.current = selectedItem;
+    setRecentlyDeleted(selectedItem);
+    closeEditor();
+    deleteTimerRef.current = setTimeout(() => {
+      if (pendingDeletionRef.current) onDeleteItemRef.current(pendingDeletionRef.current.id);
+      pendingDeletionRef.current = null;
+      setRecentlyDeleted(null);
+      deleteTimerRef.current = null;
+    }, 8000);
+  };
+
+  const undoDelete = () => {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    deleteTimerRef.current = null;
+    pendingDeletionRef.current = null;
+    setRecentlyDeleted(null);
   };
 
   const renderEditor = () => (
@@ -111,7 +191,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
         <div className="flex items-center gap-2">
           {selectedItem?.type === 'answer' && <span className="rounded-full bg-[var(--teal-soft)] px-3 py-1.5 text-[10px] font-semibold text-[var(--teal)]">Saved answer</span>}
           {(isCreatingNote || selectedItem?.type === 'note') && <button type="button" onClick={saveNote} className="flex min-h-[42px] items-center gap-2 rounded-full bg-[var(--ink)] px-5 text-[12px] font-semibold text-white transition hover:opacity-85"><Check size={14} /> Save note</button>}
-          {selectedItem && <button type="button" onClick={() => { onDeleteItem(selectedItem.id); closeEditor(); }} aria-label="Delete" className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--raised)] hover:text-[var(--ink)]"><Trash2 size={15} /></button>}
+          {selectedItem && <button type="button" onClick={deleteSelectedItem} aria-label="Delete note" className="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-[var(--muted)] transition hover:bg-[var(--raised)] hover:text-[var(--warn)]"><Trash2 size={15} /> Delete</button>}
         </div>
       </header>
 
@@ -119,9 +199,42 @@ export const SavedView: React.FC<SavedViewProps> = ({
         {isCreatingNote || selectedItem?.type === 'note' ? (
           <div className="mx-auto max-w-4xl">
             <div className="mb-8 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--teal)]"><StickyNote size={15} /> Note editor</div>
-            <input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Untitled note" className="w-full border-0 bg-transparent text-[36px] font-semibold tracking-[-0.055em] text-[var(--ink)] outline-none placeholder:text-[var(--muted)] sm:text-[52px]" />
+            <label htmlFor="note-title" className="sr-only">Note title</label>
+            <textarea id="note-title" ref={titleRef} rows={1} value={noteTitle} onChange={(event) => setNoteTitle(event.target.value.replace(/\n/g, ' '))} placeholder="Untitled note" className="s87-note-title w-full resize-none overflow-hidden border-0 bg-transparent text-[34px] font-semibold leading-[1.08] tracking-[-0.05em] text-[var(--ink)] outline-none placeholder:text-[var(--muted)] sm:text-[44px]" />
             <div className="mt-4 flex items-center gap-2 text-[11px] text-[var(--muted)]"><Clock3 size={13} /> Draft your thinking, decisions, and next steps.</div>
-            <textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} placeholder="Start writing..." className="mt-10 min-h-[520px] w-full resize-none rounded-2xl border border-[var(--rule)] bg-[var(--surface)] px-6 py-5 text-[15px] leading-8 text-[var(--ink-2)] shadow-sm outline-none transition focus:border-[var(--teal)] focus:ring-2 focus:ring-[var(--teal-soft)] placeholder:text-[var(--muted)]" />
+            <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--rule)] bg-[var(--surface)] shadow-sm transition focus-within:border-[var(--teal)] focus-within:ring-2 focus-within:ring-[var(--teal-soft)]">
+              <div className="flex flex-wrap items-center gap-1 border-b border-[var(--rule-2)] bg-[var(--surface-2)]/55 px-3 py-2" role="toolbar" aria-label="Note formatting">
+                {toolbarButton('Bold', <Bold size={15} />, 'bold')}
+                {toolbarButton('Italic', <Italic size={15} />, 'italic')}
+                <span className="mx-1 h-5 w-px bg-[var(--rule)]" aria-hidden="true" />
+                {toolbarButton('Heading', <Heading2 size={15} />, 'formatBlock', 'h2')}
+                {toolbarButton('Bulleted list', <List size={15} />, 'insertUnorderedList')}
+                {toolbarButton('Numbered list', <ListOrdered size={15} />, 'insertOrderedList')}
+                <span className="mx-1 h-5 w-px bg-[var(--rule)]" aria-hidden="true" />
+                {toolbarButton('Undo', <Undo2 size={15} />, 'undo', undefined, true)}
+                {toolbarButton('Redo', <Redo2 size={15} />, 'redo', undefined, true)}
+                {toolbarButton('Clear formatting', <RemoveFormatting size={15} />, 'removeFormat')}
+              </div>
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-label="Note body"
+                aria-multiline="true"
+                data-placeholder="Start writing..."
+                className="s87-note-editor min-h-[480px] w-full px-6 py-5 text-[15px] leading-8 text-[var(--ink-2)] outline-none"
+                dangerouslySetInnerHTML={{ __html: noteBodyHtmlRef.current }}
+                onInput={(event) => {
+                  noteBodyHtmlRef.current = sanitizeNoteHtml(event.currentTarget.innerHTML);
+                  setNoteBody(event.currentTarget.innerText);
+                }}
+                onPaste={(event) => {
+                  event.preventDefault();
+                  document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
+                }}
+              />
+            </div>
             {noteLinkedDocId && <button type="button" onClick={() => { const doc = documents.find((d) => d.id === noteLinkedDocId); if (doc) onSelectDocument(doc); }} className="mt-4 flex items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 py-2.5 text-[11px] text-[var(--ink-2)] transition hover:bg-[var(--raised)]"><Link2 size={13} /> {documents.find((d) => d.id === noteLinkedDocId)?.title || 'Linked document'}</button>}
           </div>
         ) : selectedItem?.type === 'answer' ? (
@@ -161,6 +274,12 @@ export const SavedView: React.FC<SavedViewProps> = ({
           </div>
         </div></div>
       </ScrollArea>
+      {recentlyDeleted && (
+        <div role="status" className="fixed bottom-24 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-4 rounded-full bg-[var(--ink)] px-5 py-3 text-[12px] text-white shadow-xl sm:bottom-8">
+          <span>Note removed.</span>
+          <button type="button" onClick={undoDelete} className="min-h-0 font-semibold text-[#9be7ed] hover:text-white">Recover</button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { FormEvent, useState } from 'react';
-import { ArrowRight, Search, Users } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { Signal87Logo } from './Signal87Logo';
 import '@fontsource-variable/manrope';
 import '../signalFieldLanding.css';
@@ -50,23 +50,59 @@ export const SignalFieldLanding: React.FC<SignalFieldLandingProps> = ({ onOpenEm
               <button type="submit" aria-label="Submit question"><ArrowRight size={16} /></button>
             </form>
           </div>
-          <div className="signal-rail" id="platform">
+          <div className="signal-rail">
             <div><strong>01</strong><span>Connect</span><p>Bring every source into one secure field.</p></div>
             <div><strong>02</strong><span>Interrogate</span><p>Ask across documents, data, and the web.</p></div>
             <div><strong>03</strong><span>Resolve</span><p>Trace every conclusion back to evidence.</p></div>
           </div>
         </section>
+
+        <section id="platform" className="signal-demo" aria-labelledby="signal-demo-title">
+          <div className="signal-demo__intro">
+            <span>Inside the workspace</span>
+            <h2 id="signal-demo-title">One question.<br />Every relevant signal.</h2>
+            <p>Watch Signal87 move from a complex request to an evidence-backed answer—without losing the trail between them.</p>
+          </div>
+          <div className="signal-demo__window" aria-label="Animated preview of the Signal87 workspace">
+            <div className="signal-demo__chrome"><i /><i /><i /><span>signal87 / intelligence workspace</span></div>
+            <div className="signal-demo__canvas">
+              <aside className="signal-demo__sources" aria-hidden="true">
+                <strong>Connected sources</strong>
+                <div><i /><span>Commercial agreements</span></div>
+                <div><i /><span>Policy library</span></div>
+                <div><i /><span>Market intelligence</span></div>
+                <small><b /> 48 sources indexed</small>
+              </aside>
+              <div className="signal-demo__conversation">
+                <div className="signal-demo__prompt"><span>Ask</span><p>Which renewals require action in the next 60 days?</p></div>
+                <div className="signal-demo__answer">
+                  <div className="signal-demo__thinking"><i /><span>Resolving across connected evidence</span></div>
+                  <h3>Three agreements require action.</h3>
+                  <div className="signal-demo__answer-lines" aria-hidden="true"><i /><i /><i /></div>
+                  <div className="signal-demo__evidence"><span>Contract 04</span><span>Amendment 02</span><span>Policy 11</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="partners" className="signal-partners" aria-labelledby="signal-partners-title">
+          <div className="signal-partners__heading"><span>Recognition &amp; programs</span><h2 id="signal-partners-title">Built alongside the AI ecosystem.</h2></div>
+          <div className="signal-partners__grid">
+            <a href="https://theresanaiforthat.com/ai/signal87-ai/" target="_blank" rel="noreferrer" aria-label="Signal87 on There's An AI For That">
+              <span className="taaft-mark">TAAFT</span><div><small>Featured on</small><strong>There's An AI For That</strong></div><ArrowRight aria-hidden="true" />
+            </a>
+            <div><img src="/partners/nvidia.svg" alt="NVIDIA" /><div><small>Member of</small><strong>NVIDIA Inception</strong></div></div>
+            <div><img src="/partners/google-cloud.svg" alt="Google Cloud" /><div><small>Supported by</small><strong>Google for Startups Cloud Program</strong></div></div>
+          </div>
+        </section>
       </main>
 
-      <footer id="partners" className="signal-trust">
-        <div className="signal-trust__intro"><span>Signal87</span><p>Intelligence for complex information.</p></div>
-        <div className="signal-trust__links" aria-label="Signal87 partners and profiles">
-          <a href="/team" aria-label="Meet the Signal87 leadership team"><Users aria-hidden="true" /><span>Leadership Team</span></a>
-          <a href="https://www.linkedin.com/company/108308342/" target="_blank" rel="noreferrer" aria-label="Signal87 on LinkedIn"><LinkedInMark /><span>LinkedIn</span></a>
-          <a href="https://theresanaiforthat.com/ai/signal87-ai/" target="_blank" rel="noreferrer"><span className="taaft-mark">TAAFT</span><span>There's An AI For That</span></a>
-          <div><img src="/partners/nvidia.svg" alt="" /><span>NVIDIA Inception</span></div>
-          <div><img src="/partners/google-cloud.svg" alt="" /><span>Google Cloud for Startups</span></div>
-        </div>
+      <footer className="signal-footer">
+        <div className="signal-footer__brand"><Signal87Logo size={24} /><div><strong>Signal87</strong><span>Intelligence for complex information.</span></div></div>
+        <nav className="signal-footer__company" aria-label="Company links"><a href="/team">Team</a><a href="https://www.linkedin.com/company/108308342/" target="_blank" rel="noreferrer"><LinkedInMark /> LinkedIn</a></nav>
+        <nav className="signal-footer__legal" aria-label="Legal links"><a href="/privacy">Privacy</a><a href="/privacy#security">Security</a><a href="/terms">Terms</a></nav>
+        <span className="signal-footer__copyright">© {new Date().getFullYear()} Signal87</span>
       </footer>
     </div>
   );

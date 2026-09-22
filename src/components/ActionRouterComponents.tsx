@@ -63,26 +63,67 @@ export const StandardQAOutput = GeminiMarkdownRenderer;
 export const DataTableOutput = GeminiMarkdownRenderer;
 export function determineDeliverableType(_prompt?: string, _text?: string, _isDeepResearch?: boolean): DeliverableType { return 'qa'; }
 
+const copyShareText = async (text: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Copy is not available in this browser.');
+};
+
 export const ActionRouterCard: React.FC<{
   msg: ChatMessage; userPrompt?: string; copiedMsgId: string | null; onCopy: (id: string, text: string) => void; onExportPDF: (title: string, text: string) => void; onInspectInCanvas?: (msg: ChatMessage) => void; onSelectDocument?: (doc: any) => void; documents?: any[]; onSaveAnswer?: (msg: ChatMessage, question: string) => void; isAnswerSaved?: boolean;
 }> = ({ msg, userPrompt, copiedMsgId, onCopy, onExportPDF, onSelectDocument, documents, onSaveAnswer, isAnswerSaved }) => {
-  const [shareCopied, setShareCopied] = useState(false);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isEditingExcel, setIsEditingExcel] = useState(false);
   const [spreadsheetData, setSpreadsheetData] = useState<any>(null);
   const [exporting, setExporting] = useState<"pdf" | "word" | "excel" | null>(null);
-  const handleShare = async () => { try { await navigator.clipboard.writeText(window.location.href); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); } catch {} };
+  const handleShare = async () => {
+    const title = userPrompt?.trim() || 'Signal87 answer';
+    const answer = (msg.text || '').trim();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: answer.slice(0, 1800), url: window.location.href });
+        setShareStatus('shared');
+      } else {
+        await copyShareText(`${title}\n\n${answer}\n\n${window.location.href}`);
+        setShareStatus('copied');
+      }
+      setTimeout(() => setShareStatus('idle'), 2500);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      try {
+        await copyShareText(`${title}\n\n${answer}\n\n${window.location.href}`);
+        setShareStatus('copied');
+        setTimeout(() => setShareStatus('idle'), 2500);
+      } catch {
+        setShareStatus('error');
+      }
+    }
+  };
   const exportAsPDF = async () => { try { setExporting('pdf'); onExportPDF(userPrompt?.trim() || 'Signal87 Export', msg.text || ''); } finally { setExporting(null); } };
-  const exportAsWord = async () => { try { setExporting('word'); const source = document.querySelector(`[data-export-message-id="${msg.id}"]`) as HTMLElement | null; await exportResult({ element: source, format: 'word', title: userPrompt?.trim() || 'Signal87 Export', filename: 'Signal87-AI-Brief' }); } finally { setExporting(null); } };
-  const exportAsExcel = async () => { try { setExporting('excel'); const source = document.querySelector(`[data-export-message-id="${msg.id}"]`) as HTMLElement | null; await exportResult({ element: source, format: 'excel', title: userPrompt?.trim() || 'Signal87 Export', filename: 'Signal87-AI-Brief' }); } finally { setExporting(null); } };
+  const exportAsWord = async () => { try { setExporting('word'); setActionNotice(null); const source = document.querySelector(`[data-export-message-id="${msg.id}"]`) as HTMLElement | null; await exportResult({ element: source, format: 'word', title: userPrompt?.trim() || 'Signal87 Export', filename: 'Signal87-AI-Brief' }); setActionNotice('Word document downloaded.'); } catch (error) { console.error('Word export failed', error); setActionNotice('Word export failed. Please try again.'); } finally { setExporting(null); } };
+  const exportAsExcel = async () => { try { setExporting('excel'); setActionNotice(null); const source = document.querySelector(`[data-export-message-id="${msg.id}"]`) as HTMLElement | null; await exportResult({ element: source, format: 'excel', title: userPrompt?.trim() || 'Signal87 Export', filename: 'Signal87-AI-Brief' }); setActionNotice('Excel workbook downloaded.'); } catch (error) { console.error('Excel export failed', error); setActionNotice('Excel export failed. Please try again.'); } finally { setExporting(null); } };
   const excelData = msg.excelExportData;
+  const shareLabel = shareStatus === 'shared' ? 'Shared' : shareStatus === 'copied' ? 'Copied' : shareStatus === 'error' ? 'Share failed' : 'Share';
   return <div className="flex flex-wrap items-center gap-2 mt-3">
     <button onClick={() => onCopy(msg.id, msg.text || '')} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer">{copiedMsgId === msg.id ? 'Copied' : 'Copy'}</button>
     <button onClick={exportAsPDF} disabled={exporting !== null} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50">{exporting === 'pdf' ? 'Exporting...' : 'PDF'}</button>
     <button onClick={exportAsWord} disabled={exporting !== null} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50">{exporting === 'word' ? 'Exporting...' : 'Word'}</button>
     <button onClick={exportAsExcel} disabled={exporting !== null} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50">{exporting === 'excel' ? 'Exporting...' : 'Excel'}</button>
     {excelData && <button onClick={() => { setSpreadsheetData(excelData); setIsEditingExcel(true); }} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"><Edit2 size={13} /> Edit Excel</button>}
-    <button onClick={handleShare} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"><Share2 size={13} /> {shareCopied ? 'Copied' : 'Share'}</button>
+    <button onClick={handleShare} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"><Share2 size={13} /> {shareLabel}</button>
     {onSaveAnswer && userPrompt && <button onClick={() => onSaveAnswer(msg, userPrompt)} className="px-3 py-1.5 border border-[var(--rule)] rounded-[3px] text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1.5"><Bookmark size={13} /> {isAnswerSaved ? 'Saved' : 'Save'}</button>}
+    {actionNotice && <span role="status" className="basis-full text-[11px] text-[var(--muted)]">{actionNotice}</span>}
     {isEditingExcel && spreadsheetData && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"><div className="w-full max-w-5xl max-h-[90vh] overflow-auto bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4"><div className="flex items-center justify-between mb-3"><div className="font-semibold text-[var(--ink)]">Edit Excel</div><button onClick={() => setIsEditingExcel(false)} className="text-xs text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer">Close</button></div><Spreadsheet data={spreadsheetData} onChange={setSpreadsheetData} /><div className="mt-3 flex justify-end"><button onClick={() => setIsEditingExcel(false)} className="px-3 py-1.5 bg-[var(--teal)] text-white text-xs font-semibold rounded-[3px] cursor-pointer"><Save size={13} className="inline mr-1" /> Done</button></div></div></div>}
   </div>;
 };

@@ -168,6 +168,8 @@ export interface SavedNote {
   type: 'note';
   title: string;
   body: string;
+  /** Sanitized rich-text representation used by the note editor. */
+  bodyHtml?: string;
   linkedDocId?: string;
   createdAt: string;
   updatedAt: string;

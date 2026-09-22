@@ -446,6 +446,29 @@
   outline: none;
 }
 
+/* Notes use a wrapping document title, not the global pill field treatment. */
+.s87-app .s87-note-title,
+.s87-app .s87-note-title:focus {
+  min-height: 48px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.s87-note-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.s87-note-editor h2 { margin: 0.9em 0 0.35em; color: var(--ink); font-size: 1.45em; line-height: 1.3; }
+.s87-note-editor h3 { margin: 0.8em 0 0.3em; color: var(--ink); font-size: 1.2em; line-height: 1.35; }
+.s87-note-editor p { margin: 0.25em 0 0.65em; }
+.s87-note-editor ul { margin: 0.45em 0 0.8em; padding-left: 1.5em; list-style: disc; }
+.s87-note-editor ol { margin: 0.45em 0 0.8em; padding-left: 1.5em; list-style: decimal; }
+.s87-note-editor li { margin: 0.15em 0; padding-left: 0.25em; }
+
 /* A wrapper carrying the treatment owns the glow; the control inside stays
    plain so the two do not stack into a double ring. */
 .s87-app .s87-field input,
