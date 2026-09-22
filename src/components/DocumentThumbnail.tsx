@@ -1,14 +1,38 @@
 import React from "react";
-import { FileText, FileSpreadsheet, FileType, Presentation, File as FileIcon, Download } from "lucide-react";
+import { FileSpreadsheet, FileType, Presentation, File as FileIcon, Download } from "lucide-react";
 import { DocumentItem } from "../types";
+
+type ThumbnailIconProps = React.SVGProps<SVGSVGElement> & { size?: number };
+
+/** Signal87's source-and-focus mark for PDF documents. */
+const SignalApertureIcon: React.FC<ThumbnailIconProps> = ({ size = 24, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 38 38"
+    fill="none"
+    focusable="false"
+    {...props}
+  >
+    <circle cx="19" cy="19" r="17" fill="#17312f" />
+    <circle cx="19" cy="19" r="8.5" stroke="#77d3d3" strokeWidth="1.6" />
+    <path
+      d="M8 19h6m10 0h6M19 8v6m0 10v6"
+      stroke="#77d3d3"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    <circle cx="19" cy="19" r="2.8" fill="#f06c64" />
+  </svg>
+);
 
 export function getTypeMeta(type?: string) {
   const t = (type || "").toLowerCase();
-  if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", icon: "", Icon: FileText, iconColor: "#d94b4b" };
-  if (t.includes("ppt") || t.includes("presentation")) return { label: "PowerPoint", color: "#d97735", icon: "", Icon: Presentation, iconColor: "#d97735" };
-  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Spreadsheet", color: "#2f9b64", icon: "", Icon: FileSpreadsheet, iconColor: "#2f9b64" };
-  if (t.includes("doc") || t.includes("word")) return { label: "Word", color: "#3578c4", icon: "", Icon: FileType, iconColor: "#3578c4" };
-  return { label: type || "File", color: "#7c817d", icon: "", Icon: FileIcon, iconColor: "#7c817d" };
+  if (t.includes("pdf")) return { label: "PDF", color: "#d94b4b", Icon: SignalApertureIcon, branded: true };
+  if (t.includes("ppt") || t.includes("presentation")) return { label: "PowerPoint", color: "#d97735", Icon: Presentation, branded: false };
+  if (t.includes("sheet") || t.includes("xls") || t.includes("csv")) return { label: "Spreadsheet", color: "#2f9b64", Icon: FileSpreadsheet, branded: false };
+  if (t.includes("doc") || t.includes("word")) return { label: "Word", color: "#3578c4", Icon: FileType, branded: false };
+  return { label: type || "File", color: "#7c817d", Icon: FileIcon, branded: false };
 }
 
 interface DocumentThumbnailProps {
@@ -57,8 +81,11 @@ export const DocumentThumbnail: React.FC<DocumentThumbnailProps> = ({ doc, name:
         <div className="mx-auto h-[122px] max-w-[210px] rounded-t-xl border border-[var(--rule)] bg-[var(--paper)] p-4 shadow-[0_8px_22px_rgba(20,33,61,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm" style={{ backgroundColor: meta.color }}>
-                <meta.Icon size={17} strokeWidth={1.9} aria-hidden="true" />
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center ${meta.branded ? "" : "rounded-lg text-white shadow-sm"}`}
+                style={{ backgroundColor: meta.branded ? "transparent" : meta.color }}
+              >
+                <meta.Icon size={meta.branded ? 32 : 17} strokeWidth={1.9} aria-hidden="true" />
               </span>
               <span className="truncate text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: meta.color }}>
                 {meta.label}
