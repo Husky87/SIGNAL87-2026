@@ -198,6 +198,27 @@ const SpreadsheetPreview: React.FC<{ sheets: ParsedSheet[] }> = ({ sheets }) => 
   </div>
 );
 
+/** react-pdf destroys its PDFDocumentProxy on reload or unmount; a destroyed one throws on every call. */
+const isPdfAlive = (pdf: PDFDocumentProxy | null): pdf is PDFDocumentProxy =>
+  !!pdf && !(pdf as unknown as { loadingTask?: { destroyed?: boolean } }).loadingTask?.destroyed;
+
+/** Keeps a failing thumbnail from reaching the app-level error boundary. */
+class ThumbnailBoundary extends React.Component<{ fallback: React.ReactNode; children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.warn('Page thumbnail failed to render:', error);
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 interface DocumentDetailModalProps {
   document: DocumentItem | null;
   onClose: () => void;
@@ -252,18 +273,23 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     thumbRefs.current.get(currentPage)?.scrollIntoView({ block: 'nearest' });
   }, [currentPage]);
 
-  const showRail = activeTab === 'pdf' && canRenderPdf && pdfProxy !== null;
+  // Only a proxy react-pdf has not yet destroyed is ever read.
+  const livePdf = isPdfAlive(pdfProxy) ? pdfProxy : null;
+  const showRail = activeTab === 'pdf' && canRenderPdf && livePdf !== null;
 
   // Placeholders take the first page's proportions so the rail does not jump as thumbnails arrive.
   useEffect(() => {
-    if (!pdfProxy) return;
+    if (!livePdf) return;
     let cancelled = false;
-    void pdfProxy.getPage(1).then((page) => {
-      const { width, height } = page.getViewport({ scale: 1 });
-      if (!cancelled && width > 0) setThumbHeight(Math.round((THUMB_WIDTH * height) / width));
-    });
+    Promise.resolve()
+      .then(() => livePdf.getPage(1))
+      .then((page) => {
+        const { width, height } = page.getViewport({ scale: 1 });
+        if (!cancelled && width > 0) setThumbHeight(Math.round((THUMB_WIDTH * height) / width));
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
-  }, [pdfProxy]);
+  }, [livePdf]);
 
   // Lazy rail: only pages near the visible part of the rail render a thumbnail.
   useEffect(() => {
@@ -287,17 +313,17 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   }, [showRail, totalPages]);
 
   // Search reads the PDF's own text, once per document, the first time it is needed.
-  const wantsPdfText = canRenderPdf && pdfProxy !== null && docSearchQuery.trim() !== '';
+  const wantsPdfText = canRenderPdf && livePdf !== null && docSearchQuery.trim() !== '';
   useEffect(() => {
-    if (!wantsPdfText || pageTexts || !pdfProxy) return;
+    if (!wantsPdfText || pageTexts || !livePdf) return;
     let cancelled = false;
-    extractPageTexts(pdfProxy)
+    extractPageTexts(livePdf)
       .then((texts) => { if (!cancelled) setPageTexts(texts); })
       .catch((err) => { console.error('Could not read the PDF text for search:', err); if (!cancelled) setPageTexts([]); });
     return () => { cancelled = true; };
-  }, [wantsPdfText, pageTexts, pdfProxy]);
+  }, [wantsPdfText, pageTexts, livePdf]);
 
-  const searchesPdf = canRenderPdf && pdfProxy !== null;
+  const searchesPdf = canRenderPdf && livePdf !== null;
   const plainText = doc ? doc.contentPreview || doc.summary || 'No text content preview available.' : '';
   const matches = useMemo(
     () => (searchesPdf ? (pageTexts ? findMatches(pageTexts, docSearchQuery) : []) : findMatches([{ text: plainText, items: [] }], docSearchQuery)),
@@ -364,7 +390,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     if (printing) return;
     setPrinting(true);
     try {
-      if (canRenderPdf && pdfProxy) await printPdfDocument(pdfProxy, doc.title);
+      if (canRenderPdf && livePdf) await printPdfDocument(livePdf, doc.title);
       else if (parsedSheets) await printSheetsDocument(doc.title, parsedSheets);
       else await printTextDocument(doc.title, fullText);
     } catch (err) {
@@ -538,16 +564,19 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                         isCurrent ? 'border-[var(--teal)]' : 'border-transparent group-hover:border-[#4a4c50]'
                       }`}
                     >
-                      {nearThumbs.has(n) ? (
-                        <Page
-                          pdf={pdfProxy}
-                          pageNumber={n}
-                          width={THUMB_WIDTH}
-                          renderTextLayer={false}
-                          renderAnnotationLayer={false}
-                          className="block"
-                          loading={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}
-                        />
+                      {nearThumbs.has(n) && livePdf ? (
+                        <ThumbnailBoundary key={`${doc?.id}-${n}`} fallback={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}>
+                          <Page
+                            pdf={livePdf}
+                            pageNumber={n}
+                            width={THUMB_WIDTH}
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                            className="block"
+                            loading={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}
+                            error={<span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />}
+                          />
+                        </ThumbnailBoundary>
                       ) : (
                         <span className="block" style={{ width: THUMB_WIDTH, height: thumbHeight }} />
                       )}
