@@ -25,7 +25,7 @@ interface PDFViewerProps {
   onPageChange: (page: number) => void;
   zoomLevel: number;
   /** Hands the loaded document to the parent, e.g. for the page-thumbnail rail. */
-  onDocumentLoaded?: (pdf: PDFDocumentProxy) => void;
+  onDocumentLoaded?: (pdf: PDFDocumentProxy | null) => void;
   /** Rewrites the text layer, e.g. to wrap search matches in <mark>. */
   customTextRenderer?: PageProps['customTextRenderer'];
 }
@@ -66,6 +66,18 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const onDocumentLoadedRef = useRef(onDocumentLoaded);
+  onDocumentLoadedRef.current = onDocumentLoaded;
+
+  // react-pdf destroys the PDFDocumentProxy whenever <Document> unmounts or
+  // reloads. Tell the parent the moment that happens, so nothing outside this
+  // viewer (the thumbnail rail, search, print) keeps using a dead proxy.
+  const documentMounted = !loading && !!pdfFile && !error;
+  useEffect(() => {
+    if (!documentMounted) onDocumentLoadedRef.current?.(null);
+  }, [documentMounted]);
+  // Clears on file change and on unmount.
+  useEffect(() => () => onDocumentLoadedRef.current?.(null), [pdfFile]);
 
   useEffect(() => {
     let mounted = true;
