@@ -3,6 +3,7 @@ import type { ChatMessage } from '../types';
 export interface ChatApiResponse {
   text: string;
   citations?: ChatMessage['citations'];
+  sources?: ChatMessage['sources'];
   verificationTrace?: ChatMessage['verificationTrace'];
   reasoningSteps?: string[];
 }

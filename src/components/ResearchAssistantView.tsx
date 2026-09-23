@@ -599,6 +599,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         // VERIFICATION TRACE. The trace block is guarded on a non-empty array,
         // so it now simply does not render when there is nothing to cite.
         citations: data.citations,
+        sources: data.sources,
         verificationTrace: data.verificationTrace,
         reasoningSteps: reasoningSteps,
         isDeepResearch: false

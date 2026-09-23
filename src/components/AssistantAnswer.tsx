@@ -1,4 +1,5 @@
 import React from 'react';
+import { FileText } from 'lucide-react';
 import type { ChatMessage, DocumentItem } from '../types';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, GeminiMarkdownRenderer } from './ActionRouterComponents';
@@ -36,6 +37,41 @@ interface AssistantAnswerProps {
   isAnswerSaved?: boolean;
 }
 
+/** Clickable source files under an answer, so every answer that used your files shows which ones. */
+const SourcesRow: React.FC<{ msg: ChatMessage; documents: DocumentItem[]; onSelectDocument?: (doc: DocumentItem) => void }> = ({ msg, documents, onSelectDocument }) => {
+  const seen = new Set<string>();
+  const sources = [...(msg.sources || []), ...(msg.citations || []).map((c) => ({ docId: c.docId, docTitle: c.docTitle }))]
+    .filter((s) => {
+      const key = s.docId || s.docTitle;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  if (sources.length === 0) return null;
+  const open = (source: { docId: string; docTitle: string }) => {
+    const title = source.docTitle.toLowerCase();
+    const doc = documents.find((d) => d.id === source.docId) || documents.find((d) => d.title.toLowerCase() === title);
+    if (doc && onSelectDocument) onSelectDocument(doc);
+  };
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">Sources</span>
+      {sources.map((source) => (
+        <button
+          key={source.docId || source.docTitle}
+          type="button"
+          onClick={() => open(source)}
+          title={`Open ${source.docTitle}`}
+          className="inline-flex max-w-[260px] items-center gap-1.5 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-2.5 py-1 text-[11.5px] text-[var(--ink-2)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]"
+        >
+          <FileText size={12} className="shrink-0" aria-hidden="true" />
+          <span className="truncate">{source.docTitle}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 export const AssistantAnswer: React.FC<AssistantAnswerProps> = ({
   msg, userPrompt, copiedMsgId, documents, onCopy, onExportPDF,
   onInspectInCanvas, onSelectDocument, onSaveAnswer, isAnswerSaved
@@ -54,6 +90,7 @@ export const AssistantAnswer: React.FC<AssistantAnswerProps> = ({
           documents={documents}
         />
       </div>
+      <SourcesRow msg={msg} documents={documents} onSelectDocument={onSelectDocument} />
       <ActionRouterCard
         msg={msg}
         userPrompt={userPrompt}
