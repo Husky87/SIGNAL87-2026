@@ -1126,3 +1126,10 @@ li.sf-reveal { list-style: none; }
   }
 }
 
+
+/* Tap targets: every control is at least 44px tall on phones (Apple / WCAG guidance). */
+.sf-tab { min-height: 44px; }
+@media (max-width: 760px) {
+  .signal-header__actions .signal-primary { min-height: 44px; }
+  .signal-footer a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+}

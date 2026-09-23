@@ -105,6 +105,37 @@ const STOPWORDS = new Set(
 
 const SELF_REFERENCE = /\b(i|me|my|mine|myself|we|us|our|ours)\b/i;
 
+/**
+ * Passages and word counts per document, kept between questions. Splitting and
+ * tokenizing every file on every question was the main cost of search; now a
+ * file is processed once and again only when its text changes.
+ */
+interface PreparedDoc { fingerprint: string; passages: Array<{ text: string; tokens: string[]; termFreq: Map<string, number> }> }
+const preparedCache = new Map<string, PreparedDoc>();
+const MAX_PREPARED_DOCS = 3000;
+
+function quickFingerprint(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return `${text.length}:${(h >>> 0).toString(36)}`;
+}
+
+function prepareDoc(doc: RetrievalDoc, text: string): PreparedDoc['passages'] {
+  const key = String(doc.id || doc.title || '');
+  const fingerprint = quickFingerprint(text);
+  const cached = key ? preparedCache.get(key) : undefined;
+  if (cached && cached.fingerprint === fingerprint) return cached.passages;
+  const passages = splitIntoPassages(text).map((t) => {
+    const tokens = tokenize(t);
+    return { text: t, tokens, termFreq: termFrequencies(tokens) };
+  });
+  if (key) {
+    if (preparedCache.size >= MAX_PREPARED_DOCS) preparedCache.clear();
+    preparedCache.set(key, { fingerprint, passages });
+  }
+  return passages;
+}
+
 export function docText(doc: RetrievalDoc): string {
   return String(doc.fullText || doc.contentPreview || doc.summary || '').trim();
 }
@@ -230,11 +261,10 @@ export function retrieveContext(docs: RetrievalDoc[], options: RetrievalOptions)
   const passages: Passage[] = [];
   const passageCounts: number[] = [];
   readable.forEach((doc, docIndex) => {
-    const parts = splitIntoPassages(docText(doc));
+    const parts = prepareDoc(doc, docText(doc));
     passageCounts[docIndex] = parts.length;
-    parts.forEach((text, passageIndex) => {
-      const tokens = tokenize(text);
-      passages.push({ docIndex, passageIndex, text, tokens, termFreq: termFrequencies(tokens), score: 0 });
+    parts.forEach((part, passageIndex) => {
+      passages.push({ docIndex, passageIndex, text: part.text, tokens: part.tokens, termFreq: part.termFreq, score: 0 });
     });
   });
 
