@@ -83,6 +83,11 @@ export interface ChatMessage {
     provider?: string;
     model?: string;
     groundedDocuments?: number;
+    /** Readable files searched for this answer (the whole selection). */
+    searchedDocuments?: number;
+    /** 'full' = every file sent whole; 'search' = best passages from all files; 'overview' = file openings. */
+    retrievalMode?: 'full' | 'search' | 'overview' | 'empty';
+    passagesUsed?: number;
     groundedAttachments?: number;
     unreadableDocuments?: number;
     steps?: string[];
