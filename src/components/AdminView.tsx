@@ -1,5 +1,6 @@
-import React from 'react';
-import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight, Brain } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight, Brain, Sun, Moon, Monitor } from 'lucide-react';
+import { getThemePreference, setThemePreference, subscribeTheme, ThemePreference } from '../lib/theme';
 import { MemoryPanel } from './MemoryPanel';
 import { OrgStats } from '../types';
 import { User } from '../lib/firebase';
@@ -14,6 +15,26 @@ interface AdminViewProps {
   onOpenPrivacy: () => void;
   onOpenTerms: () => void;
 }
+
+/** Light / Dark / System. Applies instantly and is remembered on this device. */
+const ThemePicker: React.FC = () => {
+  const [pref, setPref] = useState<ThemePreference>(getThemePreference());
+  useEffect(() => subscribeTheme((p) => setPref(p)), []);
+  const options: Array<{ value: ThemePreference; label: string; icon: React.ReactNode }> = [
+    { value: 'light', label: 'Light', icon: <Sun size={15} /> },
+    { value: 'dark', label: 'Dark', icon: <Moon size={15} /> },
+    { value: 'system', label: 'System', icon: <Monitor size={15} /> }
+  ];
+  return (
+    <div className="s87-theme-picker" role="group" aria-label="Appearance">
+      {options.map((o) => (
+        <button key={o.value} type="button" aria-pressed={pref === o.value} onClick={() => setThemePreference(o.value)}>
+          {o.icon}{o.label}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel, onChangeModel, onSignOut, onOpenTeam, onOpenPrivacy, onOpenTerms }) => (
   <div className="s87-page min-h-full bg-[var(--bg)] text-[var(--ink)]">
@@ -35,8 +56,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel
           <div className="s87-settings-detail"><label htmlFor="response-profile" className="block text-sm">Response profile</label><select id="response-profile" value={selectedModel} onChange={event => onChangeModel(event.target.value)} className="mt-3 w-full max-w-sm rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 py-3"><option value="gemini-3.6-flash">Signal87 Standard</option><option value="gemini-2.5-pro">Signal87 Deep</option><option value="gemini-3.5-flash-lite">Signal87 Fast</option></select></div>
         </details>
         <details>
-          <summary className="s87-settings-row"><Palette /><span><strong>Appearance</strong><small>Theme and display</small></span><ChevronRight size={15} /></summary>
-          <div className="s87-settings-detail">Light theme · System typography<p className="mt-2 text-xs text-[var(--muted)]">The workspace adapts to your screen and respects your device’s reduced motion preference.</p></div>
+          <summary className="s87-settings-row"><Palette /><span><strong>Appearance</strong><small>Light, dark, or match your device</small></span><ChevronRight size={15} /></summary>
+          <div className="s87-settings-detail"><ThemePicker /><p className="mt-3 text-xs text-[var(--muted)]">System follows your device’s light or dark setting. Document pages always stay white, like paper. The workspace also respects your device’s reduced-motion preference.</p></div>
         </details>
         <details>
           <summary className="s87-settings-row"><ShieldCheck /><span><strong>Privacy &amp; security</strong><small>Policies and account protection</small></span><ChevronRight size={15} /></summary>

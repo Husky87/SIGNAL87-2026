@@ -5,6 +5,9 @@ import App from './App.tsx';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import './index.css';
 import './documentViewerOverrides.css';
+import {initTheme} from './lib/theme';
+
+initTheme();
 
 const rootElement = document.getElementById('root');
 
