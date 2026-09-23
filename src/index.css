@@ -645,3 +645,70 @@
 }
 .s87-note-editor ul[data-checklist] > li[data-checked='true'] { color: var(--muted); text-decoration: line-through; }
 .s87-note-editor a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ===================================================================
+   Dark appearance (Settings → Appearance → Dark, or System on a dark Mac).
+   Same palette as the landing page: near-black green-grey, soft ink, teal.
+   Every surface in the app reads these tokens, so switching them re-themes
+   the workspace; the block below catches the few components that still use
+   fixed Tailwind colours. Document pages (PDF canvases, the paper sheet in
+   the viewer) are left white on purpose, like paper.
+   =================================================================== */
+:root[data-theme="dark"] { color-scheme: dark; }
+/* The workspace's own tokens live on .s87-app, so dark overrides them there. */
+:root[data-theme="dark"] .s87-app {
+  --bg: #0B0E0C;
+  --surface: #121614;
+  --surface-2: #1A1F1C;
+  --ink: #ECF1EE;
+  --ink-2: #B5BFB9;
+  --muted: #7F8C85;
+  --rule: #28302C;
+  --rule-2: #1E2421;
+  --teal: #6CBFC5;
+  --teal-soft: #15292B;
+  /* Text on accent fills: dark, since the accent is light in this mode. */
+  --teal-ink: #0B0E0C;
+  --accent-ink: #9BE7ED;
+  --ok: #4CC38A;
+  --warn: #E2A24E;
+  --verify-bg: #12281F;
+  --field-bg: #121614;
+  --field-ring: 0 0 0 1px var(--rule);
+  --field-glow: 0 0 0 1px var(--rule), 0 2px 10px rgba(0, 0, 0, 0.35);
+  --field-glow-focus: 0 0 0 1px #6CBFC5, 0 0 0 4px rgba(108, 191, 197, 0.14);
+}
+:root[data-theme="dark"] .s87-app .s87-sidebar { background: linear-gradient(180deg, #0E1210, #0B0E0C); border-color: var(--rule); }
+
+:root[data-theme="dark"] body { background-color: var(--bg); }
+:root[data-theme="dark"] ::selection { background: rgba(108, 191, 197, 0.32); color: #fff; }
+
+/* Fixed Tailwind colours → tokens, dark mode only (light mode keeps its look). */
+:root[data-theme="dark"] .s87-app :is(.bg-white, .bg-slate-50, .bg-gray-50):not(.react-pdf__Page, .react-pdf__Page *, .s87-paper, .s87-paper *) { background-color: var(--surface) !important; }
+:root[data-theme="dark"] .s87-app :is(.bg-slate-100, .bg-gray-100, .bg-slate-200\/50, .bg-slate-200\/70):not(.react-pdf__Page *, .s87-paper *) { background-color: var(--surface-2) !important; }
+:root[data-theme="dark"] .s87-app .bg-white\/70 { background-color: color-mix(in srgb, var(--surface) 80%, transparent) !important; }
+:root[data-theme="dark"] .s87-app :is(.text-slate-900, .text-slate-800, .text-gray-900, .text-black):not(.s87-paper *) { color: var(--ink) !important; }
+:root[data-theme="dark"] .s87-app :is(.text-slate-700, .text-slate-600, .text-gray-700, .text-gray-600):not(.s87-paper *) { color: var(--ink-2) !important; }
+:root[data-theme="dark"] .s87-app :is(.text-slate-500, .text-gray-500):not(.s87-paper *) { color: var(--muted) !important; }
+:root[data-theme="dark"] .s87-app :is(.border-slate-100, .border-slate-200, .border-slate-200\/80, .border-gray-200) { border-color: var(--rule) !important; }
+:root[data-theme="dark"] .s87-app :is(.divide-slate-100, .divide-slate-200) > :not(:last-child) { border-color: var(--rule) !important; }
+:root[data-theme="dark"] .s87-app .text-emerald-600, :root[data-theme="dark"] .s87-app .text-emerald-700 { color: var(--ok) !important; }
+:root[data-theme="dark"] .s87-app .text-red-600, :root[data-theme="dark"] .s87-app .text-red-500 { color: #F08A7E !important; }
+
+/* Form controls and scrollbars follow the theme. */
+:root[data-theme="dark"] .s87-app :is(input, textarea, select) { color: var(--ink); }
+:root[data-theme="dark"] .s87-app :is(input, textarea)::placeholder { color: var(--muted); }
+:root[data-theme="dark"] .s87-app * { scrollbar-color: #2E3632 transparent; }
+
+/* Soft shadows read as smudges on near-black; use a faint rim instead. */
+:root[data-theme="dark"] .s87-app :is(.shadow-sm, .shadow, .shadow-md) { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 24px rgba(0, 0, 0, 0.35) !important; }
+
+/* Paper stays paper: document pages and the notes/print sheet keep light colours in dark mode. */
+:root[data-theme="dark"] .s87-app .s87-paper { background: #FFFFFF; color: #1B1B18; color-scheme: light; }
+:root[data-theme="dark"] .s87-app .react-pdf__Page { background: #FFFFFF; }
+
+/* Appearance picker in Settings. */
+.s87-theme-picker { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
+.s87-theme-picker button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 9px; color: var(--ink-2); font-size: 13px; font-weight: 550; transition: background-color 0.2s ease, color 0.2s ease; }
+.s87-theme-picker button:hover { color: var(--ink); background: var(--surface-2); }
+.s87-theme-picker button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
