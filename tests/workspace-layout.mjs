@@ -13,7 +13,7 @@ try {
   const page=await browser.newPage({viewport:{width,height}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:5182/tests/workspace-layout.html');
-  await page.getByRole('heading',{name:'Good morning, Michael.'}).waitFor();
+  await page.getByRole('heading',{name:/^Good (morning|afternoon|evening), Michael\.$/}).waitFor();
   await page.screenshot({path:`${output}/${label}-home.png`});
   const prompt=page.getByRole('textbox',{name:'Ask a question',exact:true});
   await prompt.fill('Summarize the key findings in my documents.');

@@ -58,6 +58,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [showAttachMenu]);
 
   const firstName = currentUser?.displayName?.split(' ')[0] || 'there';
+  // Greeting follows the user's local time (it previously always said "Good morning").
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const recent = recentSessions
     .filter((s) => s.title && s.title !== 'New Research Session' && s.title !== 'New Chat')
     .slice(0, 6);
@@ -65,16 +68,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="s87-page flex-1 overflow-y-auto bg-[var(--bg)] text-[var(--ink)]">
       <div className="s87-column pb-10">
-        <section className="mt-6">
+        {/* Greeting and ask box sit centered, a little way down the page. */}
+        <section className="mt-[6vh] text-center sm:mt-[12vh]">
           <h1 className="s87-page-title">
-            Good morning, {firstName}.
+            {greeting}, {firstName}.
           </h1>
-          <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[var(--ink-2)] sm:text-[16px]">
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-6 text-[var(--ink-2)] sm:text-[16px]">
             Ask a question, search your files, or get started with a note.
           </p>
         </section>
 
-        <section className="mt-8">
+        <section className="mx-auto mt-8 w-full max-w-[760px]">
           <div className="s87-field s87-home-composer p-2">
             <div className="flex items-center gap-2">
               <div ref={attachMenuRef} className="relative shrink-0">
@@ -130,7 +134,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </section>
 
-        <section className="mt-6 flex flex-wrap gap-2.5">
+        <section className="mx-auto mt-6 flex max-w-[760px] flex-wrap justify-center gap-2.5">
           {QUICK_ACTIONS.map(({ icon: Icon, label, question }) => (
             <button
               key={label}
@@ -144,7 +148,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ))}
         </section>
 
-        <section className="mt-12">
+        <section className="mt-16">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Recent</h2>
             <span className="text-[11px] text-[var(--muted)]">Your latest work</span>
