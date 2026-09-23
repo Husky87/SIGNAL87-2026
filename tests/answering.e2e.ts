@@ -179,9 +179,11 @@ async function run() {
       ingestedFilesData: [contract]
     });
     const system = turns.find((t) => t.role === 'system')?.content ?? '';
-    check('the model is told never to answer from prior knowledge', /never fall back on prior knowledge/i.test(system));
-    check('the model is told not to invent confidence or page refs', /never invent dates, amounts, parties, clauses, page numbers, confidence scores/i.test(system));
-    check('the model is told to match answer length to the question', /match answer length to the question/i.test(system));
+    // Since Ask phase 1 (#38/#39) the model may add general knowledge, clearly labelled,
+    // but facts about the user's files must come only from the files.
+    check('the model is told file facts come only from the supplied text', /must come from the supplied text and be cited/i.test(system));
+    check('the model is told not to invent page refs or confidence', /never invent page numbers, section references or confidence scores/i.test(system));
+    check('the model is told to match answer length to the question', /keep length proportional/i.test(system));
   }
 
   // ---- Nothing fabricated on the way back out ----

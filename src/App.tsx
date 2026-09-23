@@ -14,6 +14,7 @@ import { PrivacyModal } from './components/PrivacyModal';
 import { BlogModal } from './components/BlogModal';
 import { MediaModal } from './components/MediaModal';
 import { SignalFieldLanding } from './components/SignalFieldLanding';
+import { formatRelative, lastActivity, PLACEHOLDER_TITLES, readStoredChats, recoverSessions, titleFromMessages } from './lib/chatSessions';
 import { WelcomeTourModal } from './components/WelcomeTourModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
@@ -121,7 +122,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const hadUserRef = React.useRef(false);
-  const skipChatSaveRef = React.useRef(false);
+  // The history array most recently loaded from storage. Saving skips exactly that
+  // array (it's already stored), so the first real message is never skipped.
+  const loadedHistoryRef = React.useRef<ChatMessage[] | null>(null);
   const [showAuthBanner, setShowAuthBanner] = useState(true);
 
   // Core Data States
@@ -286,7 +289,7 @@ export default function App() {
   const [pendingLandingQuery, setPendingLandingQuery] = useState<string | null>(() => {
     try { return sessionStorage.getItem('s87_pending_landing_query'); } catch { return null; }
   });
-  const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string }[]>([]);
+  const [sessions, setSessions] = useState<{ id: string; title: string; timestamp: string; updatedAt?: number }[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   // Wait for a new session's history load before sending its initial question.
   const [chatSessionReadyId, setChatSessionReadyId] = useState<string | null>(null);
@@ -310,22 +313,21 @@ export default function App() {
 
   // Load chat history for active session ID from localStorage or default
   useEffect(() => {
-    skipChatSaveRef.current = true;
+    const load = (history: ChatMessage[]) => {
+      loadedHistoryRef.current = history;
+      setChatHistory(history);
+    };
     if (!activeSessionId || !currentUser) {
-      setChatHistory([]);
+      load([]);
       setChatSessionReadyId(null);
       return;
     }
     try {
       const storedChat = localStorage.getItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`);
-      if (storedChat) {
-        setChatHistory(JSON.parse(storedChat));
-      } else {
-        setChatHistory([]);
-      }
+      load(storedChat ? JSON.parse(storedChat) : []);
     } catch (e) {
       console.warn('Error loading chat history for session:', activeSessionId, e);
-      setChatHistory([]);
+      load([]);
     }
     setChatSessionReadyId(activeSessionId);
   }, [activeSessionId, currentUser]);
@@ -333,32 +335,35 @@ export default function App() {
   // Save chatHistory to localStorage for the active session
   useEffect(() => {
     if (!activeSessionId || !currentUser || !workspaceReady) return;
-    if (skipChatSaveRef.current) {
-      skipChatSaveRef.current = false;
-      return;
-    }
+    if (chatHistory === loadedHistoryRef.current) return;
     try {
       localStorage.setItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`, JSON.stringify(chatHistory));
 
-      // Auto-update thread title if it's currently 'New Research Session' and user has sent a message
-      if (chatHistory.length > 0) {
-        const firstUserMsg = chatHistory.find((m) => m.role === 'user');
-        if (firstUserMsg) {
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id === activeSessionId && (s.title === 'New Research Session' || s.title === 'New Chat')) {
-                const newTitle = firstUserMsg.text.slice(0, 32) + (firstUserMsg.text.length > 32 ? '...' : '');
-                return { ...s, title: newTitle };
-              }
-              return s;
-            })
-          );
-        }
+      // Name the conversation after its first question and record when it was last active.
+      const title = titleFromMessages(chatHistory);
+      const updatedAt = lastActivity(chatHistory);
+      if (title || updatedAt) {
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== activeSessionId) return s;
+            const nextTitle = title && PLACEHOLDER_TITLES.has(s.title) ? title : s.title;
+            const nextUpdated = updatedAt && updatedAt !== s.updatedAt ? updatedAt : s.updatedAt;
+            return nextTitle === s.title && nextUpdated === s.updatedAt ? s : { ...s, title: nextTitle, updatedAt: nextUpdated };
+          })
+        );
       }
     } catch (e) {
       console.warn('Failed saving chat history to localStorage', e);
     }
   }, [chatHistory, activeSessionId, currentUser]);
+
+  // Newest first, with live "5m ago" / "Yesterday" labels instead of a frozen "Just now".
+  const displaySessions = React.useMemo(
+    () => [...sessions]
+      .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+      .map((s) => ({ ...s, timestamp: formatRelative(s.updatedAt) ?? s.timestamp })),
+    [sessions]
+  );
 
   const mainScrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -479,12 +484,20 @@ export default function App() {
     setAttachedFiles(readUserJson(uid, 'attached_files', []));
     const userFolders = readUserJson<FolderItem[]>(uid, 'folders', []);
     setFolders(userFolders.length > 0 ? userFolders : defaultFolders);
-    setSessions(readUserJson(uid, 'sessions', []));
-    try {
-      setActiveSessionId(localStorage.getItem(`signal87_active_session_id_${uid}`));
-    } catch {
-      setActiveSessionId(null);
+    // Rebuild Recent from the conversations actually stored on this device, so a
+    // lost or placeholder-only list can't hide past questions.
+    const restoredSessions = recoverSessions(readUserJson(uid, 'sessions', []), readStoredChats(uid));
+    let restoredActive: string | null = null;
+    try { restoredActive = localStorage.getItem(`signal87_active_session_id_${uid}`); } catch { /* storage unavailable */ }
+    if (restoredSessions.length === 0) {
+      const fresh = { id: `s_${Date.now()}`, title: 'New Research Session', timestamp: 'Just now', updatedAt: Date.now() };
+      restoredSessions.push(fresh);
+      restoredActive = fresh.id;
+    } else if (!restoredActive || !restoredSessions.some((s) => s.id === restoredActive)) {
+      restoredActive = restoredSessions[0].id;
     }
+    setSessions(restoredSessions);
+    setActiveSessionId(restoredActive);
     setWorkspaceReady(true);
 
     let cancelled = false;
@@ -529,17 +542,20 @@ export default function App() {
     };
   }, [currentUser]);
 
+  // Only once the saved list has loaded: running earlier used to replace the whole
+  // saved list with this one empty session on every page load.
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !workspaceReady) return;
     if (sessions.length > 0) return;
     const fresh = {
       id: `s_${Date.now()}`,
       title: 'New Research Session',
-      timestamp: 'Just now'
+      timestamp: 'Just now',
+      updatedAt: Date.now()
     };
     setSessions([fresh]);
     setActiveSessionId(fresh.id);
-  }, [currentUser, sessions.length]);
+  }, [currentUser, workspaceReady, sessions.length]);
 
   // Handlers for Saved notebook
   const handleSaveSavedItem = (rawItem: SavedItem) => {
@@ -723,7 +739,8 @@ export default function App() {
     const newSession = {
       id: `s_${Date.now()}`,
       title: 'New Research Session',
-      timestamp: 'Just now'
+      timestamp: 'Just now',
+      updatedAt: Date.now()
     };
     setSessions((prev) => [newSession, ...prev]);
     setActiveSessionId(newSession.id);
@@ -761,7 +778,8 @@ export default function App() {
         const freshSession = {
           id: `s_${Date.now()}`,
           title: 'New Research Session',
-          timestamp: 'Just now'
+          timestamp: 'Just now',
+          updatedAt: Date.now()
         };
         setSessions([freshSession]);
         setActiveSessionId(freshSession.id);
@@ -984,7 +1002,7 @@ export default function App() {
         onCloseMobileMenu={() => setMobileMenuOpen(false)}
         currentUser={currentUser}
         onNewSession={handleCreateNewSession}
-        recentSessions={sessions}
+        recentSessions={displaySessions}
         activeSessionId={activeSessionId}
         onSelectSession={setActiveSessionId}
         onDeleteSession={handleDeleteSession}
@@ -1148,7 +1166,7 @@ export default function App() {
             <ScrollArea id="tab:dashboard" className="flex-1 overflow-y-auto">
               <DashboardView
                 currentUser={currentUser}
-                recentSessions={sessions}
+                recentSessions={displaySessions}
                 onAskQuestion={handleAskFromHome}
                 onOpenSession={handleOpenSessionFromHome}
                 onOpenNewNote={handleOpenNewNote}
