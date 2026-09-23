@@ -551,6 +551,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         prompt: userMsgText,
         messages: priorTurns,
         documents: fullTextDocumentPayload,
+        // Who is asking, so "I", "me" and "my" resolve to the signed-in user.
+        userProfile: { name: currentUser.displayName || '', email: currentUser.email || '' },
         model: selectedModel,
         ingestedFilesData,
         attachedFiles
