@@ -79,6 +79,8 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   citations?: Citation[];
+  /** Files the answer drew on: cited ones, or ones matched to the answer when the model didn't cite. */
+  sources?: Array<{ docId: string; docTitle: string }>;
   verificationTrace?: {
     provider?: string;
     model?: string;
