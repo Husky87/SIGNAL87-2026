@@ -89,9 +89,11 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
 
       if (docId && fileDataCache.has(docId)) {
         const cachedBuffer = fileDataCache.get(docId);
-        if (cachedBuffer && isPdfBuffer(cachedBuffer)) {
+        // A buffer pdf.js has already transferred is detached (byteLength 0);
+        // it is dropped and the file fetched again.
+        if (cachedBuffer && cachedBuffer.byteLength > 0 && isPdfBuffer(cachedBuffer)) {
           if (mounted) {
-            setPdfFile({ data: new Uint8Array(cachedBuffer) });
+            setPdfFile({ data: new Uint8Array(cachedBuffer.slice(0)) });
             setLoading(false);
           }
           return;
@@ -115,7 +117,9 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
           if (!isPdfBuffer(arrayBuffer)) throw new Error(`The preview source is not a valid PDF (${fileName}).`);
           if (!mounted) return;
           if (docId) fileDataCache.set(docId, arrayBuffer);
-          setPdfFile({ data: new Uint8Array(arrayBuffer) });
+          // pdf.js transfers the bytes to its worker, detaching them; the cache
+        // keeps its own copy so reopening the document still works.
+        setPdfFile({ data: new Uint8Array(arrayBuffer.slice(0)) });
           setLoading(false);
         } catch (err) {
           if (!mounted) return;
@@ -138,7 +142,9 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         if (!isPdfBuffer(arrayBuffer)) throw new Error(`The preview source is not a valid PDF (${fileName}).`);
         if (!mounted) return;
         if (docId) fileDataCache.set(docId, arrayBuffer);
-        setPdfFile({ data: new Uint8Array(arrayBuffer) });
+        // pdf.js transfers the bytes to its worker, detaching them; the cache
+        // keeps its own copy so reopening the document still works.
+        setPdfFile({ data: new Uint8Array(arrayBuffer.slice(0)) });
         setLoading(false);
       } catch (err) {
         if (!mounted) return;
