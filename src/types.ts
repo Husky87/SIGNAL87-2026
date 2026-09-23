@@ -81,6 +81,8 @@ export interface ChatMessage {
   citations?: Citation[];
   /** Files the answer drew on: cited ones, or ones matched to the answer when the model didn't cite. */
   sources?: Array<{ docId: string; docTitle: string }>;
+  /** Set when this turn saved or removed a memory ("remember that …" / "forget …"). */
+  memoryEvent?: { type: 'saved' | 'forgotten' | 'not-found'; text: string };
   verificationTrace?: {
     provider?: string;
     model?: string;
@@ -89,6 +91,8 @@ export interface ChatMessage {
     searchedDocuments?: number;
     /** 'full' = every file sent whole; 'search' = best passages from all files; 'overview' = file openings. */
     retrievalMode?: 'full' | 'search' | 'overview' | 'empty';
+    /** True when meaning-based (embedding) search helped rank passages. */
+    semanticSearch?: boolean;
     passagesUsed?: number;
     groundedAttachments?: number;
     unreadableDocuments?: number;

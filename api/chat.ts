@@ -3,7 +3,7 @@ import { generateWithFallback } from '../src/lib/aiFallbackService.js';
 import { hasUsableText } from '../src/lib/extractedText.js';
 import { buildChatMessages } from '../src/lib/chatPayload.js';
 import { verifyFirebaseIdToken } from '../src/lib/firebaseAuth.js';
-import { retrieveContext, RetrievalStats } from '../src/lib/retrieval.js';
+import { buildWorkspaceIndex, renderDocuments, retrieveContext, RetrievalGroup, RetrievalStats } from '../src/lib/retrieval.js';
 import { attributeSources } from '../src/lib/sourceAttribution.js';
 
 const MAX_DOC_CHARS = 28000;
@@ -40,6 +40,45 @@ interface ContextOptions {
   question: string;
   previousQuestions: string[];
   profile: { name?: string; email?: string };
+  /** Passages already ranked by the app (larger workspaces). When present, used instead of server-side retrieval. */
+  retrieved?: unknown;
+}
+
+const MAX_RETRIEVED_GROUPS = 40;
+const MAX_RETRIEVED_CHARS = 100000;
+
+/** Validates and bounds passages ranked in the browser, so a bad or oversized payload can't blow up the prompt. */
+function readRetrievedPayload(value: unknown): { groups: RetrievalGroup[]; stats: RetrievalStats; workspaceFiles: string[]; unreadableFiles: string[] } | null {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as any;
+  if (!Array.isArray(v.groups)) return null;
+  let used = 0;
+  const groups: RetrievalGroup[] = [];
+  for (const g of v.groups.slice(0, MAX_RETRIEVED_GROUPS)) {
+    if (!g || !Array.isArray(g.passages)) continue;
+    const passages: Array<{ index: number; text: string }> = [];
+    for (const p of g.passages) {
+      const text = String(p?.text || '');
+      if (!text || used + text.length > MAX_RETRIEVED_CHARS) continue;
+      used += text.length;
+      passages.push({ index: Math.max(0, Number(p.index) || 0), text });
+    }
+    if (passages.length === 0) continue;
+    const title = String(g.title || 'Untitled').slice(0, 300);
+    groups.push({ doc: { id: String(g.id || title).slice(0, 200), title, fullText: passages.map((p) => p.text).join('\n\n') }, passages, total: Math.max(passages.length, Number(g.total) || passages.length) });
+  }
+  const s = v.stats || {};
+  const num = (x: unknown) => Math.max(0, Math.floor(Number(x) || 0));
+  const stats: RetrievalStats = {
+    mode: s.mode === 'overview' ? 'overview' : groups.length ? 'search' : 'empty',
+    semantic: Boolean(s.semantic),
+    searchedDocuments: num(s.searchedDocuments),
+    searchedPassages: num(s.searchedPassages),
+    usedDocuments: groups.length,
+    usedPassages: groups.reduce((n, g) => n + g.passages.length, 0)
+  };
+  const list = (x: unknown) => (Array.isArray(x) ? x.slice(0, 1000).map((t) => String(t).slice(0, 200)) : []);
+  return { groups, stats, workspaceFiles: list(v.workspaceFiles), unreadableFiles: list(v.unreadableFiles).slice(0, 100) };
 }
 
 /**
@@ -58,23 +97,52 @@ function buildGroundedContext(options: ContextOptions): { text: string; contextD
     return `=== INGESTED ACTIVE FILE ${i + 1}: ${file.fileName} ===\n${body}\n=== END FILE ===`;
   }).filter(Boolean);
 
-  const retrieval = retrieveContext(readableDocs, {
-    question: options.question,
-    previousQuestions: options.previousQuestions,
-    profile: options.profile,
-    budgetChars: Math.max(MIN_DOC_BUDGET_CHARS, MAX_TOTAL_CONTEXT_CHARS - attachedUsed),
-    maxDocChars: MAX_DOC_CHARS
-  });
+  const preRanked = readRetrievedPayload(options.retrieved);
+  const retrieval = preRanked
+    ? {
+        text: renderDocuments(preRanked.groups, true),
+        workspaceIndex: buildWorkspaceIndex(preRanked.workspaceFiles.map((title) => ({ title }))),
+        contextDocs: preRanked.groups.map((g) => g.doc),
+        stats: preRanked.stats
+      }
+    : retrieveContext(readableDocs, {
+        question: options.question,
+        previousQuestions: options.previousQuestions,
+        profile: options.profile,
+        budgetChars: Math.max(MIN_DOC_BUDGET_CHARS, MAX_TOTAL_CONTEXT_CHARS - attachedUsed),
+        maxDocChars: MAX_DOC_CHARS
+      });
+  const unreadableNames = [...unreadableDocs.map((d: any) => d.title), ...(preRanked?.unreadableFiles || [])];
 
   const sections: string[] = [];
   if (retrieval.text) sections.push(retrieval.text);
   if (attachedBlocks.length) sections.push(`ACTIVE ATTACHED FILES:\n${attachedBlocks.join('\n\n')}`);
   if (retrieval.workspaceIndex) sections.push(retrieval.workspaceIndex);
-  if (unreadableDocs.length || unreadableAttached.length) {
-    const names = [...unreadableDocs.map((d: any) => d.title), ...unreadableAttached.map((f: any) => f.fileName)];
+  if (unreadableNames.length || unreadableAttached.length) {
+    const names = [...unreadableNames, ...unreadableAttached.map((f: any) => f.fileName)];
     sections.push(`UNREADABLE FILES — these files COULD NOT BE READ (parsing failed or no extractable text was found) and their contents are unavailable. Tell the user each file listed below could not be read; do not answer questions about them:\n${names.map((n) => `- ${n}`).join('\n')}`);
   }
   return { text: sections.join('\n\n'), contextDocs: retrieval.contextDocs, stats: retrieval.stats };
+}
+
+const MAX_MEMORIES = 60;
+
+/** Saved facts the user asked Signal87 to remember, plus any remember/forget that just happened. */
+function buildMemorySection(memories: unknown, memoryEvent: unknown): string {
+  const facts = (Array.isArray(memories) ? memories : [])
+    .map((m) => String(m ?? '').replace(/\s+/g, ' ').trim().slice(0, 300))
+    .filter(Boolean)
+    .slice(0, MAX_MEMORIES);
+  let section = '';
+  if (facts.length) {
+    section += `\n\nSAVED MEMORY\nFacts the user asked you to remember. Treat them as true unless their files contradict them (then point out the conflict). When you rely on one, say it's from their saved memory; don't cite a file for it.\n${facts.map((f) => `- ${f}`).join('\n')}`;
+  }
+  const e = memoryEvent && typeof memoryEvent === 'object' ? memoryEvent as { type?: string; text?: string } : null;
+  const text = String(e?.text || '').slice(0, 300);
+  if (e?.type === 'saved') section += `\n\nJUST NOW: the user asked you to remember "${text}". It has been saved to their memory. Confirm in one short, natural sentence, then answer anything else they asked.`;
+  else if (e?.type === 'forgotten') section += `\n\nJUST NOW: "${text}" was removed from the user's saved memory at their request. Confirm in one short sentence.`;
+  else if (e?.type === 'not-found') section += `\n\nJUST NOW: the user asked you to forget or remember something, but it could not be done (${text}). Say so briefly and mention they can manage memory in Settings → Memory.`;
+  return section;
 }
 
 function buildUserSection(profile: { name?: string; email?: string }): string {
@@ -114,7 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY);
   if (!process.env.OPENAI_API_KEY && !hasGeminiKey) return res.status(503).json({ error: 'AI service is not configured', details: 'OPENAI_API_KEY or GEMINI_API_KEY is required' });
   try {
-    const { prompt, messages, documents, ingestedFilesData, attachedFiles, userProfile, model = DEFAULT_CHAT_MODEL } = req.body || {};
+    const { prompt, messages, documents, ingestedFilesData, attachedFiles, userProfile, retrieved, memories, memoryEvent, model = DEFAULT_CHAT_MODEL } = req.body || {};
     if (!prompt && (!Array.isArray(messages) || messages.length === 0)) return res.status(400).json({ error: 'Prompt or messages array is required' });
     mark(`request received; model=${model}`);
     const allDocs: any[] = Array.isArray(documents) ? documents : []; const readableDocs = allDocs.filter((doc: any) => hasUsableText(doc.fullText || doc.contentPreview || doc.summary)); const unreadableDocs = allDocs.filter((doc: any) => !readableDocs.includes(doc));
@@ -131,10 +199,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .map((m: any) => m.content)
       .filter((content: string) => content !== userPrompt)
       .slice(-3);
-    const grounded = buildGroundedContext({ readableDocs, readableAttached, unreadableDocs, unreadableAttached, question: userPrompt, previousQuestions, profile });
+    const grounded = buildGroundedContext({ readableDocs, readableAttached, unreadableDocs, unreadableAttached, question: userPrompt, previousQuestions, profile, retrieved });
     const context = grounded.text || 'NO DOCUMENTS ARE AVAILABLE. If the question asks about document contents, say that no document is attached and ask the user to attach it. Do not answer from prior knowledge.';
     const contextDocs = grounded.contextDocs;
-    const systemInstruction = SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION + buildUserSection(profile);
+    const systemInstruction = SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION + buildUserSection(profile) + buildMemorySection(memories, memoryEvent);
     const boundedHistory = Array.isArray(messages) ? messages.slice(-MAX_HISTORY_MESSAGES).map((message: any) => ({ role: message.role, content: compactText(message.content, Math.floor(MAX_HISTORY_CHARS / MAX_HISTORY_MESSAGES)) })) : [];
     const groundedPrompt = `${context}\n\nUSER QUESTION:\n${userPrompt}`; const modelMessages = buildChatMessages({ systemInstruction, messages: boundedHistory, groundedPrompt }); mark(`context prepared; mode=${grounded.stats.mode} used=${grounded.stats.usedDocuments}/${grounded.stats.searchedDocuments} docs`);
     const imageData = (Array.isArray(attachedFiles) ? attachedFiles : []).filter((file: any) => typeof file.dataUrl === 'string' && file.dataUrl.startsWith('data:image/')).slice(0, 5);
@@ -162,8 +230,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Some providers emit the requested [1] marker but omit the manifest. A
     // single readable source is unambiguous; recover its real identity so the
     // UI does not silently remove a valid citation. Never guess among sources.
-    if (citations.length === 0 && /\[1\]/.test(citationResult.cleanedText) && readableDocs.length + readableAttached.length === 1) {
-      citations = resolveCitations([{ source: readableDocs.length ? 'DOCUMENT 1' : 'INGESTED ACTIVE FILE 1' }], contextDocs, readableAttached);
+    if (citations.length === 0 && /\[1\]/.test(citationResult.cleanedText) && grounded.stats.searchedDocuments + readableAttached.length === 1) {
+      citations = resolveCitations([{ source: contextDocs.length ? 'DOCUMENT 1' : 'INGESTED ACTIVE FILE 1' }], contextDocs, readableAttached);
     }
     // The model sometimes answers from the files without citing them. Rather than show no
     // sources, find the documents that clearly contain the answer's details.
@@ -175,6 +243,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const totalMs = mark('response complete');
     res.setHeader('X-Signal87-Total-Ms', String(totalMs)); res.setHeader('X-Signal87-Provider-Ms', String(providerMs));
-    return res.json({ text: citationResult.cleanedText || aiResult.text, citations, sources, provider: aiResult.provider, modelUsed: aiResult.modelUsed, fallbackTriggered: aiResult.fallbackTriggered, fallbackReason: aiResult.fallbackReason, latencyMs: totalMs, retrieval: grounded.stats, verificationTrace: { provider: aiResult.provider, model: aiResult.modelUsed, groundedDocuments: contextDocs.length, searchedDocuments: grounded.stats.searchedDocuments, retrievalMode: grounded.stats.mode, passagesUsed: grounded.stats.usedPassages, groundedAttachments: readableAttached.length, unreadableDocuments: unreadableDocs.length + unreadableAttached.length, latencyMs: totalMs } });
+    return res.json({ text: citationResult.cleanedText || aiResult.text, citations, sources, provider: aiResult.provider, modelUsed: aiResult.modelUsed, fallbackTriggered: aiResult.fallbackTriggered, fallbackReason: aiResult.fallbackReason, latencyMs: totalMs, memoryEvent: memoryEvent && typeof memoryEvent === 'object' ? memoryEvent : undefined, retrieval: grounded.stats, verificationTrace: { semanticSearch: Boolean(grounded.stats.semantic), provider: aiResult.provider, model: aiResult.modelUsed, groundedDocuments: contextDocs.length, searchedDocuments: grounded.stats.searchedDocuments, retrievalMode: grounded.stats.mode, passagesUsed: grounded.stats.usedPassages, groundedAttachments: readableAttached.length, unreadableDocuments: unreadableDocs.length + unreadableAttached.length, latencyMs: totalMs } });
   } catch (error: any) { console.error('Error in /api/chat:', error); return res.status(500).json({ error: 'AI request failed', details: error?.message || String(error) }); }
 }

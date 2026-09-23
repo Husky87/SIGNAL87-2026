@@ -1,5 +1,6 @@
 import React from 'react';
-import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight } from 'lucide-react';
+import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight, Brain } from 'lucide-react';
+import { MemoryPanel } from './MemoryPanel';
 import { OrgStats } from '../types';
 import { User } from '../lib/firebase';
 
@@ -23,6 +24,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel
         <details>
           <summary className="s87-settings-row"><UserRound /><span><strong>Account</strong><small>Profile and sign-in</small></span><ChevronRight size={15} /></summary>
           <div className="s87-settings-detail"><p className="font-medium text-[var(--ink)]">{currentUser?.displayName || 'Your account'}</p><p className="mt-1 break-all">{currentUser?.email}</p>{onSignOut && <button type="button" onClick={onSignOut} className="mt-4 rounded-lg border border-[var(--rule)] px-4 text-sm hover:bg-[var(--raised)]">Sign out</button>}</div>
+        </details>
+        <details>
+          <summary className="s87-settings-row"><Brain /><span><strong>Memory</strong><small>Facts Signal87 remembers about you</small></span><ChevronRight size={15} /></summary>
+          <div className="s87-settings-detail"><MemoryPanel /></div>
         </details>
         <button type="button" onClick={onOpenTeam} className="s87-settings-row"><Users /><span><strong>Team</strong><small>Members and workspace access</small></span><ChevronRight size={15} /></button>
         <details>

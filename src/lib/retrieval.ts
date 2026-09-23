@@ -35,14 +35,29 @@ export interface RetrievalOptions {
   budgetChars: number;
   /** Per-document cap when everything fits and full text is sent. */
   maxDocChars: number;
+  /**
+   * Optional meaning-based similarity (cosine, roughly -1..1) for a passage, from
+   * the embeddings index. Undefined for passages that are not indexed yet; those
+   * are ranked by words alone.
+   */
+  semanticScore?: (doc: RetrievalDoc, passageIndex: number) => number | undefined;
 }
 
 export interface RetrievalStats {
   mode: 'full' | 'search' | 'overview' | 'empty';
+  /** True when meaning-based (embedding) scores were used in ranking. */
+  semantic?: boolean;
   searchedDocuments: number;
   searchedPassages: number;
   usedDocuments: number;
   usedPassages: number;
+}
+
+export interface RetrievalGroup {
+  doc: RetrievalDoc;
+  passages: Array<{ index: number; text: string }>;
+  /** Number of passages the whole document has. */
+  total: number;
 }
 
 export interface RetrievalResult {
@@ -52,6 +67,8 @@ export interface RetrievalResult {
   text: string;
   /** A compact list of every file in the workspace, so the model knows what exists. */
   workspaceIndex: string;
+  /** The selected passages, grouped by document, in the same order as contextDocs. */
+  groups: RetrievalGroup[];
   stats: RetrievalStats;
 }
 
@@ -70,6 +87,11 @@ const MAX_PASSAGES_PER_DOC_IN_PROMPT = 6;
 const MAX_PASSAGES_IN_PROMPT = 28;
 const MAX_INDEX_TITLES = 250;
 const MAX_INDEX_CHARS = 7000;
+/** Cosine similarity below this is treated as unrelated; at SEMANTIC_STRONG it counts fully. */
+const SEMANTIC_FLOOR = 0.15;
+const SEMANTIC_STRONG = 0.55;
+const LEXICAL_WEIGHT = 0.45;
+const MIN_BLENDED_SCORE = 0.12;
 
 const STOPWORDS = new Set(
   (
@@ -149,10 +171,7 @@ function termFrequencies(tokens: string[]): Map<string, number> {
   return tf;
 }
 
-function renderDocuments(
-  groups: Array<{ doc: RetrievalDoc; passages: Array<{ index: number; text: string }>; total: number }>,
-  showPassageLabels: boolean
-): string {
+export function renderDocuments(groups: RetrievalGroup[], showPassageLabels: boolean): string {
   const blocks = groups.map((group, i) => {
     const n = i + 1;
     const title = group.doc.title || 'Untitled';
@@ -164,7 +183,7 @@ function renderDocuments(
   return blocks.length ? `REPOSITORY DOCUMENTS:\n${blocks.join('\n\n')}` : '';
 }
 
-function buildWorkspaceIndex(docs: RetrievalDoc[]): string {
+export function buildWorkspaceIndex(docs: RetrievalDoc[]): string {
   if (docs.length === 0) return '';
   const titles: string[] = [];
   let used = 0;
@@ -184,6 +203,7 @@ export function retrieveContext(docs: RetrievalDoc[], options: RetrievalOptions)
     contextDocs: [],
     text: '',
     workspaceIndex: '',
+    groups: [],
     stats: { mode: 'empty', searchedDocuments: 0, searchedPassages: 0, usedDocuments: 0, usedPassages: 0 }
   };
   if (readable.length === 0) return empty;
@@ -201,6 +221,7 @@ export function retrieveContext(docs: RetrievalDoc[], options: RetrievalOptions)
       contextDocs: readable,
       text: renderDocuments(groups, false),
       workspaceIndex: '',
+      groups,
       stats: { mode: 'full', searchedDocuments: readable.length, searchedPassages: readable.length, usedDocuments: readable.length, usedPassages: readable.length }
     };
   }
@@ -259,6 +280,22 @@ export function retrieveContext(docs: RetrievalDoc[], options: RetrievalOptions)
     p.score = score;
   }
 
+  // Blend in meaning-based similarity where the passage is indexed. Words keep
+  // exact names and figures precise; meaning finds passages that use other words.
+  let semanticUsed = false;
+  if (options.semanticScore) {
+    const lexMax = Math.max(0, ...passages.map((p) => p.score)) || 1;
+    for (const p of passages) {
+      const sim = options.semanticScore(readable[p.docIndex], p.passageIndex);
+      const lex = p.score / lexMax;
+      if (sim === undefined || !Number.isFinite(sim)) { p.score = lex > 0 ? lex * 0.8 : 0; continue; }
+      semanticUsed = true;
+      const meaning = Math.max(0, Math.min(1, (sim - SEMANTIC_FLOOR) / (SEMANTIC_STRONG - SEMANTIC_FLOOR)));
+      p.score = LEXICAL_WEIGHT * lex + (1 - LEXICAL_WEIGHT) * meaning;
+      if (p.score < MIN_BLENDED_SCORE) p.score = 0;
+    }
+  }
+
   const ranked = passages.filter((p) => p.score > 0).sort((a, b2) => b2.score - a.score);
 
   const select = (candidates: Passage[]): Passage[] => {
@@ -302,8 +339,10 @@ export function retrieveContext(docs: RetrievalDoc[], options: RetrievalOptions)
     contextDocs: groups.map((g) => g.doc),
     text: renderDocuments(groups, true),
     workspaceIndex: buildWorkspaceIndex(readable),
+    groups,
     stats: {
       mode,
+      semantic: semanticUsed,
       searchedDocuments: readable.length,
       searchedPassages: passages.length,
       usedDocuments: groups.length,

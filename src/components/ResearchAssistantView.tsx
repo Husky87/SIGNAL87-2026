@@ -47,6 +47,8 @@ import { User } from '../lib/firebase';
 import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { requestChat } from '../lib/chatClient';
+import { prepareAsk } from '../lib/askContext';
+import { ensureIndexed } from '../lib/semanticIndex';
 import { Signal87Logo } from './Signal87Logo';
 import { determineDeliverableType } from './ActionRouterComponents';
 import { AssistantAnswer } from './AssistantAnswer';
@@ -252,6 +254,16 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>(documents.map((d) => d.id));
   const knownDocIdsRef = useRef<Set<string>>(new Set(documents.map((d) => d.id)));
+
+  // Keep the meaning-based search index up to date in the background: new or
+  // changed files are embedded once; everything else is already indexed.
+  useEffect(() => {
+    if (!currentUser || documents.length === 0) return;
+    const timer = setTimeout(() => {
+      void ensureIndexed(documents.map((d: any) => ({ id: d.id, title: d.title, summary: d.summary, fullText: d.fullText || d.contentPreview || d.summary })));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [currentUser, documents]);
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -547,12 +559,24 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .slice(-12)
         .map((m) => ({ role: m.role, content: m.text }));
+      const profile = { name: currentUser.displayName || '', email: currentUser.email || '' };
+      // Memory commands, then either the whole files (small workspaces) or the best
+      // passages from every file, ranked by words and meaning (larger ones).
+      const ask = await prepareAsk({
+        question: userMsgText,
+        docs: fullTextDocumentPayload,
+        previousQuestions: priorTurns.filter((m) => m.role === 'user').map((m) => m.content).slice(0, -1),
+        profile
+      });
       const bodyPayload = {
         prompt: userMsgText,
         messages: priorTurns,
-        documents: fullTextDocumentPayload,
+        documents: ask.documents,
+        retrieved: ask.retrieved,
+        memories: ask.memories,
+        memoryEvent: ask.memoryEvent,
         // Who is asking, so "I", "me" and "my" resolve to the signed-in user.
-        userProfile: { name: currentUser.displayName || '', email: currentUser.email || '' },
+        userProfile: profile,
         model: selectedModel,
         ingestedFilesData,
         attachedFiles
@@ -600,6 +624,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         // so it now simply does not render when there is nothing to cite.
         citations: data.citations,
         sources: data.sources,
+        memoryEvent: data.memoryEvent || ask.memoryEvent,
         verificationTrace: data.verificationTrace,
         reasoningSteps: reasoningSteps,
         isDeepResearch: false
