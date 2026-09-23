@@ -4,6 +4,7 @@ export interface ChatApiResponse {
   text: string;
   citations?: ChatMessage['citations'];
   sources?: ChatMessage['sources'];
+  memoryEvent?: ChatMessage['memoryEvent'];
   verificationTrace?: ChatMessage['verificationTrace'];
   reasoningSteps?: string[];
 }

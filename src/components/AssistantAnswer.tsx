@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { Brain, FileText } from 'lucide-react';
 import type { ChatMessage, DocumentItem } from '../types';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, GeminiMarkdownRenderer } from './ActionRouterComponents';
@@ -12,7 +12,7 @@ const RetrievalNote: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
   if (!trace || searched === 0) return null;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const label = trace.retrievalMode === 'search'
-    ? `Searched ${plural(searched, 'file')} · used ${plural(used, 'file')}`
+    ? `Searched ${plural(searched, 'file')}${trace.semanticSearch ? ' by meaning' : ''} · used ${plural(used, 'file')}`
     : trace.retrievalMode === 'overview'
       ? `Scanned the opening of ${plural(used, 'file')} out of ${searched}`
       : `Read ${plural(used, 'file')} in full`;
@@ -36,6 +36,18 @@ interface AssistantAnswerProps {
   onSaveAnswer?: (msg: ChatMessage, question: string) => void;
   isAnswerSaved?: boolean;
 }
+
+/** "Saved to memory: …" when this turn remembered or forgot something. */
+const MemoryNote: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
+  const e = msg.memoryEvent;
+  if (!e || e.type === 'not-found') return null;
+  return (
+    <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--teal-soft)] px-3 py-1.5 text-[11.5px] text-[var(--teal)]">
+      <Brain size={13} className="shrink-0" aria-hidden="true" />
+      <span className="truncate">{e.type === 'saved' ? 'Saved to memory' : 'Removed from memory'}: {e.text}</span>
+    </div>
+  );
+};
 
 /** Clickable source files under an answer, so every answer that used your files shows which ones. */
 const SourcesRow: React.FC<{ msg: ChatMessage; documents: DocumentItem[]; onSelectDocument?: (doc: DocumentItem) => void }> = ({ msg, documents, onSelectDocument }) => {
@@ -90,6 +102,7 @@ export const AssistantAnswer: React.FC<AssistantAnswerProps> = ({
           documents={documents}
         />
       </div>
+      <MemoryNote msg={msg} />
       <SourcesRow msg={msg} documents={documents} onSelectDocument={onSelectDocument} />
       <ActionRouterCard
         msg={msg}
