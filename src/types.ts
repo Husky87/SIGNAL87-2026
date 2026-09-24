@@ -80,7 +80,7 @@ export interface ChatMessage {
   timestamp: string;
   citations?: Citation[];
   /** Files the answer drew on: cited ones, or ones matched to the answer when the model didn't cite. */
-  sources?: Array<{ docId: string; docTitle: string }>;
+  sources?: Array<{ docId: string; docTitle: string; /** How many versions of this file were found; the chip opens the newest. */ versions?: number }>;
   /** Set when this turn saved or removed a memory ("remember that …" / "forget …"). */
   memoryEvent?: { type: 'saved' | 'forgotten' | 'not-found'; text: string };
   verificationTrace?: {
