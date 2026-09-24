@@ -218,11 +218,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-haspopup="menu"
             aria-expanded={newMenuOpen}
             title="Create something new"
-            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--teal)] hover:opacity-90 border-transparent text-white ${
+            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--surface)] border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--raised)] ${
               collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''
             }`}
           >
-            <Icon size={16} className="flex-shrink-0 text-white" />
+            <Icon size={16} className="flex-shrink-0 text-[var(--teal)]" />
             {(!collapsed || mobileMenuOpen) && <span>{item.label}</span>}
           </button>
 
@@ -344,9 +344,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
+        {/* Upload is the platform's front door: first thing under the logo, on every page. */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => { onOpenUpload?.(); onCloseMobileMenu?.(); }}
+            title="Upload files"
+            aria-label="Upload files"
+            className={`w-full rounded-full px-4 py-3 text-[13.5px] font-semibold flex items-center gap-3 transition-all cursor-pointer bg-[var(--teal)] text-white shadow-sm hover:opacity-90 ${
+              collapsed && !mobileMenuOpen ? 'justify-center px-0 w-11 h-11 mx-auto' : ''
+            }`}
+          >
+            <Upload size={17} className="flex-shrink-0" />
+            {(!collapsed || mobileMenuOpen) && <span>Upload files</span>}
+          </button>
+          <div className="s87-new-secondary">{renderNavItem({ id: 'new', label: 'Create new', icon: Plus })}</div>
+        </div>
+
         <nav aria-label="Workspace" className="space-y-1">
           {navItems.map(renderNavItem)}
-          <div className="pt-4">{renderNavItem({ id: 'new', label: 'Create new', icon: Plus })}</div>
           {(!collapsed || mobileMenuOpen) && <details className="pt-3 text-[12px] text-[var(--muted)]">
             <summary className="cursor-pointer px-4 py-2">More file options</summary>
             {FILES_SUB_ITEMS.filter(item => item.id === 'shared' || item.id === 'trash').map(item => <button key={item.id} type="button" onClick={() => { onSelectFilesView?.(item.id); onSelectTab('documents'); onCloseMobileMenu?.(); }} className="flex w-full items-center gap-3 px-4 py-2 hover:bg-[var(--raised)]"><item.icon size={15} />{item.label}</button>)}

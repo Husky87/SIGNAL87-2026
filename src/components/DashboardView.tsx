@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Calendar, FileText, Columns, DollarSign, Clock, Plus, Paperclip, Search, StickyNote, Sparkles } from 'lucide-react';
+import { ArrowUp, Calendar, FileText, Columns, DollarSign, Clock, Plus, Paperclip, Search, StickyNote, Sparkles, Upload } from 'lucide-react';
 import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
 import { ChatSessionSummary } from './Sidebar';
@@ -135,6 +135,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
 
         <section className="mx-auto mt-6 flex max-w-[760px] flex-wrap justify-center gap-2.5">
+          {/* Uploading is how everything starts, so it leads the actions and stands out. */}
+          <button
+            type="button"
+            onClick={onOpenUpload}
+            className="flex min-h-[42px] items-center gap-2 rounded-full bg-[var(--teal)] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:opacity-90"
+          >
+            <Upload size={14} />
+            Upload files
+          </button>
           {QUICK_ACTIONS.map(({ icon: Icon, label, question }) => (
             <button
               key={label}
@@ -147,6 +156,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           ))}
         </section>
+
+        <p className="mt-3 text-center text-[12px] text-[var(--muted)]">
+          Or drop files anywhere on this page · PDF, Word, Excel, PowerPoint, CSV and images
+        </p>
 
         <section className="mt-16">
           <div className="mb-2 flex items-center justify-between">

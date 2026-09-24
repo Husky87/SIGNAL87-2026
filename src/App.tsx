@@ -28,7 +28,7 @@ import { MobileDock } from './components/MobileDock';
 import { ScrollArea } from './components/ScrollArea';
 import { SavedView } from './components/SavedView';
 import { auth, onAuthStateChanged, User, signUpWithEmail, signInWithEmail, getRedirectResult, signInWithGoogle, signInWithGoogleRedirect } from './lib/firebase';
-import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp } from 'lucide-react';
+import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp, Upload } from 'lucide-react';
 
 import {
   INITIAL_AUDIT_LOGS,
@@ -257,6 +257,39 @@ export default function App() {
     setUploadFolderId(selectedFolderId);
     setPendingDroppedFiles(files);
     setIsUploadOpen(true);
+  };
+
+  // Drop files anywhere to upload. Files and Ask have their own drop behaviour
+  // (folder upload / attach to the question), so this covers every other page.
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepthRef = React.useRef(0);
+  const pageHandlesDrop = currentTab === 'documents' || currentTab === 'research';
+  const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer?.types || []).includes('Files');
+  const globalDrop = {
+    onDragEnter: (e: React.DragEvent) => {
+      if (pageHandlesDrop || isUploadOpen || !hasFiles(e)) return;
+      e.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDraggingFiles(true);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (pageHandlesDrop || isUploadOpen || !hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (pageHandlesDrop || isUploadOpen || !hasFiles(e)) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      if (pageHandlesDrop || isUploadOpen || !hasFiles(e)) return;
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      const files = (Array.from(e.dataTransfer.files || []) as File[]).filter((f) => f.size > 0);
+      if (files.length) handleFilesDropped(files);
+    }
   };
 
   const [selectedModel, setSelectedModel] = useState<string>('gemini-3.6-flash');
@@ -986,7 +1019,17 @@ export default function App() {
           ? { height: `${visualHeight}px` }
           : { height: '100dvh', minHeight: '-webkit-fill-available' }
       }
+      {...globalDrop}
     >
+      {isDraggingFiles && (
+        <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-[var(--paper)]/80 backdrop-blur-sm" role="status" aria-live="polite">
+          <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-[var(--teal)] bg-[var(--surface)] px-14 py-10 text-center shadow-xl">
+            <Upload size={28} className="text-[var(--teal)]" />
+            <p className="text-[16px] font-semibold text-[var(--ink)]">Drop files to upload</p>
+            <p className="text-[12px] text-[var(--muted)]">PDF, Word, Excel, PowerPoint, CSV and images</p>
+          </div>
+        </div>
+      )}
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
