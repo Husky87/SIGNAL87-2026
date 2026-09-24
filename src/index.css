@@ -712,3 +712,15 @@
 .s87-theme-picker button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 9px; color: var(--ink-2); font-size: 13px; font-weight: 550; transition: background-color 0.2s ease, color 0.2s ease; }
 .s87-theme-picker button:hover { color: var(--ink); background: var(--surface-2); }
 .s87-theme-picker button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+
+/* Ask reading rhythm, modelled on Claude: a ~48rem reading column (≈75 characters
+   a line), 16px text at 1.7 line height, a full blank line between paragraphs,
+   and roomier lists. Other pages keep the wider workspace column. */
+.s87-app .s87-ask { --workspace-width: 768px; }
+.s87-app .s87-prose > :first-child { margin-top: 0; }
+.s87-app .s87-prose > :last-child { margin-bottom: 0; }
+.s87-app .s87-prose li > p { margin: 0; }
+.s87-app .s87-prose h1, .s87-app .s87-prose h2, .s87-app .s87-prose h3 { line-height: 1.35; }
+/* Citation markers sit above the text without pushing lines apart. */
+.s87-app .s87-cite { display: inline; font-size: 0.7em; line-height: 0; vertical-align: 0.5em; min-height: 0 !important; min-width: 0 !important; height: auto !important; padding: 0 1px !important; }

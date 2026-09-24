@@ -849,7 +849,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className="relative flex flex-col bg-[var(--bg)] text-[var(--ink)] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
+      className="s87-ask relative flex flex-col bg-[var(--bg)] text-[var(--ink)] font-sans h-full flex-1 min-h-0 overflow-hidden select-none"
     >
       <input
         type="file"
