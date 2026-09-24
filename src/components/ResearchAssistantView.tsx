@@ -21,20 +21,17 @@ import {
   Copy,
   Download,
   Share2,
-  Columns,
   Maximize2,
   Minimize2,
   UploadCloud,
   FileSpreadsheet,
   GitFork,
-  BarChart3,
   ShieldCheck,
   Paperclip,
   X,
   ExternalLink,
   ChevronRight,
   ChevronDown,
-  Clock,
   Loader2,
   Menu,
   LogIn,
@@ -757,13 +754,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     }, 500);
   };
 
-  const suggestionCards = [
-    { id: 'deadlines', icon: Clock, prompt: 'What compliance deadlines and notice windows are coming up across active agreements?' },
-    { id: 'metrics', icon: BarChart3, prompt: 'Extract the key financial metrics from these documents' },
-    { id: 'summary', icon: FileText, prompt: 'Draft an executive summary of the key findings across this corpus' },
-    { id: 'compare', icon: Columns, prompt: 'Compare terms across two documents I select' }
-  ];
-
   const isEmptyChat = chatHistory.length === 0;
 
   const composer = (
@@ -1048,28 +1038,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
               <div className="s87-column">
                 {composer}
-              </div>
-
-              <div className="s87-column pt-7">
-                <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)] mb-3 px-0.5">
-                  Try one of these
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {suggestionCards.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => setInputQuery(card.prompt)}
-                        className="flex items-start gap-3 text-left p-4 rounded-[12px] border border-[var(--rule)] bg-[var(--bg)] hover:bg-[var(--surface-2)] hover:border-[color-mix(in_srgb,var(--teal)_35%,var(--rule))] text-[14px] leading-[1.45] text-[var(--ink)] transition-colors cursor-pointer"
-                      >
-                        <Icon size={17} className="text-[var(--teal)] flex-shrink-0 mt-[1px]" />
-                        <span>{card.prompt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {(() => {
