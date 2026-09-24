@@ -129,6 +129,11 @@ export default function App() {
   // The history array most recently loaded from storage. Saving skips exactly that
   // array (it's already stored), so the first real message is never skipped.
   const loadedHistoryRef = React.useRef<ChatMessage[] | null>(null);
+  // The session the save effect last ran for. When the active session changes,
+  // chatHistory still holds the previous conversation for one render; saving then
+  // wrote that conversation (often an empty one) over the session being opened,
+  // which is how opening a Recent question could show a blank page.
+  const lastSavedSessionRef = React.useRef<string | null>(null);
   const [showAuthBanner, setShowAuthBanner] = useState(true);
 
   // Core Data States
@@ -384,6 +389,10 @@ export default function App() {
   // Save chatHistory to localStorage for the active session
   useEffect(() => {
     if (!activeSessionId || !currentUser || !workspaceReady) return;
+    if (lastSavedSessionRef.current !== activeSessionId) {
+      lastSavedSessionRef.current = activeSessionId;
+      return;
+    }
     if (chatHistory === loadedHistoryRef.current) return;
     try {
       localStorage.setItem(`signal87_chat_${currentUser.uid}_${activeSessionId}`, JSON.stringify(chatHistory));

@@ -24,4 +24,11 @@ assert.equal(renamed[0].title, 'Who is financing Harvard Street?');
 assert.equal(titleFromMessages([{ role: 'user', text: 'x'.repeat(80) }])?.length, 61);
 assert.equal(formatRelative(t0 - 30000, t0), 'Just now');
 assert.equal(formatRelative(t0 - 5 * 60000, t0), '5m ago');
+// A titled session whose stored conversation is empty isn't listed (it would open blank).
+{
+  const listedShell = [{ id: 's_shell', title: 'what is the ein for signal87 LLC', timestamp: '' }, { id: 's_new', title: 'New Research Session', timestamp: '' }];
+  const out = recoverSessions(listedShell, [{ id: 's_shell', messages: [] }]);
+  assert.ok(!out.some((s) => s.id === 's_shell'), 'empty titled session dropped');
+  assert.ok(out.some((s) => s.id === 's_new'), 'new untitled session kept');
+}
 console.log('chat sessions: all checks passed');
