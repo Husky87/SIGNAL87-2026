@@ -59,4 +59,12 @@ const resolve = (s: string) => docs[s.toUpperCase()] || null;
   const code = 'Is it ready ? Yes [1].\n```ts\nconst x = a ? b[1] : c;\n```';
   assert.equal(applyCitations(code, one, resolve).text, code, 'prose spacing and code blocks unchanged');
 }
+// 7. Markers glued to words, as models usually write them (the "Perplexity[1][2][3]" bug).
+{
+  const three = [{ marker: 1, source: 'DOCUMENT 1' }, { marker: 2, source: 'DOCUMENT 2' }, { marker: 3, source: 'DOCUMENT 3' }];
+  const { text, citations } = applyCitations('Google Cloud, and Perplexity[1][2][3]. Asian capital[1][3].', three, resolve);
+  assert.equal(citations.length, 3, 'glued markers are resolved');
+  assert.equal(text, 'Google Cloud, and Perplexity[1][2][3]. Asian capital[1][3].');
+  assert.equal(applyCitations('Rate[9].', three, resolve).text, 'Rate.', 'an unresolvable glued marker is removed cleanly');
+}
 console.log('citations: all checks passed');

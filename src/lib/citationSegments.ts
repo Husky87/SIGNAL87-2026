@@ -15,10 +15,11 @@ const SENTINEL_OPEN = '';
 const SENTINEL_CLOSE = '';
 export const SENTINEL_PATTERN = /([\d,]+)/g;
 
-// Same rule as the server: [1]…[99], "[1, 2]" or "[1][2]", not right after a word
-// character or bracket (so "arr[0]" and "[2024]" are left alone). The spaces
-// before a marker go with it, so hiding it leaves no " ." behind.
-const MARKER_RUN = /[ \t]*(?<![\w\]])((?:\[\d{1,2}(?:\s*[,–-]\s*\d{1,2})*\])+)/g;
+// Same rule as the server (src/lib/citations.ts): a run of [1]…[99] markers, "[1, 2]" or
+// "[1][2]", allowed right after a word ("Perplexity[1][2]", the usual model style).
+// Numbers start at 1, so "arr[0]" and "[2024]" are left alone. The spaces before a
+// marker go with it, so hiding it leaves no " ." behind.
+const MARKER_RUN = /[ \t]*(?<!\])((?:\[[1-9]\d?(?:\s*[,–-]\s*[1-9]\d?)*\])+)/g;
 
 // "e.g.", "Inc.", "No. 5", "Jan. 5" and initials ("Michael R. Benezra") don't end a sentence.
 const ABBREVIATION = /(?:^|[\s(])(?:e\.g|i\.e|etc|inc|ltd|llc|co|corp|mr|mrs|ms|dr|st|no|vs|jr|sr|approx|est|dept|fig|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|[a-z])$/i;

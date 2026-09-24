@@ -94,10 +94,12 @@ export function applyCitations(
   });
   const citations: CitedDoc[] = [];
   const indexOf = new Map<string, number>();
+  // A run of markers: "[1]", "[1][3]", "[1, 2]". Markers are 1–99 and start at 1, so
+  // "[2024]" and "arr[0]" are left alone. They may sit right after a word
+  // ("Perplexity[1][2]"), which is how models usually write them.
   const renumber = (prose: string) =>
-    // [1]…[99] only (so "[2024]" is left alone), and not right after a word or bracket (so "arr[0]" is left alone).
-    prose.replace(/[ \t]*(?<![\w\]])\[(\d{1,2}(?:\s*[,–-]\s*\d{1,2})*)\]/g, (whole, group: string) => {
-      const nums = group.split(/\s*[,–-]\s*/).map(Number);
+    prose.replace(/[ \t]*(?<!\])((?:\[[1-9]\d?(?:\s*[,–-]\s*[1-9]\d?)*\])+)/g, (whole, run: string) => {
+      const nums = (run.match(/\d{1,2}/g) || []).map(Number);
       const labels: number[] = [];
       for (const n of nums) {
         const doc = byMarker.get(n) ?? (entries.length === 0 && single ? single : undefined);
