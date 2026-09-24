@@ -22,7 +22,7 @@
     <!-- Translucent so the app's own background runs under the clock and
          battery, rather than iOS painting an opaque strip above it. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#1E2020" />
+    <meta name="theme-color" content="#0B0E0C" />
     <meta name="color-scheme" content="light dark" />
     <!-- Phone numbers and dates in contract text are not links. -->
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
@@ -98,7 +98,7 @@
       // so dark-mode users never see a white flash. src/lib/theme.ts takes over after.
       (function () {
         try {
-          var pref = localStorage.getItem('signal87-theme') || 'system';
+          var pref = localStorage.getItem('signal87-theme') || 'dark';
           var dark = pref === 'dark' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.dataset.theme = dark ? 'dark' : 'light';
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light';

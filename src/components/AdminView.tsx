@@ -78,7 +78,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel
         </details>
         <details>
           <summary className="s87-settings-row"><Palette /><span><strong>Appearance</strong><small>Light, dark, or match your device</small></span><ChevronRight size={15} /></summary>
-          <div className="s87-settings-detail"><ThemePicker /><p className="mt-3 text-xs text-[var(--muted)]">System follows your device’s light or dark setting. Document pages always stay white, like paper. The workspace also respects your device’s reduced-motion preference.</p></div>
+          <div className="s87-settings-detail"><ThemePicker /><p className="mt-3 text-xs text-[var(--muted)]">Dark is the default. You can also switch from the sidebar at any time. System follows your device’s light or dark setting. Document pages always stay white, like paper. The workspace also respects your device’s reduced-motion preference.</p></div>
         </details>
         <details>
           <summary className="s87-settings-row"><ShieldCheck /><span><strong>Privacy &amp; security</strong><small>Policies and account protection</small></span><ChevronRight size={15} /></summary>
