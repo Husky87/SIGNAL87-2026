@@ -62,7 +62,7 @@ export interface ResearchAssistantViewProps {
   documents: DocumentItem[];
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
   /** Limit Ask to these workspace files (from "Ask about this file"); nonce re-applies the same request. */
-  scopeRequest?: { ids: string[]; nonce: number } | null;
+  scopeRequest?: { ids: string[]; nonce: number; draft?: string } | null;
   /** Recent conversations, shown on the empty Ask screen (Ask is the home screen). */
   recentSessions?: Array<{ id: string; title: string; timestamp: string }>;
   onOpenSession?: (id: string) => void;
@@ -412,6 +412,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   // "Ask about this file" from the document viewer.
   useEffect(() => {
     if (!scopeRequest) return;
+    if (scopeRequest.draft) setInputQuery(scopeRequest.draft);
     if (!scopeRequest.ids.length) { clearScope(); return; }
     const wanted = documents.filter((d) => scopeRequest.ids.includes(d.id));
     if (!wanted.length) return;

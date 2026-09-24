@@ -264,7 +264,7 @@ export default function App() {
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
   // "Ask about this file": Ask opens limited to these files (nonce re-applies the same file).
-  const [askScopeRequest, setAskScopeRequest] = useState<{ ids: string[]; nonce: number } | null>(null);
+  const [askScopeRequest, setAskScopeRequest] = useState<{ ids: string[]; nonce: number; draft?: string } | null>(null);
   // Files opened from Ask to choose which files a question searches (null when not choosing).
   const [pickFilesForAsk, setPickFilesForAsk] = useState<string[] | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
@@ -1440,8 +1440,8 @@ export default function App() {
           setCurrentTab('saved');
         }}
         onAskAbout={(doc) => {
-          setAskScopeRequest({ ids: [doc.id], nonce: Date.now() });
-          setCurrentTab('research');
+          handleCreateNewSession();
+          setAskScopeRequest({ ids: [doc.id], nonce: Date.now(), draft: `Tell me about ${doc.title}` });
         }}
       />
 
