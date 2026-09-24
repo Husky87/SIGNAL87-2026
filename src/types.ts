@@ -54,6 +54,8 @@ export interface DocumentItem {
   contentPreview?: string;
   category: 'Legal' | 'Legislative' | 'Financial' | 'Medical' | 'Research' | 'Operations';
   fileUrl?: string;
+  /** Small first-page image stored beside the original file. */
+  thumbnailUrl?: string;
   folderId?: string;
   projectIds?: string[];
   starred?: boolean;

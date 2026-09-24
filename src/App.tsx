@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
 import { DocumentLibraryView } from './components/DocumentLibraryView';
@@ -39,6 +39,7 @@ import { DocumentItem, FolderItem, ChatMessage, SavedItem, SavedAnswer } from '.
 import {
   fetchDocumentsFromFirestore,
   saveDocumentToFirestore,
+  saveDocumentThumbnailToFirestore,
   deleteDocumentFromFirestore,
   fetchSavedItemsFromFirestore,
   saveSavedItemToFirestore,
@@ -669,6 +670,13 @@ export default function App() {
     }));
   };
 
+  const handleThumbnailReady = useCallback((docId: string, thumbnailUrl: string) => {
+    setDocuments((prev) => prev.map((doc) => doc.id === docId ? { ...doc, thumbnailUrl } : doc));
+    // Update only this field: another action may have changed the document
+    // while thumbnail generation was running.
+    void saveDocumentThumbnailToFirestore(docId, thumbnailUrl);
+  }, []);
+
   // Soft delete — moves to Trash instead of removing immediately, matching
   // Drive's model. Permanent removal only happens from the Trash view.
   const handleDeleteDocument = (docId: string) => {
@@ -1232,6 +1240,7 @@ export default function App() {
                 filesView={filesView}
                 initialSearch={searchQuery}
                 onSelectDocument={setSelectedDocForDetail}
+                onThumbnailReady={handleThumbnailReady}
                 onOpenUpload={(folderId) => {
                   setUploadFolderId(folderId ?? selectedFolderId);
                   setIsUploadOpen(true);
@@ -1361,6 +1370,7 @@ export default function App() {
           setUploadFolderId(null);
         }}
         onUploadSuccess={handleUploadSuccess}
+        onThumbnailReady={handleThumbnailReady}
         documents={myDocuments}
         targetFolderId={uploadFolderId}
         initialFiles={pendingDroppedFiles}

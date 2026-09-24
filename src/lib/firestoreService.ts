@@ -1,5 +1,5 @@
 import { db, auth } from './firebase';
-import { collection, getDocs, deleteDoc, doc, setDoc, query, orderBy, limit, getDocFromServer } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, setDoc, updateDoc, query, orderBy, limit, getDocFromServer } from 'firebase/firestore';
 import { DocumentItem, Project, ChatMessage, SavedItem } from '../types';
 
 export enum OperationType { CREATE='create', UPDATE='update', DELETE='delete', LIST='list', GET='get', WRITE='write' }
@@ -68,11 +68,16 @@ export async function saveDocumentToFirestore(docItem: DocumentItem): Promise<st
       title:docItem.title,type:docItem.type,sizeBytes:docItem.sizeBytes,uploadDate:docItem.uploadDate,tags:docItem.tags||[],
       owner:docItem.owner||auth?.currentUser?.email||'',organization:docItem.organization||'Signal87 AI',status:docItem.status||'Indexed',
       aiIndexed:docItem.aiIndexed??true,category:docItem.category||'General',summary:docItem.summary||'',contentPreview:docItem.contentPreview||'',
-      fileUrl:docItem.fileUrl&&!docItem.fileUrl.startsWith('blob:')?docItem.fileUrl:'',starred:docItem.starred||false,trashed:docItem.trashed||false,
+      fileUrl:docItem.fileUrl&&!docItem.fileUrl.startsWith('blob:')?docItem.fileUrl:'',thumbnailUrl:docItem.thumbnailUrl||'',starred:docItem.starred||false,trashed:docItem.trashed||false,
       trashedAt:docItem.trashedAt||null,folderId:docItem.folderId||null,permissions:docItem.permissions||'Private',projectIds:docItem.projectIds||[],fullText:docItem.fullText||'',userId:uid
     },{merge:true});
     return docItem.id;
   } catch(error){ handleFirestoreError(error,OperationType.WRITE,docPath); return docItem.id; }
+}
+export async function saveDocumentThumbnailToFirestore(docId: string, thumbnailUrl: string): Promise<void> {
+  if (!currentUid()) return;
+  try { await updateDoc(userDocRef(DOCS_COLLECTION, docId), { thumbnailUrl }); }
+  catch (error) { handleFirestoreError(error, OperationType.UPDATE, userPath(DOCS_COLLECTION, docId)); }
 }
 export async function deleteDocumentFromFirestore(docId:string):Promise<void>{
   const docPath=userPath(DOCS_COLLECTION,docId); if(!currentUid()) return;
