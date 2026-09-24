@@ -116,7 +116,10 @@ function useVisualViewportHeight(): number | null {
 
 export default function App() {
   const visualHeight = useVisualViewportHeight();
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  // Ask is the home screen: the separate Home page duplicated it. Anything that
+  // still asks for 'dashboard' (old links, the logo, the mobile search box) lands on Ask.
+  const [currentTab, setCurrentTabRaw] = useState<NavTab>('research');
+  const setCurrentTab = React.useCallback((tab: NavTab) => setCurrentTabRaw(tab === 'dashboard' ? 'research' : tab), []);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -257,12 +260,19 @@ export default function App() {
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
   // "Ask about this file": Ask opens limited to these files (nonce re-applies the same file).
   const [askScopeRequest, setAskScopeRequest] = useState<{ ids: string[]; nonce: number } | null>(null);
+  // Files opened from Ask to choose which files a question searches (null when not choosing).
+  const [pickFilesForAsk, setPickFilesForAsk] = useState<string[] | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const handleFilesDropped = (files: File[]) => {
     setUploadFolderId(selectedFolderId);
     setPendingDroppedFiles(files);
     setIsUploadOpen(true);
   };
+
+  // Leaving Files while choosing files for Ask cancels the choice.
+  useEffect(() => {
+    if (currentTab !== 'documents' && pickFilesForAsk) setPickFilesForAsk(null);
+  }, [currentTab, pickFilesForAsk]);
 
   // Drop files anywhere to upload. Files and Ask have their own drop behaviour
   // (folder upload / attach to the question), so this covers every other page.
@@ -1234,6 +1244,18 @@ export default function App() {
           {currentTab === 'documents' && (
             <div className="flex-1 flex flex-col min-h-0">
               <DocumentLibraryView
+                pickForAsk={pickFilesForAsk ? {
+                  initialIds: pickFilesForAsk,
+                  onConfirm: (ids) => {
+                    setAskScopeRequest({ ids, nonce: Date.now() });
+                    setPickFilesForAsk(null);
+                    setCurrentTab('research');
+                  },
+                  onCancel: () => {
+                    setPickFilesForAsk(null);
+                    setCurrentTab('research');
+                  }
+                } : undefined}
                 documents={myDocuments}
                 loading={documentsLoading && myDocuments.length === 0}
                 folders={folders}
@@ -1283,6 +1305,14 @@ export default function App() {
               onSelectDocument={(doc, options) => { setDetailSearch(options?.search || ''); setSelectedDocForDetail(doc); }}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
+              recentSessions={displaySessions}
+              onOpenSession={handleOpenSessionFromHome}
+              onChooseFiles={(ids) => {
+                setPickFilesForAsk(ids);
+                setSelectedFolderId(null);
+                setFilesView('workspace');
+                setCurrentTab('documents');
+              }}
               scopeRequest={askScopeRequest}
               initialQuery={documentsLoading || chatSessionReadyId !== activeSessionId ? null : pendingHomeQuery}
               onInitialQueryConsumed={() => setPendingHomeQuery(null)}

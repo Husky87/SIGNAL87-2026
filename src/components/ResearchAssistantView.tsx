@@ -41,7 +41,8 @@ import {
   LogOut,
   User as UserIcon,
   FolderOpen,
-  FileSearch
+  FileSearch,
+  Clock3
 } from 'lucide-react';
 import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
@@ -62,6 +63,11 @@ export interface ResearchAssistantViewProps {
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
   /** Limit Ask to these workspace files (from "Ask about this file"); nonce re-applies the same request. */
   scopeRequest?: { ids: string[]; nonce: number } | null;
+  /** Recent conversations, shown on the empty Ask screen (Ask is the home screen). */
+  recentSessions?: Array<{ id: string; title: string; timestamp: string }>;
+  onOpenSession?: (id: string) => void;
+  /** Opens Files in "choose files to ask about" mode (falls back to the picker dialog when not provided). */
+  onChooseFiles?: (currentIds: string[]) => void;
   setAttachedFiles: React.Dispatch<React.SetStateAction<{ id: string; name: string; size: string; dataUrl?: string }[]>>;
   selectedModel: string;
   onChangeModel: (model: string) => void;
@@ -237,6 +243,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   documents,
   attachedFiles,
   scopeRequest,
+  recentSessions = [],
+  onOpenSession,
+  onChooseFiles,
   setAttachedFiles,
   selectedModel,
   onChangeModel,
@@ -402,7 +411,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
   // "Ask about this file" from the document viewer.
   useEffect(() => {
-    if (!scopeRequest?.ids.length) return;
+    if (!scopeRequest) return;
+    if (!scopeRequest.ids.length) { clearScope(); return; }
     const wanted = documents.filter((d) => scopeRequest.ids.includes(d.id));
     if (!wanted.length) return;
     setAttachedFiles((prev) => prev.filter((f) => !workspaceIds.has(f.id) || scopeRequest.ids.includes(f.id)));
@@ -842,7 +852,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   type="button"
                   onClick={() => {
                     setShowAttachMenu(false);
-                    setShowFilePicker(true);
+                    if (onChooseFiles) onChooseFiles(scopedIds); else setShowFilePicker(true);
                   }}
                   className="w-full flex items-center gap-2.5 text-left px-4 min-h-[44px] hover:bg-[var(--surface-2)] text-[13px] font-medium text-[var(--ink)] transition-colors cursor-pointer"
                 >
@@ -868,7 +878,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
           <button
             type="button"
-            onClick={() => { setShowAttachMenu(false); setShowFilePicker(true); }}
+            onClick={() => { setShowAttachMenu(false); if (onChooseFiles) onChooseFiles(scopedIds); else setShowFilePicker(true); }}
             aria-label={scopedIds.length ? `Searching ${scopedIds.length} selected file${scopedIds.length === 1 ? '' : 's'}. Change` : 'Choose files to search'}
             className={`flex items-center gap-2 min-h-10 px-3 rounded-full text-sm transition-colors cursor-pointer flex-shrink-0 ${
               scopedIds.length ? 'bg-[var(--teal-soft)] text-[var(--teal)] font-medium' : 'bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
@@ -1060,6 +1070,34 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   })}
                 </div>
               </div>
+
+              {(() => {
+                const recent = recentSessions
+                  .filter((s) => s.title && !['New Research Session', 'New Chat'].includes(s.title))
+                  .slice(0, 5);
+                if (!recent.length || !onOpenSession) return null;
+                return (
+                  <div className="s87-column pt-8 pb-6">
+                    <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)] mb-3 px-0.5">
+                      Recent
+                    </h2>
+                    <div className="overflow-hidden rounded-[12px] border border-[var(--rule)]">
+                      {recent.map((session, i) => (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => onOpenSession(session.id)}
+                          className={`flex w-full items-center gap-3 px-4 min-h-[48px] text-left text-[14px] text-[var(--ink)] hover:bg-[var(--surface-2)] cursor-pointer ${i ? 'border-t border-[var(--rule)]' : ''}`}
+                        >
+                          <Clock3 size={15} className="flex-shrink-0 text-[var(--muted)]" />
+                          <span className="min-w-0 flex-1 truncate">{session.title}</span>
+                          <span className="flex-shrink-0 text-[12px] text-[var(--muted)]">{session.timestamp}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <>
