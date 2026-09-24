@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search, StickyNote, FileText, ArrowLeft, Trash2, Link2, Check, Clock3, Bold, Italic, Underline, Strikethrough, Highlighter, Baseline, Link as LinkIcon, List, ListOrdered, ListTodo, Heading2, Undo2, Redo2, RemoveFormatting, ChevronDown } from 'lucide-react';
+import { Pencil, Plus, Search, StickyNote, FileText, ArrowLeft, Trash2, Link2, Check, Clock3, Bold, Italic, Underline, Strikethrough, Highlighter, Baseline, Link as LinkIcon, List, ListOrdered, ListTodo, Heading2, Undo2, Redo2, RemoveFormatting, ChevronDown } from 'lucide-react';
 import { SavedItem, SavedNote, DocumentItem } from '../types';
 import { ScrollArea } from './ScrollArea';
 
@@ -255,6 +255,32 @@ export const SavedView: React.FC<SavedViewProps> = ({
       setEditorSession((session) => session + 1);
       setNoteLinkedDocId(item.linkedDocId || '');
     }
+  };
+
+  /**
+   * Saved answers are snapshots of an Ask reply. "Edit" turns one into a regular
+   * note in place (same id, so it doesn't duplicate): the question becomes the
+   * title, the answer the body, its sources a list at the end, and the first
+   * source is linked. It then opens in the note editor.
+   */
+  const editAnswerAsNote = (answer: Extract<SavedItem, { type: 'answer' }>) => {
+    const cleanText = String(answer.text || '').replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, '').trim();
+    const sources = (answer.citations || []).map((c) => c.docTitle).filter(Boolean);
+    const body = sources.length ? `${cleanText}\n\nSources:\n${sources.map((t) => `- ${t}`).join('\n')}` : cleanText;
+    const now = new Date().toISOString();
+    const note: SavedNote = {
+      id: answer.id,
+      ...(answer.userId ? { userId: answer.userId } : {}),
+      type: 'note',
+      title: String(answer.question || 'Saved answer').slice(0, 200),
+      body,
+      bodyHtml: sanitizeNoteHtml(plainTextToHtml(body)),
+      ...(answer.citations?.[0]?.docId ? { linkedDocId: answer.citations[0].docId } : {}),
+      createdAt: answer.timestamp && !Number.isNaN(Date.parse(answer.timestamp)) ? new Date(answer.timestamp).toISOString() : now,
+      updatedAt: now
+    };
+    onSaveItem(note);
+    openItem(note);
   };
 
   /** Writes the note as it stands; returns false when there is nothing to keep. */
@@ -535,6 +561,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
         </button>
         <div className="flex items-center gap-2">
           {selectedItem?.type === 'answer' && <span className="rounded-full bg-[var(--teal-soft)] px-3 py-1.5 text-[10px] font-semibold text-[var(--teal)]">Saved answer</span>}
+          {selectedItem?.type === 'answer' && <button type="button" onClick={() => editAnswerAsNote(selectedItem)} aria-label="Edit this answer as a note" className="flex min-h-[42px] items-center gap-2 rounded-full bg-[var(--teal)] px-5 text-[12px] font-semibold text-white transition hover:opacity-90"><Pencil size={14} /> Edit</button>}
           {(isCreatingNote || selectedItem?.type === 'note') && <button type="button" onClick={saveNote} className="flex min-h-[42px] items-center gap-2 rounded-full bg-[var(--ink)] px-5 text-[12px] font-semibold text-white transition hover:opacity-85"><Check size={14} /> Save note</button>}
           {selectedItem && <button type="button" onClick={deleteSelectedItem} aria-label="Delete note" className="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-[var(--muted)] transition hover:bg-[var(--raised)] hover:text-[var(--warn)]"><Trash2 size={15} /> Delete</button>}
         </div>
@@ -626,6 +653,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
           <article className="mx-auto max-w-4xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--teal)]">Saved answer</div>
             <h2 className="mt-4 text-[30px] font-semibold tracking-[-0.045em] text-[var(--ink)] sm:text-[44px]">{selectedItem.question}</h2>
+            <p className="mt-3 text-[12px] text-[var(--muted)]">Saved answers are read-only. Choose <button type="button" onClick={() => editAnswerAsNote(selectedItem)} className="min-h-0 font-semibold text-[var(--teal)] underline-offset-2 hover:underline">Edit</button> to turn this into a note you can change.</p>
             <div className="mt-10 whitespace-pre-wrap text-[15px] leading-8 text-[var(--ink-2)]">{selectedItem.text}</div>
             {selectedItem.citations && selectedItem.citations.length > 0 && <div className="mt-10 border-t border-[var(--rule)] pt-6"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Sources</div><div className="mt-4 space-y-2">{selectedItem.citations.map((citation, idx) => <div key={`${citation.docId}-${idx}`} className="rounded-xl border border-[var(--rule)] bg-[var(--surface)] px-4 py-3 text-[12px] text-[var(--ink-2)]">{citation.docTitle}</div>)}</div></div>}
           </article>

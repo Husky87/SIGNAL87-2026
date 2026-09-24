@@ -12,6 +12,13 @@ const seeded: SavedItem[] = [{
   bodyHtml: '<p>Existing body</p>',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
+}, {
+  id: 'answer-seed',
+  type: 'answer',
+  question: 'Who is financing Harvard Street?',
+  text: 'ROK Financial is financing 110 Harvard Street [1].',
+  citations: [{ docId: 'doc-rok', docTitle: 'ROK_Financial_LOI.pdf' }],
+  timestamp: new Date().toISOString()
 }];
 
 function Harness() {
