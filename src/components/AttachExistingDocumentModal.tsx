@@ -34,7 +34,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col text-[var(--ink)]">
         <div className="flex items-center justify-between p-5 pb-3 border-b border-[var(--rule-2)]">
           <h2 className="text-[16px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
-            Choose from Files
+            Choose files to search
           </h2>
           <button onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
             <X size={18} />
@@ -120,7 +120,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
                         : 'bg-[var(--teal)] text-white hover:opacity-90'
                     }`}
                   >
-                    {isSelectedAttached ? 'Remove' : 'Attach'}
+                    {isSelectedAttached ? 'Remove' : 'Search this file'}
                   </button>
                 </div>
 
@@ -174,7 +174,7 @@ export const AttachExistingDocumentModal: React.FC<AttachExistingDocumentModalPr
             onClick={onClose}
             className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 text-white font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px]"
           >
-            Done{attachedIds.length > 0 ? ` (${attachedIds.length} attached)` : ''}
+            Done{attachedIds.length > 0 ? ` (${attachedIds.length} selected)` : ''}
           </button>
         </div>
       </div>

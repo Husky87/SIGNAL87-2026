@@ -40,7 +40,8 @@ import {
   LogIn,
   LogOut,
   User as UserIcon,
-  FolderOpen
+  FolderOpen,
+  FileSearch
 } from 'lucide-react';
 import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
@@ -59,6 +60,8 @@ import { AttachExistingDocumentModal } from './AttachExistingDocumentModal';
 export interface ResearchAssistantViewProps {
   documents: DocumentItem[];
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
+  /** Limit Ask to these workspace files (from "Ask about this file"); nonce re-applies the same request. */
+  scopeRequest?: { ids: string[]; nonce: number } | null;
   setAttachedFiles: React.Dispatch<React.SetStateAction<{ id: string; name: string; size: string; dataUrl?: string }[]>>;
   selectedModel: string;
   onChangeModel: (model: string) => void;
@@ -233,6 +236,7 @@ const renderFormattedText = (rawText: string) => {
 export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   documents,
   attachedFiles,
+  scopeRequest,
   setAttachedFiles,
   selectedModel,
   onChangeModel,
@@ -386,6 +390,28 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     setSelectedDocIds((prev) => Array.from(new Set([...prev, doc.id])));
   };
 
+  // Files chosen from the workspace scope the question: when any are attached, Ask
+  // searches only those files (with full retrieval, so long files work), not the
+  // whole workspace. Files uploaded just for this chat are still sent alongside.
+  const workspaceIds = new Set(documents.map((d) => d.id));
+  const scopedIds = attachedFiles.filter((f) => workspaceIds.has(f.id)).map((f) => f.id);
+  const clearScope = () => {
+    setAttachedFiles((prev) => prev.filter((f) => !workspaceIds.has(f.id)));
+    setIngestedFiles((prev) => prev.filter((f) => !workspaceIds.has(f.id)));
+  };
+
+  // "Ask about this file" from the document viewer.
+  useEffect(() => {
+    if (!scopeRequest?.ids.length) return;
+    const wanted = documents.filter((d) => scopeRequest.ids.includes(d.id));
+    if (!wanted.length) return;
+    setAttachedFiles((prev) => prev.filter((f) => !workspaceIds.has(f.id) || scopeRequest.ids.includes(f.id)));
+    setIngestedFiles((prev) => prev.filter((f) => !workspaceIds.has(f.id) || scopeRequest.ids.includes(f.id)));
+    for (const doc of wanted) if (!attachedFiles.some((f) => f.id === doc.id)) handleToggleAttachExisting(doc as any);
+    setTimeout(() => composerInputRef.current?.focus(), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeRequest?.nonce]);
+
 
   // Split Screen Canvas State
   const [splitViewOpen, setSplitViewOpen] = useState(false);
@@ -537,9 +563,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     // A document can arrive from Firestore just before this effect has added
     // its id to selection. Include that newly seen document in the same turn;
     // preserve explicit deselection of ids that were already known.
-    const activeDocs = documents.filter((d) =>
-      selectedDocIds.includes(d.id) || !knownDocIdsRef.current.has(d.id)
-    );
+    const activeDocs = scopedIds.length
+      ? documents.filter((d) => scopedIds.includes(d.id))
+      : documents.filter((d) =>
+          selectedDocIds.includes(d.id) || !knownDocIdsRef.current.has(d.id)
+        );
 
     const fullTextDocumentPayload = activeDocs.map((doc: any) => ({
       id: doc.id,
@@ -549,7 +577,8 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
       fullText: doc.fullText || doc.contentPreview || doc.summary
     }));
 
-    const ingestedFilesData = ingestedFiles.map((f) => ({
+    // Scoped workspace files already go through retrieval above; don't send them twice.
+    const ingestedFilesData = ingestedFiles.filter((f) => !scopedIds.includes(f.id)).map((f) => ({
       fileName: f.fileName,
       fileType: f.fileType,
       summaryInfo: f.summaryInfo,
@@ -730,6 +759,11 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     <div className="w-full">
       {attachedFiles.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
+          {scopedIds.length > 0 && (
+            <span className="flex-shrink-0 text-[12px] font-medium text-[var(--muted)]">
+              Only searching
+            </span>
+          )}
           {attachedFiles.map((f) => (
             <div
               key={f.id}
@@ -753,6 +787,15 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               </button>
             </div>
           ))}
+          {scopedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={clearScope}
+              className="flex-shrink-0 min-h-[36px] px-3 rounded-full text-[12px] font-medium text-[var(--teal)] hover:bg-[var(--raised)] cursor-pointer"
+            >
+              Search all files
+            </button>
+          )}
         </div>
       )}
 
@@ -822,6 +865,25 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => { setShowAttachMenu(false); setShowFilePicker(true); }}
+            aria-label={scopedIds.length ? `Searching ${scopedIds.length} selected file${scopedIds.length === 1 ? '' : 's'}. Change` : 'Choose files to search'}
+            className={`flex items-center gap-2 min-h-10 px-3 rounded-full text-sm transition-colors cursor-pointer flex-shrink-0 ${
+              scopedIds.length ? 'bg-[var(--teal-soft)] text-[var(--teal)] font-medium' : 'bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <FileSearch size={16} />
+            <span className="max-w-[180px] truncate">
+              {scopedIds.length === 0
+                ? 'All files'
+                : scopedIds.length === 1
+                  ? (documents.find((d) => d.id === scopedIds[0])?.title || '1 file')
+                  : `${scopedIds.length} files`}
+            </span>
+          </button>
+          <span className="flex-1" />
 
           <div className="flex items-center gap-3">
             <span className="s87-send-hint text-xs text-[var(--muted)]">Enter to send · Shift+Enter for a new line</span>
@@ -964,7 +1026,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-center px-4 sm:px-6 py-8">
               <div className="s87-column flex flex-col items-start pb-6">
                 <span className="text-[12px] font-medium text-[var(--muted)]">
-                  {documents.length} {documents.length === 1 ? 'document' : 'documents'} added
+                  {scopedIds.length
+                    ? `Asking about ${scopedIds.length === 1 ? (documents.find((d) => d.id === scopedIds[0])?.title || '1 file') : `${scopedIds.length} files`}`
+                    : `${documents.length} ${documents.length === 1 ? 'document' : 'documents'} in your workspace`}
                 </span>
                 <h1 className="s87-page-title mt-2 text-[var(--ink)]">
                   What would you like to understand?

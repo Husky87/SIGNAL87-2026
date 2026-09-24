@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
+  MessageSquareText,
   X,
   FileText,
   ShieldAlert,
@@ -224,6 +225,8 @@ interface DocumentDetailModalProps {
   onClose: () => void;
   onOpenCompare: (doc: DocumentItem) => void;
   onAddNote?: (docId: string) => void;
+  /** Opens Ask limited to this file. */
+  onAskAbout?: (doc: DocumentItem) => void;
   /** Search to start with, e.g. a phrase from a cited passage so it is highlighted on open. */
   initialSearch?: string;
 }
@@ -233,6 +236,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   onClose,
   onOpenCompare,
   onAddNote,
+  onAskAbout,
   initialSearch = ''
 }) => {
   const [activeTab, setActiveTab] = useState<'pdf' | 'analysis'>('pdf');
@@ -434,6 +438,17 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-0.5 flex-shrink-0">
+            {onAskAbout && (
+              <button
+                onClick={() => { onAskAbout(doc); onClose(); }}
+                className="mr-1 flex min-h-9 items-center gap-1.5 rounded-full bg-[#6cbfc5] px-3.5 text-[12px] font-semibold text-[#0b0e0c] hover:opacity-90"
+                title="Ask questions about this file"
+                aria-label="Ask about this file"
+              >
+                <MessageSquareText size={15} />
+                <span className="hidden sm:inline">Ask about this file</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab(activeTab === 'analysis' ? 'pdf' : 'analysis')}
               className={`${iconButtonClass} ${activeTab === 'analysis' ? 'text-white bg-white/10' : ''}`}
