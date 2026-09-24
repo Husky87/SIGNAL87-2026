@@ -254,6 +254,8 @@ export default function App() {
   const [detailSearch, setDetailSearch] = useState('');
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
+  // "Ask about this file": Ask opens limited to these files (nonce re-applies the same file).
+  const [askScopeRequest, setAskScopeRequest] = useState<{ ids: string[]; nonce: number } | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const handleFilesDropped = (files: File[]) => {
     setUploadFolderId(selectedFolderId);
@@ -1272,6 +1274,7 @@ export default function App() {
               onSelectDocument={(doc, options) => { setDetailSearch(options?.search || ''); setSelectedDocForDetail(doc); }}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
+              scopeRequest={askScopeRequest}
               initialQuery={documentsLoading || chatSessionReadyId !== activeSessionId ? null : pendingHomeQuery}
               onInitialQueryConsumed={() => setPendingHomeQuery(null)}
             />
@@ -1386,6 +1389,10 @@ export default function App() {
         onAddNote={(docId) => {
           setPrelinkedDocId(docId);
           setCurrentTab('saved');
+        }}
+        onAskAbout={(doc) => {
+          setAskScopeRequest({ ids: [doc.id], nonce: Date.now() });
+          setCurrentTab('research');
         }}
       />
 
