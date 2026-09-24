@@ -38,6 +38,9 @@ try {
   const context = await browser.newContext({ ...devices['iPhone 13'] });
   const page = await context.newPage();
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
+  // Wait for the app to render rather than a fixed delay: a cold Vite compile can
+  // take longer than that, leaving no buttons for the checks below to inspect.
+  await page.waitForSelector('button', { timeout: 30000 });
   await page.waitForTimeout(600);
 
   // --- identity is actually wired into the document ---
