@@ -8,7 +8,8 @@ import {
   Menu,
   Plus,
   Search,
-  StickyNote
+  StickyNote,
+  Bookmark
 } from 'lucide-react';
 
 interface MobileDockProps {
@@ -41,7 +42,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   const tabs: { id: NavTab | 'new' | 'more'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
-    { id: 'saved', label: 'Notes', icon: StickyNote },
+    { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'more', label: 'More', icon: Menu },
   ];
 

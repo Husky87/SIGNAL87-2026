@@ -94,7 +94,7 @@ const NEW_MENU_ITEMS: {
 ];
 
 /**
- * One-click switch between dark (the default) and light, always visible in the
+ * One-click switch between light (the default) and dark, always visible in the
  * sidebar so light mode is easy to find. Settings → Appearance also offers System.
  */
 const ThemeToggle: React.FC<{ compact: boolean }> = ({ compact }) => {
@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }[] = [
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
-    { id: 'saved', label: 'Notes', icon: StickyNote },
+    { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'recent', label: 'Recent', icon: Clock },
     { id: 'starred', label: 'Starred', icon: Star },
     { id: 'team', label: 'Team', icon: Users },

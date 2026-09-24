@@ -22,12 +22,12 @@
 }
 
 :root{
-  --bg:#FAFAF8;           /* page — warm off-white, not stark white */
+  --bg:#FFFFFF;           /* workspace page */
   --surface:#FFFFFF;      /* composer, raised rows, dock */
-  --surface-2:#F2F1EC;    /* hover */
-  --ink:#1B1B18;          /* primary text — near-black, warm-tinted */
-  --ink-2:#55534C;        /* body text */
-  --muted:#8B897F;        /* metadata, placeholders, inactive icons */
+  --surface-2:#F1F4F7;    /* hover */
+  --ink:#152333;          /* primary text */
+  --ink-2:#344457;        /* body text */
+  --muted:#58697B;        /* metadata, placeholders, inactive icons */
   --rule:#E4E2DB;         /* borders */
   --rule-2:#EFEDE7;       /* hairlines */
   --teal:#0E7C8C;         /* the only accent — deepened for AA contrast on white */
@@ -657,14 +657,14 @@
 :root[data-theme="dark"] { color-scheme: dark; }
 /* The workspace's own tokens live on .s87-app, so dark overrides them there. */
 :root[data-theme="dark"] .s87-app {
-  --bg: #0B0E0C;
-  --surface: #121614;
-  --surface-2: #1A1F1C;
-  --ink: #ECF1EE;
-  --ink-2: #B5BFB9;
-  --muted: #7F8C85;
-  --rule: #28302C;
-  --rule-2: #1E2421;
+  --bg: #182028;
+  --surface: #222D37;
+  --surface-2: #2C3944;
+  --ink: #FFFFFF;
+  --ink-2: #FFFFFF;
+  --muted: #D5E0E8;
+  --rule: #3D4C59;
+  --rule-2: #34424E;
   --teal: #6CBFC5;
   --teal-soft: #15292B;
   /* Text on accent fills: dark, since the accent is light in this mode. */
@@ -673,12 +673,13 @@
   --ok: #4CC38A;
   --warn: #E2A24E;
   --verify-bg: #12281F;
-  --field-bg: #121614;
+  --field-bg: #222D37;
   --field-ring: 0 0 0 1px var(--rule);
   --field-glow: 0 0 0 1px var(--rule), 0 2px 10px rgba(0, 0, 0, 0.35);
   --field-glow-focus: 0 0 0 1px #6CBFC5, 0 0 0 4px rgba(108, 191, 197, 0.14);
 }
-:root[data-theme="dark"] .s87-app .s87-sidebar { background: linear-gradient(180deg, #0E1210, #0B0E0C); border-color: var(--rule); }
+:root[data-theme="dark"] .s87-app .s87-sidebar { background: linear-gradient(180deg, #222D37, #182028); border-color: var(--rule); }
+:root[data-theme="dark"] .s87-app .s87-sidebar :is(button, button svg) { color: var(--ink); }
 
 :root[data-theme="dark"] body { background-color: var(--bg); }
 :root[data-theme="dark"] ::selection { background: rgba(108, 191, 197, 0.32); color: #fff; }

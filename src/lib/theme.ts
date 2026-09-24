@@ -1,6 +1,6 @@
 /**
- * Light / Dark / System appearance for the workspace. Dark is the default
- * (matching the landing page); Light is one click away in the sidebar.
+ * Light / Dark / System appearance for the workspace. Light is the default;
+ * Dark is one click away in the sidebar.
  *
  * The choice is kept in localStorage and applied as data-theme="light|dark" on
  * <html>. index.html applies it before the first paint so there is no flash;
@@ -19,9 +19,9 @@ let lightThemeColor: string | null = null;
 export function getThemePreference(): ThemePreference {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    return v === 'light' || v === 'dark' || v === 'system' ? v : 'dark';
+    return v === 'light' || v === 'dark' || v === 'system' ? v : 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 }
 
@@ -40,7 +40,7 @@ function apply(pref: ThemePreference) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     if (lightThemeColor === null) lightThemeColor = meta.getAttribute('content');
-    meta.setAttribute('content', resolved === 'dark' ? '#0B0E0C' : lightThemeColor ?? '#0B0E0C');
+    meta.setAttribute('content', resolved === 'dark' ? '#182028' : lightThemeColor ?? '#FFFFFF');
   }
   listeners.forEach((fn) => fn(pref, resolved));
 }
