@@ -8,8 +8,7 @@ import {
   Menu,
   Plus,
   Search,
-  StickyNote,
-  Home
+  StickyNote
 } from 'lucide-react';
 
 interface MobileDockProps {
@@ -34,11 +33,12 @@ export const MobileDock: React.FC<MobileDockProps> = ({
 }) => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  // The reference design uses Home / Ask / Files / Notes / More as the persistent
+  // Ask / Files / Notes / More are the persistent mobile destinations (Ask is the
+  // home screen; the separate Home page was removed as a duplicate).
+  // Previously: Home / Ask / Files / Notes / More as the persistent
   // mobile destinations. The existing "New" action remains available through the
   // center plus control so no creation workflow is lost.
   const tabs: { id: NavTab | 'new' | 'more'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
     { id: 'saved', label: 'Notes', icon: StickyNote },

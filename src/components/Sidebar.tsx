@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Home,
   Users,
   FolderOpen,
   Search,
@@ -171,7 +170,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
-    { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
     { id: 'saved', label: 'Notes', icon: StickyNote },
@@ -335,7 +333,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 if (onCloseMobileMenu) onCloseMobileMenu();
               }}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left"
-              title="Go to Homepage"
+              title="Go to Ask"
             >
               <Signal87Logo size={28} showText={true} />
             </button>

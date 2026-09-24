@@ -65,6 +65,11 @@ interface DocumentLibraryViewProps {
   initialFolderId?: string | null;
   onFolderChange?: (id: string | null) => void;
   initialSearch?: string;
+  /**
+   * "Choose files to ask about" mode, opened from Ask: clicking a file selects it
+   * instead of opening it, a bar shows the count, and confirming returns the ids to Ask.
+   */
+  pickForAsk?: { initialIds: string[]; onConfirm: (ids: string[]) => void; onCancel: () => void };
 }
 
 const DEFAULT_FOLDER_COLORS = [
@@ -114,7 +119,8 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   onFilesDropped,
   initialFolderId = null,
   onFolderChange,
-  initialSearch = ''
+  initialSearch = '',
+  pickForAsk
 }) => {
   const [searchFilter, setSearchFilter] = useState(initialSearch);
   const [searchScope, setSearchScope] = useState<'folder' | 'everywhere'>('everywhere');
@@ -441,8 +447,20 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
     setCursorId(docId);
   };
 
-  /** A plain click opens the file; shift/cmd/ctrl-click still multi-selects. */
+  // Entering "choose for Ask" mode starts from the files already chosen in Ask.
+  const pickKey = pickForAsk ? `on:${pickForAsk.initialIds.join(',')}` : 'off';
+  useEffect(() => {
+    if (pickForAsk) setSelectedIds(new Set(pickForAsk.initialIds));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickKey]);
+  const pickedDocIds = pickForAsk ? documents.filter((d) => selectedIds.has(d.id)).map((d) => d.id) : [];
+
+  /** A plain click opens the file; shift/cmd/ctrl-click still multi-selects. In "choose for Ask" mode a click selects. */
   const handleRowClick = (e: React.MouseEvent, doc: DocumentItem) => {
+    if (pickForAsk) {
+      toggleOne(doc.id);
+      return;
+    }
     if (e.shiftKey || e.metaKey || e.ctrlKey) {
       handleItemClick(e, doc.id);
     } else {
@@ -590,7 +608,8 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         clearSelection();
         return;
       }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size > 0) {
+      // Never delete from the keyboard while choosing files for a question.
+      if (!pickForAsk && (e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size > 0) {
         e.preventDefault();
         handleBatchDelete();
       }
@@ -1078,6 +1097,36 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
         </div>
       )}
 
+      {pickForAsk && (
+        <div
+          role="region"
+          aria-label="Choose files to ask about"
+          className="fixed left-1/2 -translate-x-1/2 bottom-[calc(var(--dock-height)_+_0.75rem)] md:bottom-8 z-50 w-[min(680px,calc(100vw-2rem))] flex flex-wrap items-center gap-3 px-4 py-3 rounded-2xl border border-[var(--teal)] bg-[var(--surface)] shadow-xl"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-[var(--ink)]">
+              {pickedDocIds.length ? `${pickedDocIds.length} file${pickedDocIds.length === 1 ? '' : 's'} selected` : 'Choose files to ask about'}
+            </p>
+            <p className="text-[12px] text-[var(--muted)]">Click files to select them. Your question will search only these.</p>
+          </div>
+          <button
+            type="button"
+            onClick={pickForAsk.onCancel}
+            className="min-h-[44px] px-4 rounded-full text-[13px] font-medium text-[var(--ink-2)] hover:bg-[var(--raised)] hover:text-[var(--ink)] cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => pickForAsk.onConfirm(pickedDocIds)}
+            disabled={pickedDocIds.length === 0}
+            className="min-h-[44px] px-5 rounded-full bg-[var(--teal)] text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-40 cursor-pointer"
+          >
+            {pickedDocIds.length > 1 ? `Ask about ${pickedDocIds.length} files` : 'Ask about this file'}
+          </button>
+        </div>
+      )}
+
       {/* Keyed per list, so Starred, Trash and each folder each keep their own
           place rather than sharing one position between them. */}
       <div
@@ -1338,7 +1387,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
               pushed the whole list down the moment anything was selected, moving a row
               86px out from under the pointer between the two clicks of a double-click,
               so documents could not be opened. Fixed positioning keeps the list still. */}
-          {selectedDocs.length > 0 && (
+          {selectedDocs.length > 0 && !pickForAsk && (
             <div
               onClick={(e) => e.stopPropagation()}
               className="fixed left-1/2 -translate-x-1/2 bottom-[calc(var(--dock-height)_+_0.75rem)] md:bottom-8 z-40 max-w-[calc(100vw-2rem)] overflow-x-auto flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border border-[var(--teal)] rounded-full"
@@ -1615,7 +1664,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
-                          onSelectDocument(doc);
+                          if (pickForAsk) toggleOne(doc.id); else onSelectDocument(doc);
                         } else if (e.key === ' ') {
                           e.preventDefault();
                           handleItemClick(e, doc.id);
@@ -1714,7 +1763,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
-                          onSelectDocument(doc);
+                          if (pickForAsk) toggleOne(doc.id); else onSelectDocument(doc);
                         } else if (e.key === ' ') {
                           e.preventDefault();
                           handleItemClick(e, doc.id);
