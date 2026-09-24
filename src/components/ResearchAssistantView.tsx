@@ -38,8 +38,7 @@ import {
   LogOut,
   User as UserIcon,
   FolderOpen,
-  FileSearch,
-  Clock3
+  FileSearch
 } from 'lucide-react';
 import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
@@ -60,7 +59,7 @@ export interface ResearchAssistantViewProps {
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
   /** Limit Ask to these workspace files (from "Ask about this file"); nonce re-applies the same request. */
   scopeRequest?: { ids: string[]; nonce: number; draft?: string } | null;
-  /** Recent conversations, shown on the empty Ask screen (Ask is the home screen). */
+  /** Accepted for existing callers; recents are displayed in the sidebar's Recent page. */
   recentSessions?: Array<{ id: string; title: string; timestamp: string }>;
   onOpenSession?: (id: string) => void;
   /** Opens Files in "choose files to ask about" mode (falls back to the picker dialog when not provided). */
@@ -240,8 +239,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   documents,
   attachedFiles,
   scopeRequest,
-  recentSessions = [],
-  onOpenSession,
   onChooseFiles,
   setAttachedFiles,
   selectedModel,
@@ -1014,33 +1011,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 {composer}
               </div>
 
-              {(() => {
-                const recent = recentSessions
-                  .filter((s) => s.title && !['New Research Session', 'New Chat'].includes(s.title))
-                  .slice(0, 5);
-                if (!recent.length || !onOpenSession) return null;
-                return (
-                  <div className="s87-column pt-8 pb-6">
-                    <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)] mb-3 px-0.5">
-                      Recent
-                    </h2>
-                    <div className="overflow-hidden rounded-[12px] border border-[var(--rule)]">
-                      {recent.map((session, i) => (
-                        <button
-                          key={session.id}
-                          type="button"
-                          onClick={() => onOpenSession(session.id)}
-                          className={`flex w-full items-center gap-3 px-4 min-h-[48px] text-left text-[14px] text-[var(--ink)] hover:bg-[var(--surface-2)] cursor-pointer ${i ? 'border-t border-[var(--rule)]' : ''}`}
-                        >
-                          <Clock3 size={15} className="flex-shrink-0 text-[var(--muted)]" />
-                          <span className="min-w-0 flex-1 truncate">{session.title}</span>
-                          <span className="flex-shrink-0 text-[12px] text-[var(--muted)]">{session.timestamp}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           ) : (
             <>
