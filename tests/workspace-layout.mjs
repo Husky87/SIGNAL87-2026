@@ -34,7 +34,7 @@ try {
   await chat.fill('');
   assert((await chat.boundingBox()).height <= before.height+1,`${label}: textarea shrinks when cleared`);
   await page.screenshot({path:`${output}/${label}-ask.png`});
-  for(const name of ['Files','Notes']) {
+  for(const name of ['Files','Saved']) {
    const navButton = label === 'desktop'
     ? page.getByRole('button',{name,exact:true}).first()
     : page.getByLabel('Mobile Navigation').getByRole('button',{name,exact:true});
@@ -47,7 +47,7 @@ try {
    await page.getByText('Answer preferences',{exact:true}).click();
    await page.getByLabel('Response profile').selectOption('gemini-2.5-pro');
    assert.equal(await page.getByRole('button',{name:'Home',exact:true}).count(),0,'there is no separate Home page (Ask is home)');
-   await page.getByRole('button',{name:'Notes',exact:true}).first().click();
+   await page.getByRole('button',{name:'Saved',exact:true}).first().click();
    await page.getByRole('button',{name:/new note/i}).first().click();
    assert(await page.getByPlaceholder('Untitled note').count() || await page.getByRole('button',{name:/save/i}).count(),'new note opens the editor');
   }
