@@ -36,6 +36,7 @@ export type NavTab =
   | 'team'
   | 'organization'
   | 'saved'
+  | 'notes'
   | 'privacy'
   | 'terms';
 
@@ -172,6 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }[] = [
     { id: 'research', label: 'Ask', icon: Search },
     { id: 'documents', label: 'Files', icon: FolderOpen },
+    { id: 'notes', label: 'Notes', icon: StickyNote },
     { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'recent', label: 'Recent', icon: Clock },
     { id: 'starred', label: 'Starred', icon: Star },
@@ -197,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // The editor lives in Saved, so land there before asking for a new note.
       if (onOpenNewNote) onOpenNewNote();
       else {
-        onSelectTab('saved');
+        onSelectTab('notes');
         window.dispatchEvent(new CustomEvent('open-new-note'));
       }
     } else if (action === 'folder') {

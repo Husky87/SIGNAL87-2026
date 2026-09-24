@@ -38,8 +38,7 @@ import {
   LogOut,
   User as UserIcon,
   FolderOpen,
-  FileSearch,
-  Clock3
+  FileSearch
 } from 'lucide-react';
 import { useAutosizeTextarea } from '../lib/useAutosizeTextarea';
 import { User } from '../lib/firebase';
@@ -60,7 +59,7 @@ export interface ResearchAssistantViewProps {
   attachedFiles: { id: string; name: string; size: string; dataUrl?: string }[];
   /** Limit Ask to these workspace files (from "Ask about this file"); nonce re-applies the same request. */
   scopeRequest?: { ids: string[]; nonce: number; draft?: string } | null;
-  /** Recent conversations, shown on the empty Ask screen (Ask is the home screen). */
+  /** Accepted for existing callers; recents are displayed in the sidebar's Recent page. */
   recentSessions?: Array<{ id: string; title: string; timestamp: string }>;
   onOpenSession?: (id: string) => void;
   /** Opens Files in "choose files to ask about" mode (falls back to the picker dialog when not provided). */
@@ -240,8 +239,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
   documents,
   attachedFiles,
   scopeRequest,
-  recentSessions = [],
-  onOpenSession,
   onChooseFiles,
   setAttachedFiles,
   selectedModel,
@@ -758,48 +755,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
 
   const composer = (
     <div className="w-full">
-      {attachedFiles.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3">
-          {scopedIds.length > 0 && (
-            <span className="flex-shrink-0 text-[12px] font-medium text-[var(--muted)]">
-              Only searching
-            </span>
-          )}
-          {attachedFiles.map((f) => (
-            <div
-              key={f.id}
-              className="pl-3 pr-2 min-h-[36px] bg-[var(--surface-2)] text-[var(--ink)] rounded-full text-[12px] font-medium flex items-center gap-2 flex-shrink-0 max-w-[210px]"
-            >
-              {f.dataUrl ? (
-                <img src={f.dataUrl} alt={f.name} className="w-5 h-5 object-cover rounded-full" />
-              ) : (
-                <FileText size={13} className="text-[var(--muted)] flex-shrink-0" />
-              )}
-              <span className="truncate min-w-0 flex-1">{f.name}</span>
-              <button
-                onClick={() => {
-                  setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
-                  setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
-                }}
-                aria-label={`Remove ${f.name}`}
-                className="w-8 h-8 -mr-1 flex items-center justify-center text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer flex-shrink-0"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-          {scopedIds.length > 0 && (
-            <button
-              type="button"
-              onClick={clearScope}
-              className="flex-shrink-0 min-h-[36px] px-3 rounded-full text-[12px] font-medium text-[var(--teal)] hover:bg-[var(--raised)] cursor-pointer"
-            >
-              Search all files
-            </button>
-          )}
-        </div>
-      )}
-
       <div className="relative">
         <form
           onSubmit={(event) => {
@@ -867,7 +822,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
             )}
           </div>
 
-          <button
+          {attachedFiles.length === 0 && <button
             type="button"
             onClick={() => { setShowAttachMenu(false); if (onChooseFiles) onChooseFiles(scopedIds); else setShowFilePicker(true); }}
             aria-label={scopedIds.length ? `Searching ${scopedIds.length} selected file${scopedIds.length === 1 ? '' : 's'}. Change` : 'Choose files to search'}
@@ -883,7 +838,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                   ? (documents.find((d) => d.id === scopedIds[0])?.title || '1 file')
                   : `${scopedIds.length} files`}
             </span>
-          </button>
+          </button>}
           <span className="flex-1" />
 
           <div className="flex items-center gap-3">
@@ -905,6 +860,22 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
           </div>
         </form>
       </div>
+      {attachedFiles.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1.5 text-[11px] text-[var(--muted)]">
+          {scopedIds.length > 0 && <span className="shrink-0">Only searching</span>}
+          {attachedFiles.map((f) => (
+            <div key={f.id} className="flex min-h-8 max-w-[200px] shrink-0 items-center gap-1 rounded-full bg-[var(--surface-2)] pl-2.5 pr-1 text-[var(--ink-2)]">
+              <FileText size={12} className="shrink-0" aria-hidden="true" />
+              <span className="min-w-0 truncate">{f.name}</span>
+              <button type="button" onClick={() => {
+                setAttachedFiles((prev) => prev.filter((item) => item.id !== f.id));
+                setIngestedFiles((prev) => prev.filter((item) => item.fileName !== f.name));
+              }} aria-label={`Remove ${f.name}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:text-[var(--ink)]"><X size={12} /></button>
+            </div>
+          ))}
+          {scopedIds.length > 0 && <button type="button" onClick={clearScope} className="min-h-8 shrink-0 px-2 text-[var(--teal)] hover:underline">Search all files</button>}
+        </div>
+      )}
     </div>
   );
 
@@ -1040,33 +1011,6 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                 {composer}
               </div>
 
-              {(() => {
-                const recent = recentSessions
-                  .filter((s) => s.title && !['New Research Session', 'New Chat'].includes(s.title))
-                  .slice(0, 5);
-                if (!recent.length || !onOpenSession) return null;
-                return (
-                  <div className="s87-column pt-8 pb-6">
-                    <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)] mb-3 px-0.5">
-                      Recent
-                    </h2>
-                    <div className="overflow-hidden rounded-[12px] border border-[var(--rule)]">
-                      {recent.map((session, i) => (
-                        <button
-                          key={session.id}
-                          type="button"
-                          onClick={() => onOpenSession(session.id)}
-                          className={`flex w-full items-center gap-3 px-4 min-h-[48px] text-left text-[14px] text-[var(--ink)] hover:bg-[var(--surface-2)] cursor-pointer ${i ? 'border-t border-[var(--rule)]' : ''}`}
-                        >
-                          <Clock3 size={15} className="flex-shrink-0 text-[var(--muted)]" />
-                          <span className="min-w-0 flex-1 truncate">{session.title}</span>
-                          <span className="flex-shrink-0 text-[12px] text-[var(--muted)]">{session.timestamp}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           ) : (
             <>
@@ -1080,7 +1024,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         <div key={msg.id} className="py-1">
                           {msg.role === 'user' ? (
                             <div className="flex justify-end my-3">
-                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[85%] break-words [overflow-wrap:anywhere]">
+                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1] font-normal max-w-[85%] break-words [overflow-wrap:anywhere]">
                                 {msg.text}
                               </div>
                             </div>
