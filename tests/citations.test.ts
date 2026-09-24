@@ -51,4 +51,12 @@ const resolve = (s: string) => docs[s.toUpperCase()] || null;
   assert.equal(citations.length, 1);
   assert.equal(text, 'A [1]. B [1].');
 }
+// 6. Regressions: years, array indexes, question marks and code are not touched.
+{
+  const one = [{ marker: 1, source: 'DOCUMENT 1' }];
+  assert.equal(applyCitations('Revenue in [2024] rose [1].', one, resolve).text, 'Revenue in [2024] rose [1].');
+  assert.equal(applyCitations('arr[0] = 1 [1]', one, resolve).text, 'arr[0] = 1 [1]');
+  const code = 'Is it ready ? Yes [1].\n```ts\nconst x = a ? b[1] : c;\n```';
+  assert.equal(applyCitations(code, one, resolve).text, code, 'prose spacing and code blocks unchanged');
+}
 console.log('citations: all checks passed');
