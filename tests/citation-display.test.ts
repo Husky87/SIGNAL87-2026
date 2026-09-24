@@ -58,4 +58,12 @@ const doc = 'Borrower: Mount Horeb Lodge #10. Loan amount: $4,250,000. Lender: R
 assert.equal(findSearchPhrase(doc, 'The loan is **$4,250,000** from ROK Financial [1].', 'A summary of the bridge loan...'), '$4,250,000');
 assert.equal(findSearchPhrase(doc, 'Bridge loans are short-term.', 'Nothing here matches...'), '');
 
-console.log('citation display: 16 checks passed');
+// Markers glued to words ("Perplexity[1][2][3].") are recognised and hidden.
+{
+  const glued = answerSentences('He partnered with NVIDIA and Perplexity[1][2][3]. He studied at Harvard[1].');
+  assert.deepEqual(glued.map((x) => x.cites), [[1, 2, 3], [1]], 'glued marker runs map to their sentences');
+  assert.ok(glued.every((x) => !/\[\d/.test(stripSentinels(x.text))), 'no [n] left in the visible text');
+  assert.ok(stripSentinels(glued[0].text).includes('Perplexity.'), 'punctuation closes up after the hidden markers');
+}
+
+console.log('citation display: 18 checks passed');
