@@ -59,7 +59,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       } else if (type === 'upload') {
         if (onOpenUpload) onOpenUpload();
       } else if (type === 'note') {
-        onSelectTab('saved');
+        onSelectTab('notes');
         if (onOpenNewNote) {
           onOpenNewNote();
         } else {

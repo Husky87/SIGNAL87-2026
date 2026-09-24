@@ -825,7 +825,7 @@ export default function App() {
 
   const handleOpenNewNote = () => {
     setNewNoteRequestId((id) => id + 1);
-    setCurrentTab('saved');
+    setCurrentTab('notes');
   };
 
   const handleDeleteSession = (id: string) => {
@@ -1334,8 +1334,10 @@ export default function App() {
             </ScrollArea>
           )}
 
-          {currentTab === 'saved' && (
+          {(currentTab === 'saved' || currentTab === 'notes') && (
             <SavedView
+              key={currentTab}
+              initialFilter={currentTab === 'notes' ? 'notes' : 'all'}
               savedItems={mySavedItems}
               onSaveItem={handleSaveSavedItem}
               onDeleteItem={handleDeleteSavedItem}
@@ -1437,7 +1439,7 @@ export default function App() {
         }}
         onAddNote={(docId) => {
           setPrelinkedDocId(docId);
-          setCurrentTab('saved');
+          setCurrentTab('notes');
         }}
         onAskAbout={(doc) => {
           handleCreateNewSession();
