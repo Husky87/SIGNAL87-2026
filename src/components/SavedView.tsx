@@ -671,7 +671,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
           <div className="s87-column"><div className="flex flex-wrap items-end justify-between gap-6">
             <div>
 
-              <h1 className="s87-page-title">Notes</h1>
+              <h1 className="s87-page-title">Saved</h1>
               <p className="s87-page-description">Keep notes and saved answers together with the documents and decisions they reference.</p>
             </div>
             <button type="button" onClick={startNewNote} className="flex min-h-[44px] items-center gap-2 rounded-full bg-[var(--teal)] px-5 text-[12px] font-semibold text-white shadow-sm transition hover:opacity-90"><Plus size={15} /> New note</button>

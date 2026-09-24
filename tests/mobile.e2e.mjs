@@ -56,7 +56,7 @@ try {
 
   check('the manifest is linked', head.manifest === '/manifest.webmanifest', String(head.manifest));
   check('there is a real PNG home-screen icon', head.appleIcon === '/icons/icon-180.png', String(head.appleIcon));
-  check('the status bar is themed to the app', head.themeColor === '#0B0E0C', String(head.themeColor));
+  check('the status bar defaults to the light workspace', head.themeColor === '#FFFFFF', String(head.themeColor));
   check('iOS is told it can run standalone', head.capable === 'yes', String(head.capable));
   check('the status bar is translucent, not an opaque strip', head.statusBar === 'black-translucent', String(head.statusBar));
   check('the home-screen label is short enough not to truncate', (head.title || '').length <= 12, String(head.title));
