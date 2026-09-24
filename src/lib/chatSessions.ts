@@ -82,6 +82,12 @@ export function recoverSessions(
       byId.set(chat.id, { id: chat.id, title, timestamp: '', updatedAt });
     }
   }
+  // A titled session whose messages are gone (emptied by an old save bug) would
+  // open as a blank page from Recent, so it isn't listed. New untitled sessions stay.
+  const withMessages = new Set(storedChats.filter((c) => Array.isArray(c.messages) && c.messages.length).map((c) => c.id));
+  for (const [id, session] of byId) {
+    if (!PLACEHOLDER_TITLES.has(session.title) && !withMessages.has(id)) byId.delete(id);
+  }
   return [...byId.values()].sort((a, b) => (b.updatedAt ?? msFromId(b.id) ?? 0) - (a.updatedAt ?? msFromId(a.id) ?? 0));
 }
 
