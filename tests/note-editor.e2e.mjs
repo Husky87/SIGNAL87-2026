@@ -206,6 +206,31 @@ try {
   }
   results.push('Mod+B, Mod+I and Mod+U apply bold, italic and underline');
 
+  // 17. An existing note opens editable, and a saved answer can be edited as a note.
+  await page.getByRole('button', { name: /Back to notes/ }).click();
+  await page.getByText('Seeded note', { exact: true }).click();
+  editor = page.getByRole('textbox', { name: 'Note body' });
+  await editor.waitFor();
+  await editor.click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' edited', { delay: 10 });
+  assert.ok((await editor.innerText()).includes('edited'), 'an existing note accepts typing');
+  await page.getByRole('button', { name: /Back to notes/ }).click();
+  await page.getByText('Who is financing Harvard Street?', { exact: true }).first().click();
+  assert.equal(await page.getByRole('textbox', { name: 'Note body' }).count(), 0, 'a saved answer opens read-only');
+  await page.getByRole('button', { name: 'Edit this answer as a note' }).click();
+  editor = page.getByRole('textbox', { name: 'Note body' });
+  await editor.waitFor();
+  const converted = await editor.innerText();
+  assert.ok(converted.includes('ROK Financial is financing 110 Harvard Street.'), 'the answer text becomes the note body, citation marker removed');
+  assert.ok(converted.includes('ROK_Financial_LOI.pdf'), 'its sources are listed in the note');
+  assert.equal(await page.locator('#note-title').inputValue(), 'Who is financing Harvard Street?', 'the question becomes the title');
+  await editor.click();
+  await page.keyboard.press(`${mod}+End`);
+  await page.keyboard.type(' Follow up Friday.', { delay: 10 });
+  assert.ok((await editor.innerText()).includes('Follow up Friday.'), 'the converted note accepts typing');
+  results.push('existing notes are editable; saved answers open read-only and "Edit" turns them into an editable note');
+
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(results.map((line) => `pass: ${line}`).join('\n'));
 } finally {
