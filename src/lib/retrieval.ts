@@ -121,6 +121,9 @@ const SELF_REFERENCE = /\b(i|me|my|mine|myself|we|us|our|ours)\b/i;
 interface PreparedDoc { fingerprint: string; passages: Array<{ text: string; tokens: string[]; termFreq: Map<string, number> }> }
 const preparedCache = new Map<string, PreparedDoc>();
 const MAX_PREPARED_DOCS = 3000;
+/** Also capped by text size, so a long-lived server process can't grow without bound. */
+const MAX_PREPARED_CHARS = 20_000_000;
+let preparedChars = 0;
 
 function quickFingerprint(text: string): string {
   let h = 0x811c9dc5;
@@ -138,8 +141,9 @@ function prepareDoc(doc: RetrievalDoc, text: string): PreparedDoc['passages'] {
     return { text: t, tokens, termFreq: termFrequencies(tokens) };
   });
   if (key) {
-    if (preparedCache.size >= MAX_PREPARED_DOCS) preparedCache.clear();
+    if (preparedCache.size >= MAX_PREPARED_DOCS || preparedChars + text.length > MAX_PREPARED_CHARS) { preparedCache.clear(); preparedChars = 0; }
     preparedCache.set(key, { fingerprint, passages });
+    preparedChars += text.length;
   }
   return passages;
 }
@@ -230,7 +234,9 @@ export function isQuickLookup(question: string): boolean {
   const words = q.split(/\s+/).filter(Boolean).length;
   if (words === 0 || words > 14) return false;
   if (/\b(compare|summari[sz]e|analy[sz]e|explain|list|all|every|why|how should|draft|write|risks?)\b/i.test(q)) return false;
-  return LOOKUP_FIELDS.test(q) || /^(what|when|where|who)('s|\s+is|\s+was|\s+are|\s+does|\s+did|\s+do)\b/i.test(q) && words <= 9;
+  // A named field (birthday, EIN, address…) or a short "when does/did…" date question.
+  // "Who is X?" and "What is Y?" are real questions, not lookups.
+  return LOOKUP_FIELDS.test(q) || (/^when\s+(does|did|is|was|will|do)\b/i.test(q) && words <= 9);
 }
 
 /** Builds the weighted query: the question, the user's name for "I/my" questions, and a lighter echo of the previous question for short follow-ups. */
@@ -478,7 +484,7 @@ export function versionStem(title: string): string {
   for (let i = 0; i < 3; i++) t = t.replace(/[-_ ]?\(?\d{1,2}\)?$/, '').replace(/\.(pdf|docx?|xlsx?|pptx?|txt|md|csv|rtf|pages)$/, '');
   t = t.replace(/[_\-.,()]+/g, ' ');
   t = t.replace(/\b(copy|final|draft|revised|updated|new|latest|clean|redline|v\d+|version \d+)\b/g, ' ');
-  t = t.replace(/\b(19|20)\d{2}([-_.]\d{1,2}){0,2}\b/g, ' ');
+  // Years are kept: "2024 K-1" and "2025 K-1" are different documents, not versions.
   return t.replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
@@ -528,7 +534,11 @@ function findVersionFamilies(docs: RetrievalDoc[], candidates: number[], passage
       const a = candidates[i];
       const b = candidates[j];
       const sameName = !!stems.get(a) && stems.get(a) === stems.get(b);
-      const sameText = tokenOverlap(opening.get(a) || [], opening.get(b) || []) >= 0.85;
+      // Near-identical opening text counts only when the names are also related, so similar
+      // forms (two years of the same tax form, two leases from one template) stay separate.
+      const stemA = (stems.get(a) || '').split(' ').filter(Boolean);
+      const stemB = (stems.get(b) || '').split(' ').filter(Boolean);
+      const sameText = tokenOverlap(opening.get(a) || [], opening.get(b) || []) >= 0.95 && tokenOverlap(stemA, stemB) >= 0.5;
       if (sameName || sameText) parent.set(find(a), find(b));
     }
   }

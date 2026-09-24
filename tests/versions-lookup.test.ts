@@ -12,12 +12,13 @@ import handler from '../api/chat';
 // 1. File names that are versions of one another.
 assert.equal(versionStem('Resume, Michael Benezra.docx-2.pdf'), 'resume michael benezra');
 assert.equal(versionStem('Resume, Michael Benezra.docx'), 'resume michael benezra');
-assert.equal(versionStem('Lease_2024_FINAL (1).pdf'), 'lease');
+assert.equal(versionStem('Lease_2024_FINAL (1).pdf'), 'lease 2024');
 assert.notEqual(versionStem('Lease A.pdf'), versionStem('Loan A.pdf'));
 
 // 2. Quick lookups vs. real analysis.
 for (const q of ["What's Sarah Cohen's birthday?", 'Mason EIN?', 'When does the Harbor lease expire?', "What is John's address"]) assert.ok(isQuickLookup(q), q);
-for (const q of ['Compare the two loan offers', 'Summarize everything about Mount Horeb', 'What are the biggest risks in the Harvard Street financing and how should I prepare?']) assert.ok(!isQuickLookup(q), q);
+assert.notEqual(versionStem('2024 K1 Mason.pdf'), versionStem('2025 K1 Mason.pdf'), 'different tax years are different documents');
+for (const q of ['Who is Michael Benezra?', 'What is Signal87?', 'Compare the two loan offers', 'Summarize everything about Mount Horeb', 'What are the biggest risks in the Harvard Street financing and how should I prepare?']) assert.ok(!isQuickLookup(q), q);
 
 // 3. Retrieval: "birthday" finds "Date of Birth", and résumé versions collapse to the newest.
 const filler = Array.from({ length: 30 }, (_, i) => ({ id: `f${i}`, title: `Agreement ${i}`, uploadDate: '2026-01-01', fullText: Array.from({ length: 120 }, (_, p) => `Clause ${p}: deliveries within thirty days, order ${i}-${p}.`).join('\n\n') }));

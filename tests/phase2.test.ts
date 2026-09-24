@@ -42,6 +42,7 @@ assert.deepEqual(parseMemoryCommand('Remember that Crewstone is our co-GP'), { t
 assert.deepEqual(parseMemoryCommand('please forget about the Polaris offering'), { type: 'forget', text: 'the Polaris offering' });
 assert.equal(parseMemoryCommand('Remember when we discussed the loan?'), null);
 assert.equal(parseMemoryCommand('What do you remember about me'), null);
+assert.equal(parseMemoryCommand('Note the differences between the two leases'), null, '"note" is an instruction, not a memory request');
 
 // 4. Server: pre-ranked passages and saved memory reach the model; memory events come back.
 async function run(body: any): Promise<{ messages: any[]; payload: any }> {

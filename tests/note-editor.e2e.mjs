@@ -4,13 +4,16 @@
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 
 const vite = await createServer({ server: { host: '127.0.0.1', port: 5187 }, logLevel: 'error' });
 await vite.listen();
+// Like the other browser tests: an explicit path, else the preinstalled browser, else Playwright's own.
+const PREINSTALLED = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.PLAYWRIGHT_CHROMIUM_PATH || (existsSync(PREINSTALLED) ? PREINSTALLED : undefined);
 const browser = await chromium.launch({
-  args: ['--no-sandbox'],
-  // Honour a preinstalled browser when the bundled download is unavailable.
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined
+  ...(CHROME ? { executablePath: CHROME } : {}),
+  args: ['--no-sandbox']
 });
 const results = [];
 

@@ -94,20 +94,27 @@ export function applyCitations(
   });
   const citations: CitedDoc[] = [];
   const indexOf = new Map<string, number>();
-  const out = text.replace(/[ \t]*\[(\d+(?:\s*[,–-]\s*\d+)*)\]/g, (whole, group: string) => {
-    const nums = group.split(/\s*[,–-]\s*/).map(Number);
-    const labels: number[] = [];
-    for (const n of nums) {
-      const doc = byMarker.get(n) ?? (entries.length === 0 && single ? single : undefined);
-      if (!doc) continue;
-      let k = indexOf.get(doc.docId);
-      if (!k) { citations.push(doc); k = citations.length; indexOf.set(doc.docId, k); }
-      if (!labels.includes(k)) labels.push(k);
-    }
-    if (!labels.length) return '';
-    const lead = whole.match(/^[ \t]*/)?.[0] ? ' ' : '';
-    return lead + labels.map((k) => `[${k}]`).join('');
-  });
-  // Tidy spacing left where a marker sat before punctuation.
-  return { text: out.replace(/[ \t]+([.,;:!?])/g, '$1'), citations: citations.slice(0, 10) };
+  const renumber = (prose: string) =>
+    // [1]…[99] only (so "[2024]" is left alone), and not right after a word or bracket (so "arr[0]" is left alone).
+    prose.replace(/[ \t]*(?<![\w\]])\[(\d{1,2}(?:\s*[,–-]\s*\d{1,2})*)\]/g, (whole, group: string) => {
+      const nums = group.split(/\s*[,–-]\s*/).map(Number);
+      const labels: number[] = [];
+      for (const n of nums) {
+        const doc = byMarker.get(n) ?? (entries.length === 0 && single ? single : undefined);
+        if (!doc) continue;
+        let k = indexOf.get(doc.docId);
+        if (!k) { citations.push(doc); k = citations.length; indexOf.set(doc.docId, k); }
+        if (!labels.includes(k)) labels.push(k);
+      }
+      // An unresolvable marker is dropped together with the space before it, so no " ." is left.
+      if (!labels.length) return '';
+      const lead = /^[ \t]/.test(whole) ? ' ' : '';
+      return lead + labels.map((k) => `[${k}]`).join('');
+    });
+  // Leave code untouched: fenced blocks and inline code keep their brackets and spacing.
+  const out = text
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/g)
+    .map((part, i) => (i % 2 === 1 ? part : renumber(part)))
+    .join('');
+  return { text: out, citations: citations.slice(0, 10) };
 }
