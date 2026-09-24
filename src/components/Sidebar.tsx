@@ -19,7 +19,10 @@ import {
   Share2,
   Trash2,
   LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { resolveTheme, getThemePreference, setThemePreference, subscribeTheme } from '../lib/theme';
 import { User } from '../lib/firebase';
 import { getTrialStatus } from '../lib/trial';
 import { isAdminEmail } from '../lib/admins';
@@ -90,6 +93,35 @@ const NEW_MENU_ITEMS: {
   { id: 'folder', label: 'New folder', hint: 'Organise your files', icon: FolderPlus },
   { id: 'upload', label: 'Upload files', hint: 'PDF, DOCX, XLSX, CSV', icon: Upload },
 ];
+
+/**
+ * One-click switch between dark (the default) and light, always visible in the
+ * sidebar so light mode is easy to find. Settings → Appearance also offers System.
+ */
+const ThemeToggle: React.FC<{ compact: boolean }> = ({ compact }) => {
+  const [resolved, setResolved] = useState(resolveTheme(getThemePreference()));
+  useEffect(() => subscribeTheme((_pref, r) => setResolved(r)), []);
+  const next = resolved === 'dark' ? 'light' : 'dark';
+  const label = next === 'light' ? 'Light mode' : 'Dark mode';
+  const Icon = next === 'light' ? Sun : Moon;
+  if (compact) {
+    return (
+      <button type="button" onClick={() => setThemePreference(next)} title={`Switch to ${label.toLowerCase()}`} aria-label={`Switch to ${label.toLowerCase()}`}
+        className="mx-auto flex items-center justify-center w-11 h-11 rounded-full border border-[var(--rule)] text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--raised)] cursor-pointer">
+        <Icon size={16} />
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={() => setThemePreference(next)} aria-label={`Switch to ${label.toLowerCase()}`}
+      className="w-full flex items-center gap-2.5 px-3 min-h-[40px] rounded-full border border-[var(--rule)] bg-[var(--surface)] text-[12.5px] font-medium text-[var(--ink)] hover:bg-[var(--raised)] cursor-pointer"
+      style={{ fontFamily: 'var(--sans, inherit)' }}>
+      <Icon size={15} className="text-[var(--teal)]" />
+      <span className="flex-1 text-left">{label}</span>
+      <span className="text-[10.5px] text-[var(--muted)]">{resolved === 'dark' ? 'Dark on' : 'Light on'}</span>
+    </button>
+  );
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
@@ -218,7 +250,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-haspopup="menu"
             aria-expanded={newMenuOpen}
             title="Create something new"
-            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--surface)] border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--raised)] ${
+            className={`w-full rounded-full px-4 py-2.5 text-[13px] font-semibold flex items-center gap-3 transition-all text-left cursor-pointer border bg-[var(--surface)] border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--raised)] text-white ${
               collapsed && !mobileMenuOpen ? 'justify-center px-0 rounded-full w-11 h-11 mx-auto' : ''
             }`}
           >
@@ -387,6 +419,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-[var(--verify)] font-bold">ACTIVE</span>
               )}
             </div>
+            <ThemeToggle compact={false} />
             {onSignOut && (
               <button
                 type="button"
@@ -399,7 +432,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-center space-y-2">
+            <ThemeToggle compact />
             {onSignOut ? (
               <button
                 type="button"
