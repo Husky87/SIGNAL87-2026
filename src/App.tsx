@@ -250,6 +250,8 @@ export default function App() {
   // UI Modal States
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedDocForDetail, setSelectedDocForDetail] = useState<DocumentItem | null>(null);
+  // Search pre-filled in the viewer when a file is opened from an answer's sources.
+  const [detailSearch, setDetailSearch] = useState('');
   const [filesView, setFilesView] = useState<'workspace' | 'recent' | 'starred' | 'shared' | 'trash'>('workspace');
   const [pendingDroppedFiles, setPendingDroppedFiles] = useState<File[]>([]);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
@@ -301,6 +303,7 @@ export default function App() {
   useBackDismiss(mobileMenuOpen, () => setMobileMenuOpen(false));
   useBackDismiss(isUploadOpen, () => setIsUploadOpen(false));
   useBackDismiss(!!selectedDocForDetail, () => setSelectedDocForDetail(null));
+  useEffect(() => { if (!selectedDocForDetail) setDetailSearch(''); }, [selectedDocForDetail]);
   useBackDismiss(showMobileModelMenu, () => setShowMobileModelMenu(false));
 
   const getModelLabel = (model: string) => {
@@ -1266,7 +1269,7 @@ export default function App() {
               currentUser={currentUser}
               onOpenMobileMenu={() => setMobileMenuOpen(true)}
               onGoogleSignIn={handleGoogleSignIn}
-              onSelectDocument={setSelectedDocForDetail}
+              onSelectDocument={(doc, options) => { setDetailSearch(options?.search || ''); setSelectedDocForDetail(doc); }}
               onSaveAnswer={handleSaveAnswer}
               savedAnswerIds={savedAnswerIds}
               initialQuery={documentsLoading || chatSessionReadyId !== activeSessionId ? null : pendingHomeQuery}
@@ -1373,6 +1376,7 @@ export default function App() {
 
       <DocumentDetailModal
         document={selectedDocForDetail}
+        initialSearch={detailSearch}
         onClose={() => setSelectedDocForDetail(null)}
         onOpenCompare={(doc) => {
           setSelectedDocForDetail(null);
