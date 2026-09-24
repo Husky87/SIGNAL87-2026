@@ -92,6 +92,14 @@ export async function uploadDocumentFile(file: File, docId: string): Promise<str
   return getDownloadURL(storageRef);
 }
 
+export async function uploadDocumentThumbnail(blob: Blob, docId: string): Promise<string> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Not signed in');
+  const thumbnailRef = ref(storage, `users/${uid}/documents/${docId}/thumbnail.jpg`);
+  await uploadBytes(thumbnailRef, blob, { contentType: 'image/jpeg' });
+  return getDownloadURL(thumbnailRef);
+}
+
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {

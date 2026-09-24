@@ -34,7 +34,7 @@ import {
 import { DocumentItem, FolderItem } from '../types';
 import { useScrollMemory } from '../lib/useScrollMemory';
 import { DocumentGridSkeleton, DocumentListSkeleton, LoadingAnnouncement } from './DocumentSkeleton';
-import { DocumentThumbnail, getTypeMeta } from './DocumentThumbnail';
+import { DocumentPagePreview } from './DocumentPagePreview';
 import { FolderTabIcon } from './FolderTabIcon';
 
 export type FilesView = 'workspace' | 'recent' | 'starred' | 'shared' | 'trash';
@@ -46,6 +46,7 @@ interface DocumentLibraryViewProps {
   /** True while the library is still arriving. Shows placeholders, not "empty". */
   loading?: boolean;
   onSelectDocument: (doc: DocumentItem) => void;
+  onThumbnailReady?: (docId: string, url: string) => void;
   onOpenUpload: (folderId?: string) => void;
   onCompareSelected?: (docs: DocumentItem[]) => void;
   onDeleteDocument: (docId: string) => void;
@@ -95,6 +96,7 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
   filesView = 'workspace',
   loading = false,
   onSelectDocument,
+  onThumbnailReady,
   onOpenUpload,
   onCompareSelected,
   onDeleteDocument,
@@ -121,15 +123,15 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     try {
-      const stored = localStorage.getItem('signal87_files_view_mode');
-      return stored === 'list' ? 'list' : 'grid';
+      const stored = localStorage.getItem('signal87_files_view_mode_v2');
+      return stored === 'grid' ? 'grid' : 'list';
     } catch {
-      return 'grid';
+      return 'list';
     }
   });
   useEffect(() => {
     try {
-      localStorage.setItem('signal87_files_view_mode', viewMode);
+      localStorage.setItem('signal87_files_view_mode_v2', viewMode);
     } catch {}
   }, [viewMode]);
 
@@ -1638,10 +1640,9 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         >
                           {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
                         </button>
-                        {(() => {
-                          const { Icon, color } = getTypeMeta(doc.type);
-                          return <Icon size={18} className="flex-shrink-0" style={{ color }} />;
-                        })()}
+                        <div className="h-[62px] w-[46px] flex-shrink-0 overflow-hidden rounded-md border border-[var(--rule)] bg-[var(--raised)]">
+                          <DocumentPagePreview doc={doc} onThumbnailReady={onThumbnailReady} />
+                        </div>
                         <div className="min-w-0 flex-1">
                           {isRenaming ? (
                             <input
@@ -1658,15 +1659,16 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                               className="w-full px-2 py-1 text-[14.5px] text-[var(--ink)] bg-[var(--surface)] border border-[var(--teal)] rounded focus:outline-none"
                             />
                           ) : (
-                            <h3 className="text-[14.5px] text-[var(--ink)] truncate flex items-center gap-1.5">
+                            <h3 className="text-[14.5px] font-medium text-[var(--ink)] truncate flex items-center gap-1.5" title={doc.title}>
                               {doc.starred && <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />}
                               <span className="truncate">{doc.title}</span>
                             </h3>
                           )}
-                          <div className="flex items-center gap-2 text-[12px] text-[var(--muted)] sm:hidden">
-                            <span>{getFileTypeLabel(doc.type)}</span>
-                            <span>·</span>
-                            <span className={status.className}>{status.label}</span>
+                          <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                            <span className="rounded bg-[var(--raised)] px-1.5 py-0.5 font-semibold uppercase text-[var(--ink-2)]">{getFileTypeLabel(doc.type)}</span>
+                            <span className="sm:hidden">{formatDate(getLastModified(doc))}</span>
+                            <span className="sm:hidden">·</span>
+                            <span className={`${status.className} sm:hidden`}>{status.label}</span>
                           </div>
                         </div>
                       </div>
@@ -1722,8 +1724,8 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         isSelected ? 'border-[var(--teal)]' : 'border-[var(--rule)] hover:border-[var(--ink-2)]'
                       } ${draggingDocId === doc.id ? 'opacity-40' : ''}`}
                     >
-                      {/* Title row sits above the preview, Drive-style */}
-                      <div className="flex items-center gap-2 mb-2 min-w-0">
+                      {/* Selection and actions stay at the top; the title sits below the page. */}
+                      <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleOne(doc.id); }}
                           aria-label={isSelected ? `Deselect ${doc.title}` : `Select ${doc.title}`}
@@ -1735,16 +1737,10 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
                         >
                           {isSelected ? <CheckSquare size={19} /> : <Square size={19} />}
                         </button>
-                        {(() => {
-                          const { Icon, color } = getTypeMeta(doc.type);
-                          return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
-                        })()}
                         {doc.starred && (
                           <Star size={12} className="flex-shrink-0 fill-[var(--teal)] text-[var(--teal)]" />
                         )}
-                        <span className="text-[13px] text-[var(--ink)] truncate flex-1 min-w-0" title={doc.title}>
-                          {doc.title}
-                        </span>
+                        <span className="flex-1" />
                         <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id)}
@@ -1763,10 +1759,12 @@ export const DocumentLibraryView: React.FC<DocumentLibraryViewProps> = ({
 
                       {/* Page preview */}
                       <div className="relative aspect-[4/3] rounded-lg bg-[var(--raised)] flex items-center justify-center overflow-hidden">
-                        <DocumentThumbnail doc={doc} variant="preview" />
+                        <DocumentPagePreview doc={doc} onThumbnailReady={onThumbnailReady} />
                       </div>
 
+                      <h3 className="mt-2 truncate text-[13px] font-semibold text-[var(--ink)]" title={doc.title}>{doc.title}</h3>
                       <div className="text-[11px] text-[var(--muted)] mt-2 truncate">
+                        <span className="mr-2 rounded bg-[var(--raised)] px-1.5 py-0.5 font-semibold uppercase text-[var(--ink-2)]">{getFileTypeLabel(doc.type)}</span>
                         {formatBytes(doc.sizeBytes)} · {formatDate(getLastModified(doc))}
                       </div>
                     </div>

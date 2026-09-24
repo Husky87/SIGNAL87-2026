@@ -6,12 +6,14 @@ import {
 import { DocumentItem } from '../types';
 import { parseFileContent, ParsedFileResult } from '../lib/fileParser';
 import { fileDataCache } from '../lib/pdfGenerator';
-import { auth, uploadDocumentFile } from '../lib/firebase';
+import { auth, uploadDocumentFile, uploadDocumentThumbnail } from '../lib/firebase';
+import { renderPdfThumbnail } from '../lib/documentPreview';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadSuccess: (newDoc: DocumentItem, parsedFile?: ParsedFileResult) => void;
+  onThumbnailReady?: (docId: string, url: string) => void;
   documents: DocumentItem[];
   onSelectExistingDocument?: (doc: DocumentItem) => void;
   initialFiles?: File[];
@@ -53,7 +55,7 @@ function inferCategory(title: string, text: string): FileProgressItem['category'
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen, onClose, onUploadSuccess, initialFiles, onInitialFilesConsumed, onAllUploadsComplete, targetFolderId
+  isOpen, onClose, onUploadSuccess, onThumbnailReady, initialFiles, onInitialFilesConsumed, onAllUploadsComplete, targetFolderId
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<FileProgressItem[]>([]);
@@ -191,6 +193,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
       updateItem({ progress: 100, status: 'ready', stepMessage: 'Ready' });
       onUploadSuccess(newDoc as DocumentItem, parsedResult);
+      // A preview is optional. Upload completion and document indexing never wait
+      // for PDF rasterization or for an additional Storage write.
+      if (fileObj && detectedType === 'pdf' && fileObj.size <= 6 * 1024 * 1024) {
+        void renderPdfThumbnail(fileObj)
+          .then((blob) => uploadDocumentThumbnail(blob, docId))
+          .then((url) => onThumbnailReady?.(docId, url))
+          .catch((error) => console.warn('Document preview unavailable:', error));
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       updateItem({ progress: 0, status: 'error', stepMessage: message.slice(0, 180) });
