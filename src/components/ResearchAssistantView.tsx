@@ -48,6 +48,7 @@ import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { requestChat } from '../lib/chatClient';
 import { prepareAsk } from '../lib/askContext';
+import { getAnswerStyle } from '../lib/answerStyle';
 import { ensureIndexed } from '../lib/semanticIndex';
 import { Signal87Logo } from './Signal87Logo';
 import { determineDeliverableType } from './ActionRouterComponents';
@@ -542,6 +543,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
     const fullTextDocumentPayload = activeDocs.map((doc: any) => ({
       id: doc.id,
       title: doc.title,
+      uploadDate: doc.uploadDate,
       summary: doc.summary,
       fullText: doc.fullText || doc.contentPreview || doc.summary
     }));
@@ -577,6 +579,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         memoryEvent: ask.memoryEvent,
         // Who is asking, so "I", "me" and "my" resolve to the signed-in user.
         userProfile: profile,
+        answerStyle: getAnswerStyle(),
         model: selectedModel,
         ingestedFilesData,
         attachedFiles

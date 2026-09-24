@@ -4,25 +4,6 @@ import type { ChatMessage, DocumentItem } from '../types';
 import { Signal87Logo } from './Signal87Logo';
 import { ActionRouterCard, GeminiMarkdownRenderer } from './ActionRouterComponents';
 
-/** "Searched 142 files · used 4": shows the answer came from a search of the whole workspace. */
-const RetrievalNote: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
-  const trace = msg.verificationTrace;
-  const searched = trace?.searchedDocuments ?? 0;
-  const used = trace?.groundedDocuments ?? 0;
-  if (!trace || searched === 0) return null;
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-  const label = trace.retrievalMode === 'search'
-    ? `Searched ${plural(searched, 'file')}${trace.semanticSearch ? ' by meaning' : ''} · used ${plural(used, 'file')}`
-    : trace.retrievalMode === 'overview'
-      ? `Scanned the opening of ${plural(used, 'file')} out of ${searched}`
-      : `Read ${plural(used, 'file')} in full`;
-  return (
-    <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--muted)]" aria-label={label}>
-      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--teal)]" aria-hidden="true" />
-      {label}
-    </div>
-  );
-};
 
 interface AssistantAnswerProps {
   msg: ChatMessage;
@@ -52,7 +33,8 @@ const MemoryNote: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
 /** Clickable source files under an answer, so every answer that used your files shows which ones. */
 const SourcesRow: React.FC<{ msg: ChatMessage; documents: DocumentItem[]; onSelectDocument?: (doc: DocumentItem) => void }> = ({ msg, documents, onSelectDocument }) => {
   const seen = new Set<string>();
-  const sources = [...(msg.sources || []), ...(msg.citations || []).map((c) => ({ docId: c.docId, docTitle: c.docTitle }))]
+  // The server's sources already merge citations and collapse file versions; citations are the fallback for older answers.
+  const sources: Array<{ docId: string; docTitle: string; versions?: number }> = (msg.sources?.length ? msg.sources : (msg.citations || []).map((c) => ({ docId: c.docId, docTitle: c.docTitle })))
     .filter((s) => {
       const key = s.docId || s.docTitle;
       if (!key || seen.has(key)) return false;
@@ -60,7 +42,7 @@ const SourcesRow: React.FC<{ msg: ChatMessage; documents: DocumentItem[]; onSele
       return true;
     });
   if (sources.length === 0) return null;
-  const open = (source: { docId: string; docTitle: string }) => {
+  const open = (source: { docId: string; docTitle: string; versions?: number }) => {
     const title = source.docTitle.toLowerCase();
     const doc = documents.find((d) => d.id === source.docId) || documents.find((d) => d.title.toLowerCase() === title);
     if (doc && onSelectDocument) onSelectDocument(doc);
@@ -78,6 +60,7 @@ const SourcesRow: React.FC<{ msg: ChatMessage; documents: DocumentItem[]; onSele
         >
           <FileText size={12} className="shrink-0" aria-hidden="true" />
           <span className="truncate">{source.docTitle}</span>
+          {source.versions && source.versions > 1 && <span className="shrink-0 text-[var(--muted)]">· {source.versions} versions</span>}
         </button>
       ))}
     </div>
@@ -93,7 +76,6 @@ export const AssistantAnswer: React.FC<AssistantAnswerProps> = ({
       <Signal87Logo size={16} />
     </div>
     <div className="flex-1 min-w-0">
-      <RetrievalNote msg={msg} />
       <div data-export-message-id={msg.id}>
         <GeminiMarkdownRenderer
           text={msg.text}

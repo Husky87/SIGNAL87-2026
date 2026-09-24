@@ -10,17 +10,19 @@
  */
 import { hasUsableText } from './extractedText';
 import { applyMemoryCommand, loadMemories, MemoryEvent, parseMemoryCommand } from './memoryStore';
-import { docText, retrieveContext, RetrievalDoc, RetrievalStats } from './retrieval';
+import { docText, isQuickLookup, retrieveContext, RetrievalDoc, RetrievalStats } from './retrieval';
 import { semanticScorer } from './semanticIndex';
 
 /** Must match MAX_TOTAL_CONTEXT_CHARS / MAX_DOC_CHARS in api/chat.ts. */
 const SEND_WHOLE_BELOW_CHARS = 90000;
 const RETRIEVED_BUDGET_CHARS = 80000;
+/** Quick lookups (a birthday, an address, an EIN) need a few passages, not a library. */
+const LOOKUP_BUDGET_CHARS = 16000;
 const MAX_DOC_CHARS = 28000;
 
 export interface RetrievedPayload {
   stats: RetrievalStats;
-  groups: Array<{ id: string; title: string; total: number; passages: Array<{ index: number; text: string }> }>;
+  groups: Array<{ id: string; title: string; total: number; uploadDate?: string; versionCount?: number; olderVersionOf?: string; familyId?: string; passages: Array<{ index: number; text: string }> }>;
   workspaceFiles: string[];
   /** Files whose text could not be extracted; the answer should say so if asked about them. */
   unreadableFiles: string[];
@@ -60,7 +62,7 @@ export async function prepareAsk(options: {
     question: options.question,
     previousQuestions: options.previousQuestions,
     profile: options.profile,
-    budgetChars: RETRIEVED_BUDGET_CHARS,
+    budgetChars: isQuickLookup(options.question) ? LOOKUP_BUDGET_CHARS : RETRIEVED_BUDGET_CHARS,
     maxDocChars: MAX_DOC_CHARS,
     semanticScore
   });
@@ -72,6 +74,10 @@ export async function prepareAsk(options: {
         id: String((g.doc as { id?: string }).id || g.doc.title || ''),
         title: String(g.doc.title || 'Untitled'),
         total: g.total,
+        uploadDate: g.doc.uploadDate,
+        versionCount: g.versionCount,
+        olderVersionOf: g.olderVersionOf,
+        familyId: g.familyId,
         passages: g.passages
       })),
       workspaceFiles: readable.map((d) => String(d.title || 'Untitled')),

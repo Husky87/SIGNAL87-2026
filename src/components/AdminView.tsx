@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight, Brain, Sun, Moon, Monitor } from 'lucide-react';
 import { getThemePreference, setThemePreference, subscribeTheme, ThemePreference } from '../lib/theme';
+import { AnswerStyle, getAnswerStyle, setAnswerStyle } from '../lib/answerStyle';
 import { MemoryPanel } from './MemoryPanel';
 import { OrgStats } from '../types';
 import { User } from '../lib/firebase';
@@ -36,6 +37,26 @@ const ThemePicker: React.FC = () => {
   );
 };
 
+/** Conversational (default) or Direct answers. */
+const AnswerStylePicker: React.FC = () => {
+  const [style, setStyle] = useState<AnswerStyle>(getAnswerStyle());
+  const choose = (next: AnswerStyle) => { setAnswerStyle(next); setStyle(next); };
+  return (
+    <div>
+      <span className="block text-sm">Answer style</span>
+      <div className="s87-theme-picker mt-3" role="group" aria-label="Answer style">
+        <button type="button" aria-pressed={style === 'conversational'} onClick={() => choose('conversational')}>Conversational</button>
+        <button type="button" aria-pressed={style === 'direct'} onClick={() => choose('direct')}>Direct</button>
+      </div>
+      <p className="mt-2 text-xs text-[var(--muted)]">
+        {style === 'direct'
+          ? 'Answers lead with the facts and their sources. No pleasantries or follow-up offers.'
+          : 'Answers are friendly and may suggest a useful next step.'}
+      </p>
+    </div>
+  );
+};
+
 export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel, onChangeModel, onSignOut, onOpenTeam, onOpenPrivacy, onOpenTerms }) => (
   <div className="s87-page min-h-full bg-[var(--bg)] text-[var(--ink)]">
     <div className="s87-column">
@@ -53,7 +74,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel
         <button type="button" onClick={onOpenTeam} className="s87-settings-row"><Users /><span><strong>Team</strong><small>Members and workspace access</small></span><ChevronRight size={15} /></button>
         <details>
           <summary className="s87-settings-row"><Sparkles /><span><strong>Answer preferences</strong><small>Choose your response profile</small></span><ChevronRight size={15} /></summary>
-          <div className="s87-settings-detail"><label htmlFor="response-profile" className="block text-sm">Response profile</label><select id="response-profile" value={selectedModel} onChange={event => onChangeModel(event.target.value)} className="mt-3 w-full max-w-sm rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 py-3"><option value="gemini-3.6-flash">Signal87 Standard</option><option value="gemini-2.5-pro">Signal87 Deep</option><option value="gemini-3.5-flash-lite">Signal87 Fast</option></select></div>
+          <div className="s87-settings-detail"><AnswerStylePicker /><label htmlFor="response-profile" className="mt-6 block text-sm">Response profile</label><select id="response-profile" value={selectedModel} onChange={event => onChangeModel(event.target.value)} className="mt-3 w-full max-w-sm rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 py-3"><option value="gemini-3.6-flash">Signal87 Standard</option><option value="gemini-2.5-pro">Signal87 Deep</option><option value="gemini-3.5-flash-lite">Signal87 Fast</option></select></div>
         </details>
         <details>
           <summary className="s87-settings-row"><Palette /><span><strong>Appearance</strong><small>Light, dark, or match your device</small></span><ChevronRight size={15} /></summary>
