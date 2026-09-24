@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { UserRound, Users, ShieldCheck, Palette, Sparkles, ChevronRight, Brain, Sun, Moon, Monitor } from 'lucide-react';
 import { getThemePreference, setThemePreference, subscribeTheme, ThemePreference } from '../lib/theme';
 import { AnswerStyle, getAnswerStyle, setAnswerStyle } from '../lib/answerStyle';
+import { getShowCitationNumbers, setShowCitationNumbers } from '../lib/citationDisplay';
 import { MemoryPanel } from './MemoryPanel';
 import { OrgStats } from '../types';
 import { User } from '../lib/firebase';
@@ -57,6 +58,28 @@ const AnswerStylePicker: React.FC = () => {
   );
 };
 
+/** Off (default): answers read as clean prose. On: the raised [1], [2] markers are shown. */
+const CitationNumbersToggle: React.FC = () => {
+  const [on, setOn] = useState(getShowCitationNumbers());
+  const toggle = () => { setShowCitationNumbers(!on); setOn(!on); };
+  return (
+    <div className="mt-6 flex items-start justify-between gap-4 max-w-md">
+      <div>
+        <span id="citation-numbers-label" className="block text-sm">Show citation numbers in answers</span>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          {on
+            ? 'Each cited sentence shows a small [1], [2] marker for its source.'
+            : 'Answers read as clean prose. Hover or tap a sentence, or a source under the answer, to see where it came from.'}
+          {' '}Copy, PDF and Word exports always include numbered citations.
+        </p>
+      </div>
+      <button type="button" role="switch" aria-checked={on} aria-labelledby="citation-numbers-label" onClick={toggle} className="s87-switch" data-on={on ? 'true' : undefined}>
+        <span aria-hidden="true" />
+      </button>
+    </div>
+  );
+};
+
 export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel, onChangeModel, onSignOut, onOpenTeam, onOpenPrivacy, onOpenTerms }) => (
   <div className="s87-page min-h-full bg-[var(--bg)] text-[var(--ink)]">
     <div className="s87-column">
@@ -74,7 +97,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel
         <button type="button" onClick={onOpenTeam} className="s87-settings-row"><Users /><span><strong>Team</strong><small>Members and workspace access</small></span><ChevronRight size={15} /></button>
         <details>
           <summary className="s87-settings-row"><Sparkles /><span><strong>Answer preferences</strong><small>Choose your response profile</small></span><ChevronRight size={15} /></summary>
-          <div className="s87-settings-detail"><AnswerStylePicker /><label htmlFor="response-profile" className="mt-6 block text-sm">Response profile</label><select id="response-profile" value={selectedModel} onChange={event => onChangeModel(event.target.value)} className="mt-3 w-full max-w-sm rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 py-3"><option value="gemini-3.6-flash">Signal87 Standard</option><option value="gemini-2.5-pro">Signal87 Deep</option><option value="gemini-3.5-flash-lite">Signal87 Fast</option></select></div>
+          <div className="s87-settings-detail"><AnswerStylePicker /><CitationNumbersToggle /><label htmlFor="response-profile" className="mt-6 block text-sm">Response profile</label><select id="response-profile" value={selectedModel} onChange={event => onChangeModel(event.target.value)} className="mt-3 w-full max-w-sm rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 py-3"><option value="gemini-3.6-flash">Signal87 Standard</option><option value="gemini-2.5-pro">Signal87 Deep</option><option value="gemini-3.5-flash-lite">Signal87 Fast</option></select></div>
         </details>
         <details>
           <summary className="s87-settings-row"><Palette /><span><strong>Appearance</strong><small>Light, dark, or match your device</small></span><ChevronRight size={15} /></summary>

@@ -708,6 +708,12 @@
 :root[data-theme="dark"] .s87-app .react-pdf__Page { background: #FFFFFF; }
 
 /* Appearance picker in Settings. */
+/* An on/off switch (role="switch"). */
+.s87-switch { position: relative; flex-shrink: 0; width: 44px; height: 26px; min-height: 26px !important; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface-2); transition: background-color 150ms ease, border-color 150ms ease; cursor: pointer; }
+.s87-switch > span { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 999px; background: var(--muted); transition: transform 150ms ease, background-color 150ms ease; }
+.s87-switch[data-on="true"] { background: var(--teal); border-color: var(--teal); }
+.s87-switch[data-on="true"] > span { transform: translateX(18px); background: #fff; }
+.s87-switch:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .s87-theme-picker { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
 .s87-theme-picker button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 9px; color: var(--ink-2); font-size: 13px; font-weight: 550; transition: background-color 0.2s ease, color 0.2s ease; }
 .s87-theme-picker button:hover { color: var(--ink); background: var(--surface-2); }
@@ -724,3 +730,15 @@
 .s87-app .s87-prose h1, .s87-app .s87-prose h2, .s87-app .s87-prose h3 { line-height: 1.35; }
 /* Citation markers sit above the text without pushing lines apart. */
 .s87-app .s87-cite { display: inline; font-size: 0.7em; line-height: 0; vertical-align: 0.5em; min-height: 0 !important; min-width: 0 !important; height: auto !important; padding: 0 1px !important; }
+/* Numbers are off by default: the marker stays in the DOM (Word export reads it) but is not shown or announced. */
+.s87-app .s87-cite--hidden { display: none; }
+/* A cited sentence: plain prose until you point at it or at one of its source chips. */
+.s87-app .s87-cited { border-radius: 3px; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background-color 150ms ease, box-shadow 150ms ease; }
+.s87-app .s87-cited:hover, .s87-app .s87-cited[aria-expanded="true"] { background-color: color-mix(in srgb, var(--teal-soft) 60%, transparent); }
+.s87-app .s87-cited[data-hl="true"] { background-color: var(--teal-soft); box-shadow: 0 0 0 2px var(--teal-soft); }
+/* Dark's soft accent is close to the page, so the highlight takes a little more of the accent there. */
+:root[data-theme="dark"] .s87-app .s87-cited[data-hl="true"] { --cite-hl: color-mix(in srgb, var(--teal) 22%, var(--teal-soft)); background-color: var(--cite-hl); box-shadow: 0 0 0 2px var(--cite-hl); }
+.s87-app .s87-cited:focus { outline: none; }
+.s87-app .s87-cited:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+/* Which files a sentence came from. */
+.s87-app .s87-cite-pop { position: absolute; z-index: 30; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); color: var(--ink); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18); font-size: 12.5px; line-height: 1.45; }

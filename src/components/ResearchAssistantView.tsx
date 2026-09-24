@@ -70,7 +70,8 @@ export interface ResearchAssistantViewProps {
   currentUser?: User | null;
   onOpenMobileMenu?: () => void;
   onGoogleSignIn?: () => void;
-  onSelectDocument?: (doc: DocumentItem) => void;
+  /** Opens a file in the viewer; from an answer's sources, with its search pre-filled. */
+  onSelectDocument?: (doc: DocumentItem, options?: { search?: string }) => void;
   onSaveAnswer?: (msg: ChatMessage, question: string) => void;
   savedAnswerIds?: Set<string>;
   initialQuery?: string | null;

@@ -224,13 +224,16 @@ interface DocumentDetailModalProps {
   onClose: () => void;
   onOpenCompare: (doc: DocumentItem) => void;
   onAddNote?: (docId: string) => void;
+  /** Search to start with, e.g. a phrase from a cited passage so it is highlighted on open. */
+  initialSearch?: string;
 }
 
 export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   document: doc,
   onClose,
   onOpenCompare,
-  onAddNote
+  onAddNote,
+  initialSearch = ''
 }) => {
   const [activeTab, setActiveTab] = useState<'pdf' | 'analysis'>('pdf');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -255,7 +258,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   useEffect(() => {
     setCurrentPage(1);
     setZoomLevel(100);
-    setDocSearchQuery('');
+    setDocSearchQuery(initialSearch);
     setActiveMatchIndex(0);
     setTotalPages(doc?.type === 'xlsx' || doc?.type === 'csv' ? 1 : 3);
     setActiveTab('pdf');
