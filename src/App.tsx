@@ -179,11 +179,6 @@ export default function App() {
     writeUserJson(currentUser.uid, 'saved_items', savedItems);
   }, [savedItems, currentUser, workspaceReady]);
 
-  // Persist attachedFiles to localStorage
-  useEffect(() => {
-    if (!currentUser || !workspaceReady) return;
-    writeUserJson(currentUser.uid, 'attached_files', attachedFiles);
-  }, [attachedFiles, currentUser, workspaceReady]);
 
   // Persist folders to localStorage
   useEffect(() => {
@@ -348,6 +343,45 @@ export default function App() {
   // Wait for a new session's history load before sending its initial question.
   const [chatSessionReadyId, setChatSessionReadyId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+
+  // Files chosen for a question belong to that conversation only. They used to be
+  // saved once for the whole account and restored on every load, so a file picked
+  // for one question stayed "Only searching" in every later chat. Now each
+  // conversation keeps its own list, and a new or different conversation starts
+  // with none. (The effect below skips the one render after a switch, when
+  // attachedFiles still belongs to the previous conversation.)
+  const attachmentsSessionRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!currentUser || !workspaceReady || !activeSessionId) return;
+    const all = readUserJson<Record<string, typeof attachedFiles>>(currentUser.uid, 'attached_by_session', {});
+    setAttachedFiles(Array.isArray(all[activeSessionId]) ? all[activeSessionId] : []);
+    attachmentsSessionRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId, currentUser, workspaceReady]);
+  useEffect(() => {
+    if (!currentUser || !workspaceReady || !activeSessionId) return;
+    if (attachmentsSessionRef.current !== activeSessionId) {
+      attachmentsSessionRef.current = activeSessionId;
+      return;
+    }
+    const all = readUserJson<Record<string, typeof attachedFiles>>(currentUser.uid, 'attached_by_session', {});
+    if (attachedFiles.length) all[activeSessionId] = attachedFiles; else delete all[activeSessionId];
+    writeUserJson(currentUser.uid, 'attached_by_session', all);
+  }, [attachedFiles, activeSessionId, currentUser, workspaceReady]);
+
+  // Apply "Ask about this file" / files chosen on the Files page here, after the
+  // conversation's own attachments are loaded, so starting a fresh scoped chat
+  // can't have its choice cleared by that load (effects run in this order).
+  useEffect(() => {
+    if (!askScopeRequest) return;
+    const chosen = documents.filter((d) => askScopeRequest.ids.includes(d.id));
+    const workspaceIds = new Set(documents.map((d) => d.id));
+    setAttachedFiles((prev) => [
+      ...prev.filter((f) => !workspaceIds.has(f.id)),
+      ...chosen.map((d) => ({ id: d.id, name: d.title, size: `${(d.sizeBytes / 1024).toFixed(1)} KB` }))
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askScopeRequest?.nonce]);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[]>([]);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -539,7 +573,9 @@ export default function App() {
 
     setDocuments(mine(readUserJson<DocumentItem[]>(uid, 'documents', [])));
     setSavedItems(mine(readUserJson<SavedItem[]>(uid, 'saved_items', [])));
-    setAttachedFiles(readUserJson(uid, 'attached_files', []));
+    // Attachments are per conversation now (see 'attached_by_session'); drop the old account-wide list.
+    setAttachedFiles([]);
+    writeUserJson(uid, 'attached_files', []);
     const userFolders = readUserJson<FolderItem[]>(uid, 'folders', []);
     setFolders(userFolders.length > 0 ? userFolders : defaultFolders);
     // Rebuild Recent from the conversations actually stored on this device, so a
@@ -1426,6 +1462,8 @@ export default function App() {
           setCurrentTab('documents');
         }}
         onSelectExistingDocument={(doc) => {
+          // Only add it to the question when the upload started from Ask.
+          if (currentTab !== 'research') return;
           setAttachedFiles((prev) => [
             ...prev.filter((f) => f.id !== doc.id),
             { id: doc.id, name: doc.title, size: `${(doc.sizeBytes / 1024).toFixed(1)} KB` }
