@@ -3,30 +3,26 @@ import React, { useState } from 'react';
 interface PaywallViewProps {
   userEmail?: string | null;
   onSignOut: () => void;
+  onRefreshBilling: () => void;
 }
 
-const PLAN_FEATURES = [
-  'Unlimited document uploads',
-  'AI-powered search and analysis',
-  'Citation-backed answers',
-  'Shared workspace access'
-];
+type CheckoutPlan = 'documents_100' | 'unlimited';
 
-export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }) => {
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut, onRefreshBilling }) => {
+  const [loadingPlan, setLoadingPlan] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const handleUpgrade = async () => {
-    if (isCheckoutLoading) return;
+  const handleUpgrade = async (plan: CheckoutPlan) => {
+    if (loadingPlan) return;
 
-    setIsCheckoutLoading(true);
+    setLoadingPlan(plan);
     setCheckoutError(null);
 
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
+        body: JSON.stringify({ plan })
       });
 
       const data = await response.json() as { url?: string; error?: string };
@@ -39,7 +35,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
     } catch (error) {
       console.error('Stripe Checkout Error:', error);
       setCheckoutError(error instanceof Error ? error.message : 'Unable to start checkout. Please try again.');
-      setIsCheckoutLoading(false);
+      setLoadingPlan(null);
     }
   };
 
@@ -66,23 +62,22 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
         </div>
 
         <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl p-6 text-left space-y-4">
-          <ul className="space-y-2.5">
-            {PLAN_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-center gap-2.5 text-[14px] text-[var(--ink)]">
-                <span aria-hidden="true" className="text-[var(--teal)] font-bold">✓</span>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-
-          <button
-            type="button"
-            onClick={handleUpgrade}
-            disabled={isCheckoutLoading}
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 disabled:cursor-wait text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center gap-2 transition-all min-h-[44px]"
-          >
-            {isCheckoutLoading ? 'Opening secure checkout…' : 'Upgrade with Stripe'}
-          </button>
+          <p className="text-[13px] text-[var(--ink-2)]">Both plans include AI search, citation-backed answers, and shared workspace access.</p>
+          {([
+            { id: 'documents_100', name: '100 documents', price: '$20/month' },
+            { id: 'unlimited', name: 'Unlimited documents', price: '$50/month' }
+          ] as const).map((plan) => (
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => handleUpgrade(plan.id)}
+              disabled={loadingPlan !== null}
+              className="w-full p-4 border border-[var(--rule)] hover:border-[var(--teal)] disabled:opacity-60 disabled:cursor-wait rounded-xl cursor-pointer flex items-center justify-between text-left transition-colors min-h-[60px]"
+            >
+              <span className="font-medium text-[14px]">{plan.name}</span>
+              <span className="text-[13px] text-[var(--teal)]">{loadingPlan === plan.id ? 'Opening checkout…' : plan.price}</span>
+            </button>
+          ))}
 
           {checkoutError ? (
             <p className="text-[12px] text-red-500 text-center" role="alert">
@@ -94,6 +89,10 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             </p>
           )}
         </div>
+
+        <button type="button" onClick={onRefreshBilling} className="text-[13px] text-[var(--teal)] underline cursor-pointer">
+          Already subscribed? Check again
+        </button>
 
         <button
           type="button"

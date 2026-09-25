@@ -125,6 +125,9 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'checking' | 'active' | 'inactive' | 'error'>('checking');
+  const [billingRefresh, setBillingRefresh] = useState(0);
+  const [billingClock, setBillingClock] = useState(Date.now());
   const hadUserRef = React.useRef(false);
   // The history array most recently loaded from storage. Saving skips exactly that
   // array (it's already stored), so the first real message is never skipped.
@@ -467,9 +470,11 @@ export default function App() {
       setAuthReady(true);
       if (user) {
         hadUserRef.current = true;
+        setSubscriptionStatus('checking');
         setCurrentUser(user);
         setAuthError(null);
       } else {
+        setSubscriptionStatus('checking');
         setCurrentUser(null);
         if (hadUserRef.current) {
           hadUserRef.current = false;
@@ -479,6 +484,44 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setBillingClock(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Stripe is the source of truth once the free access window closes. Check
+  // again on return from Checkout, when the tab regains focus, and periodically
+  // so renewals or cancellations are reflected without a new login.
+  useEffect(() => {
+    if (!currentUser || isAdminEmail(currentUser.email)) return;
+    let cancelled = false;
+    const refresh = async () => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch('/api/subscription-status', { signal: controller.signal, cache: 'no-store' });
+        if (!response.ok) throw new Error(`Billing lookup failed [HTTP ${response.status}]`);
+        const result = await response.json() as { active?: boolean };
+        if (!cancelled) setSubscriptionStatus(result.active === true ? 'active' : 'inactive');
+      } catch (error) {
+        console.warn('Subscription status could not be checked:', error);
+        if (!cancelled) setSubscriptionStatus('error');
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    };
+    setSubscriptionStatus('checking');
+    void refresh();
+    const onFocus = () => { if (document.visibilityState === 'visible') void refresh(); };
+    document.addEventListener('visibilitychange', onFocus);
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onFocus);
+      window.clearInterval(interval);
+    };
+  }, [currentUser?.uid, billingRefresh]);
 
   // Finish a Google redirect only when we actually started one. Calling
   // getRedirectResult on every landing-page visit throws (missing resolver
@@ -1043,9 +1086,16 @@ export default function App() {
     );
   }
 
-  const trialStatus = getTrialStatus(currentUser);
-  if (trialStatus.isExpired && !isAdminEmail(currentUser.email)) {
-    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
+  const trialStatus = getTrialStatus(currentUser, billingClock);
+  if (trialStatus.isExpired && !isAdminEmail(currentUser.email) && subscriptionStatus !== 'active') {
+    if (subscriptionStatus === 'checking' || subscriptionStatus === 'error') {
+      return <main className="min-h-[100dvh] flex flex-col items-center justify-center gap-4 bg-[var(--paper)] text-[var(--ink)] px-6 text-center" role="status">
+        <p>{subscriptionStatus === 'checking' ? 'Checking your subscription…' : 'We could not verify your subscription right now.'}</p>
+        {subscriptionStatus === 'error' && <button type="button" className="rounded-full px-5 py-2 bg-[var(--teal)] text-white" onClick={() => setBillingRefresh((value) => value + 1)}>Retry</button>}
+        <button type="button" className="text-sm underline" onClick={handleSignOut}>Sign out</button>
+      </main>;
+    }
+    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} onRefreshBilling={() => setBillingRefresh((value) => value + 1)} />;
   }
 
   return (
@@ -1070,6 +1120,7 @@ export default function App() {
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
+        hasActiveSubscription={subscriptionStatus === 'active'}
         onSelectTab={(tab) => {
           setCurrentTab(tab);
           setMobileMenuOpen(false);
