@@ -27,7 +27,7 @@ import { Signal87Logo } from './components/Signal87Logo';
 import { MobileDock } from './components/MobileDock';
 import { ScrollArea } from './components/ScrollArea';
 import { SavedView } from './components/SavedView';
-import { auth, onAuthStateChanged, User, signUpWithEmail, signInWithEmail, getRedirectResult, signInWithGoogle, signInWithGoogleRedirect } from './lib/firebase';
+import { auth, onAuthStateChanged, User, signUpWithEmail, signInWithEmail, requestPasswordReset, getRedirectResult, signInWithGoogle, signInWithGoogleRedirect } from './lib/firebase';
 import { LogIn, Sparkles, X, Menu, ChevronDown, Check, MoreVertical, ArrowUp, Upload } from 'lucide-react';
 
 import {
@@ -951,6 +951,10 @@ export default function App() {
     setIsEmailAuthOpen(false);
   };
 
+  const handlePasswordReset = async (email: string) => {
+    await requestPasswordReset(email);
+  };
+
   if (!authReady) {
     return <div className="min-h-[100dvh] w-full bg-[#0F1010]" />;
   }
@@ -1006,6 +1010,7 @@ export default function App() {
           onClose={() => setIsEmailAuthOpen(false)}
           onSignUp={handleEmailSignUp}
           onSignIn={handleEmailSignIn}
+          onPasswordReset={handlePasswordReset}
           onGoogleSignIn={handleGoogleSignIn}
         />
 
