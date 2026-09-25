@@ -1024,7 +1024,7 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
                         <div key={msg.id} className="py-1">
                           {msg.role === 'user' ? (
                             <div className="flex justify-end my-3">
-                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1] font-normal max-w-[85%] break-words [overflow-wrap:anywhere]">
+                              <div className="bg-[var(--surface-2)] text-[var(--ink)] px-4 py-2.5 rounded-[18px_18px_5px_18px] text-[14.5px] leading-[1.5] font-normal max-w-[85%] break-words [overflow-wrap:anywhere]">
                                 {msg.text}
                               </div>
                             </div>
