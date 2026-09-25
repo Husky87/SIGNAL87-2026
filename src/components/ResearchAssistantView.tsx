@@ -46,6 +46,7 @@ import { DocumentItem, ChatMessage, Citation } from '../types';
 import { saveChatMessageToFirestore } from '../lib/firestoreService';
 import { requestChat } from '../lib/chatClient';
 import { prepareAsk } from '../lib/askContext';
+import { loadAccountProfile, profileForAsk } from '../lib/accountProfile';
 import { getAnswerStyle } from '../lib/answerStyle';
 import { ensureIndexed } from '../lib/semanticIndex';
 import { Signal87Logo } from './Signal87Logo';
@@ -596,7 +597,9 @@ export const ResearchAssistantView: React.FC<ResearchAssistantViewProps> = ({
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .slice(-12)
         .map((m) => ({ role: m.role, content: m.text }));
-      const profile = { name: currentUser.displayName || '', email: currentUser.email || '' };
+      // Name and email, plus role/company/industry from the optional account profile (Settings → Account).
+      const account = await loadAccountProfile();
+      const profile = { name: currentUser.displayName || '', email: currentUser.email || '', ...profileForAsk(account), ...(account?.preferredName ? { preferredName: account.preferredName } : {}) };
       // Memory commands, then either the whole files (small workspaces) or the best
       // passages from every file, ranked by words and meaning (larger ones).
       const ask = await prepareAsk({

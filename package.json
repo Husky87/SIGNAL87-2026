@@ -28,7 +28,7 @@
     "test:answer": "tsx tests/answering.e2e.ts",
     "test:ai-fallback": "tsx tests/ai-fallback-routing.test.ts",
     "test:firebase-ai-fallback": "tsx tests/firebase-ai-fallback-routing.test.ts",
-    "test": "npm run test:payload && npm run test:retrieval && npm run test:sources && npm run test:citation-display && npm run test:phase2 && npm run test:sessions && npm run test:versions && npm run test:citations && npm run test:recovery && npm run test:read && npm run test:answer && npm run test:ai-fallback && npm run test:firebase-ai-fallback && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back && npm run test:polish && npm run test:citations-ui && npm run test:note-editor && npm run test:askscope && npm run test:filepick",
+    "test": "npm run test:payload && npm run test:retrieval && npm run test:sources && npm run test:citation-display && npm run test:phase2 && npm run test:sessions && npm run test:account && npm run test:versions && npm run test:citations && npm run test:recovery && npm run test:read && npm run test:answer && npm run test:ai-fallback && npm run test:firebase-ai-fallback && npm run test:newmenu && npm run test:quickanswer && npm run test:mobile && npm run test:back && npm run test:polish && npm run test:citations-ui && npm run test:note-editor && npm run test:askscope && npm run test:filepick",
     "test:newmenu": "node tests/newmenu.e2e.mjs",
     "test:quickanswer": "node tests/quickanswer.e2e.mjs",
     "icons": "node tests/make-icons.mjs",
@@ -36,7 +36,8 @@
     "test:back": "node tests/backdismiss.e2e.mjs",
     "test:polish": "node tests/polish.e2e.mjs",
     "test:note-editor": "node tests/note-editor.e2e.mjs",
-    "test:filepick": "node tests/filepick.e2e.mjs"
+    "test:filepick": "node tests/filepick.e2e.mjs",
+    "test:account": "tsx tests/account-profile.test.ts"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

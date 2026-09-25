@@ -4,6 +4,8 @@ import { getThemePreference, setThemePreference, subscribeTheme, ThemePreference
 import { AnswerStyle, getAnswerStyle, setAnswerStyle } from '../lib/answerStyle';
 import { getShowCitationNumbers, setShowCitationNumbers } from '../lib/citationDisplay';
 import { MemoryPanel } from './MemoryPanel';
+import { AccountProfilePanel } from './AccountProfilePanel';
+import { loadAccountProfile, profileCompletion as profileCompletion_ } from '../lib/accountProfile';
 import { OrgStats } from '../types';
 import { User } from '../lib/firebase';
 
@@ -80,15 +82,29 @@ const CitationNumbersToggle: React.FC = () => {
   );
 };
 
-export const AdminView: React.FC<AdminViewProps> = ({ currentUser, selectedModel, onChangeModel, onSignOut, onOpenTeam, onOpenPrivacy, onOpenTerms }) => (
+/** Settings page. Loads how complete the account profile is, for the Account row. */
+export const AdminView: React.FC<AdminViewProps> = (props) => {
+  const [profileCompletion, setProfileCompletion] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void loadAccountProfile().then((p) => { if (!cancelled && p) setProfileCompletion(profileCompletion_(p)); });
+    return () => { cancelled = true; };
+  }, []);
+  return <AdminViewContent {...props} profileCompletion={profileCompletion} setProfileCompletion={setProfileCompletion} />;
+};
+
+const AdminViewContent: React.FC<AdminViewProps & { profileCompletion: number | null; setProfileCompletion: (n: number) => void }> = ({ currentUser, selectedModel, onChangeModel, onSignOut, onOpenTeam, onOpenPrivacy, onOpenTerms, profileCompletion, setProfileCompletion }) => (
   <div className="s87-page min-h-full bg-[var(--bg)] text-[var(--ink)]">
     <div className="s87-column">
       <h1 className="s87-page-title">Settings</h1>
       <p className="s87-page-description">Your workspace, your control.</p>
       <div className="mt-7">
         <details>
-          <summary className="s87-settings-row"><UserRound /><span><strong>Account</strong><small>Profile and sign-in</small></span><ChevronRight size={15} /></summary>
-          <div className="s87-settings-detail"><p className="font-medium text-[var(--ink)]">{currentUser?.displayName || 'Your account'}</p><p className="mt-1 break-all">{currentUser?.email}</p>{onSignOut && <button type="button" onClick={onSignOut} className="mt-4 rounded-lg border border-[var(--rule)] px-4 text-sm hover:bg-[var(--raised)]">Sign out</button>}</div>
+          <summary className="s87-settings-row"><UserRound /><span><strong>Account</strong><small>{profileCompletion === null ? 'Profile and sign-in' : profileCompletion >= 100 ? 'Profile complete' : `Profile ${profileCompletion}% complete · add details to tailor answers`}</small></span><ChevronRight size={15} /></summary>
+          <div className="s87-settings-detail">
+            <AccountProfilePanel displayName={currentUser?.displayName} email={currentUser?.email} onSaved={setProfileCompletion} />
+            {onSignOut && <button type="button" onClick={onSignOut} className="mt-6 rounded-lg border border-[var(--rule)] px-4 text-sm hover:bg-[var(--raised)]">Sign out</button>}
+          </div>
         </details>
         <details>
           <summary className="s87-settings-row"><Brain /><span><strong>Memory</strong><small>Facts Signal87 remembers about you</small></span><ChevronRight size={15} /></summary>

@@ -164,12 +164,15 @@ function buildStyleSection(answerStyle: unknown, quickLookup: boolean): string {
   return section;
 }
 
-function buildUserSection(profile: { name?: string; email?: string }): string {
+function buildUserSection(profile: { name?: string; email?: string; preferredName?: string; jobTitle?: string; role?: string; company?: string; industry?: string }): string {
   const name = profile.name?.trim();
   const email = profile.email?.trim();
   if (!name && !email) return '';
   const who = name ? `${name}${email ? ` (${email})` : ''}` : email;
-  return `\n\nABOUT THE USER\n- You are talking with ${who}, the signed-in owner of this workspace. "I", "me", "my" and "our" refer to them and their organization.\n- When they ask about themselves, look for their name in the documents like any other person.${name ? `\n- Address them by first name (${name.split(/\s+/)[0]}) now and then, not in every reply.` : ''}`;
+  const firstName = profile.preferredName?.trim() || (name ? name.split(/\s+/)[0] : '');
+  const work = [profile.jobTitle, profile.role && profile.role !== profile.jobTitle ? profile.role : '', profile.company ? `at ${profile.company}` : '', profile.industry ? `(${profile.industry})` : '']
+    .filter(Boolean).join(' ');
+  return `\n\nABOUT THE USER\n- You are talking with ${who}, the signed-in owner of this workspace. "I", "me", "my" and "our" refer to them and their organization.\n- When they ask about themselves, look for their name in the documents like any other person.${work ? `\n- Their work: ${work}. Use it to pitch answers at the right level and pick relevant examples; don't restate it back to them.` : ''}${firstName ? `\n- Address them by first name (${firstName}) now and then, not in every reply.` : ''}`;
 }
 
 const SIGNAL87_ASSISTANT_SYSTEM_INSTRUCTION = `You are Signal87, an AI analyst that works across the user's own files: contracts, filings, loan documents, spreadsheets, memos and notes. Talk like a sharp, friendly colleague who has read everything: plain English, natural sentences, no stiff boilerplate.
@@ -214,9 +217,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userPrompt = String(prompt || messages[messages.length - 1]?.content || '');
     // The verified sign-in token is the trusted source for who is asking; the client's profile only fills gaps.
     const clientProfile = userProfile && typeof userProfile === 'object' ? userProfile : {};
+    const optional = (v: unknown, max = 120) => (typeof v === 'string' && v.trim() ? v.replace(/\s+/g, ' ').trim().slice(0, max) : undefined);
     const profile = {
       name: String((claims as any).name || clientProfile.name || '').slice(0, 120),
-      email: String((claims as any).email || clientProfile.email || '').slice(0, 200)
+      email: String((claims as any).email || clientProfile.email || '').slice(0, 200),
+      // From the optional account profile (Settings → Account); context only.
+      preferredName: optional(clientProfile.preferredName, 60),
+      jobTitle: optional(clientProfile.jobTitle),
+      role: optional(clientProfile.role),
+      company: optional(clientProfile.company),
+      industry: optional(clientProfile.industry)
     };
     const previousQuestions = (Array.isArray(messages) ? messages : [])
       .filter((m: any) => m && m.role === 'user' && typeof m.content === 'string')
