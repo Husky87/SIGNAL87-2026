@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface PaywallViewProps {
   userEmail?: string | null;
   onSignOut: () => void;
+  onRefreshBilling: () => void;
 }
 
 const PLAN_FEATURES = [
@@ -12,7 +13,7 @@ const PLAN_FEATURES = [
   'Shared workspace access'
 ];
 
-export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }) => {
+export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut, onRefreshBilling }) => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -25,8 +26,7 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
+        headers: { 'Content-Type': 'application/json' }
       });
 
       const data = await response.json() as { url?: string; error?: string };
@@ -94,6 +94,10 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             </p>
           )}
         </div>
+
+        <button type="button" onClick={onRefreshBilling} className="text-[13px] text-[var(--teal)] underline cursor-pointer">
+          Already subscribed? Check again
+        </button>
 
         <button
           type="button"

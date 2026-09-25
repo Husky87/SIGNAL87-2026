@@ -59,6 +59,7 @@ interface SidebarProps {
   mobileMenuOpen?: boolean;
   onCloseMobileMenu?: () => void;
   currentUser?: User | null;
+  hasActiveSubscription?: boolean;
   onNewSession?: () => void;
   recentSessions?: ChatSessionSummary[];
   activeSessionId?: string | null;
@@ -131,6 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileMenuOpen = false,
   onCloseMobileMenu,
   currentUser,
+  hasActiveSubscription = false,
   onNewSession,
   onOpenUpload,
   onSignOut,
@@ -226,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Everyone is on the free trial until Stripe billing is wired up — this
   // footer status should switch to reflect real plan state once that lands.
   const isAdmin = isAdminEmail(currentUser?.email);
-  const trialStatus = currentUser && !isAdmin ? getTrialStatus(currentUser) : null;
+  const trialStatus = currentUser && !isAdmin && !hasActiveSubscription ? getTrialStatus(currentUser) : null;
 
   const renderNavItem = (item: { id: NavTab | 'new' | 'upload' | 'recent' | 'starred'; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }) => {
     const Icon = item.icon;
