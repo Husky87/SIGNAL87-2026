@@ -13,9 +13,9 @@ try {
   const page=await browser.newPage({viewport:{width,height}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:5182/tests/workspace-layout.html');
-  // Ask is the home screen: it opens first, with recent questions under the suggestions.
+  // Ask is the home screen: just the heading and the question box (recent questions live on the Recent page).
   await page.getByRole('heading',{name:'What would you like to understand?'}).waitFor();
-  assert(await page.getByText('Q3 strategy questions').count(),`${label}: recent questions show on the Ask home screen`);
+  assert.equal(await page.getByText('Q3 strategy questions').count(),0,`${label}: the Ask home screen has no Recent list`);
   await page.screenshot({path:`${output}/${label}-home.png`});
   const chat=page.getByRole('textbox',{name:'Ask Signal87',exact:true});
   await chat.fill('Summarize the key findings in my documents.');
