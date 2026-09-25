@@ -6,6 +6,7 @@ interface EmailAuthModalProps {
   onClose: () => void;
   onSignUp: (email: string, password: string) => Promise<void>;
   onSignIn: (email: string, password: string) => Promise<void>;
+  onPasswordReset: (email: string) => Promise<void>;
   onGoogleSignIn?: () => void;
   initialMode?: 'signup' | 'signin';
 }
@@ -15,19 +16,23 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
   onClose,
   onSignUp,
   onSignIn,
+  onPasswordReset,
   onGoogleSignIn,
   initialMode = 'signup'
 }) => {
-  const [mode, setMode] = useState<'signup' | 'signin'>(initialMode);
+  const [mode, setMode] = useState<'signup' | 'signin' | 'reset'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
       setError(null);
+      setResetSent(false);
+      setPassword('');
     }
   }, [isOpen, initialMode]);
 
@@ -47,13 +52,22 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
     setError(null);
     setIsSubmitting(true);
     try {
-      if (mode === 'signup') {
+      if (mode === 'reset') {
+        await onPasswordReset(email.trim());
+        setResetSent(true);
+      } else if (mode === 'signup') {
         await onSignUp(email, password);
       } else {
         await onSignIn(email, password);
       }
     } catch (err: any) {
-      setError(friendlyAuthError(err?.code, mode));
+      // Firebase may return user-not-found in projects without email enumeration protection.
+      // Show the same result either way so the form does not disclose account existence.
+      if (mode === 'reset' && err?.code === 'auth/user-not-found') {
+        setResetSent(true);
+      } else {
+        setError(friendlyAuthError(err?.code, mode));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -69,7 +83,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
       >
         <div className="flex items-center justify-between">
           <h2 id="auth-modal-title" className="text-[18px]" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
-            {mode === 'signup' ? 'Create your account' : 'Log in'}
+            {mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Log in'}
           </h2>
           <button type="button" aria-label="Close authentication dialog" onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-full cursor-pointer">
             <X size={18} />
@@ -81,6 +95,19 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
             Start with a 5-day free trial. No card required.
           </p>
         )}
+
+        {mode === 'reset' && (
+          <p className="text-[13px] text-[var(--ink-2)]" style={{ lineHeight: 1.5 }}>
+            Enter your email and we’ll send a link to set a new password.
+          </p>
+        )}
+
+        {resetSent ? (
+          <div role="status" className="space-y-4 text-[13px] text-[var(--ink-2)]">
+            <p>If an account can receive a password reset at this address, you’ll get an email shortly. Check your spam folder too.</p>
+            <button type="button" onClick={() => { setMode('signin'); setResetSent(false); setError(null); }} className="text-[var(--teal)] hover:underline cursor-pointer font-medium">Back to log in</button>
+          </div>
+        ) : (
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
@@ -96,7 +123,7 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
             />
           </div>
 
-          <div className="relative">
+          {mode !== 'reset' && <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)] pointer-events-none" size={16} />
             <input
               type="password"
@@ -108,7 +135,11 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
               placeholder="Password (min. 6 characters)"
               className="w-full pl-10 pr-3.5 py-2.5 bg-[var(--raised)] border border-[var(--rule)] rounded-xl text-[15px] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--teal)] transition-all"
             />
-          </div>
+          </div>}
+
+          {mode === 'signin' && (
+            <button type="button" onClick={() => { setMode('reset'); setError(null); setPassword(''); }} className="text-[13px] text-[var(--teal)] hover:underline cursor-pointer font-medium">Forgot password?</button>
+          )}
 
           {error && (
             <p className="text-[12.5px] text-[var(--warn)]" style={{ lineHeight: 1.5 }}>{error}</p>
@@ -120,11 +151,12 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
             className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 text-white font-medium text-[13.5px] rounded-full cursor-pointer transition-all min-h-[44px] flex items-center justify-center gap-2"
           >
             {isSubmitting && <Loader2 size={15} className="animate-spin" />}
-            <span>{mode === 'signup' ? 'Create account' : 'Log in'}</span>
+            <span>{mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset link' : 'Log in'}</span>
           </button>
         </form>
+        )}
 
-        {onGoogleSignIn && (
+        {onGoogleSignIn && mode !== 'reset' && (
           <>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-[var(--rule)]" />
@@ -140,7 +172,9 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
           </>
         )}
 
-        <p className="text-center text-[13px] text-[var(--ink-2)]">
+        {mode === 'reset' && !resetSent ? (
+          <button type="button" onClick={() => { setMode('signin'); setError(null); }} className="block mx-auto text-[13px] text-[var(--teal)] hover:underline cursor-pointer font-medium">Back to log in</button>
+        ) : mode !== 'reset' && <p className="text-center text-[13px] text-[var(--ink-2)]">
           {mode === 'signup' ? 'Already have an account? ' : "Don't have an account? "}
           <button
             type="button"
@@ -149,13 +183,13 @@ export const EmailAuthModal: React.FC<EmailAuthModalProps> = ({
           >
             {mode === 'signup' ? 'Log in' : 'Sign up'}
           </button>
-        </p>
+        </p>}
       </div>
     </div>
   );
 };
 
-function friendlyAuthError(code: string | undefined, mode: 'signup' | 'signin'): string {
+function friendlyAuthError(code: string | undefined, mode: 'signup' | 'signin' | 'reset'): string {
   switch (code) {
     case 'auth/email-already-in-use':
       return 'An account with this email already exists. Try logging in instead.';
@@ -169,8 +203,10 @@ function friendlyAuthError(code: string | undefined, mode: 'signup' | 'signin'):
       return 'Incorrect email or password.';
     case 'auth/too-many-requests':
       return 'Too many attempts. Please wait a moment and try again.';
+    case 'auth/network-request-failed':
+      return 'Connection failed. Check your internet and try again.';
     default:
-      return mode === 'signup'
+      return mode === 'reset' ? 'Could not send a reset link. Please try again.' : mode === 'signup'
         ? 'Could not create your account. Please try again.'
         : 'Could not log in. Please try again.';
   }

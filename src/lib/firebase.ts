@@ -13,6 +13,7 @@ import {
   getRedirectResult as firebaseGetRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   User
@@ -77,6 +78,9 @@ export const signUpWithEmail = async (email: string, password: string) =>
 
 export const signInWithEmail = async (email: string, password: string) =>
   signInWithEmailAndPassword(auth, email, password);
+
+export const requestPasswordReset = async (email: string) =>
+  sendPasswordResetEmail(auth, email);
 
 export const getRedirectResult = (authInstance = auth) =>
   firebaseGetRedirectResult(authInstance);
