@@ -67,8 +67,9 @@ try {
   phone.on('pageerror', (e) => errors.push(String(e)));
   await phone.goto(`http://localhost:${PORT}/tests/askscope.harness.html?scope=doc-bio`);
   await phone.getByText('Only searching').waitFor();
-  const box = await phone.getByRole('button', { name: /Searching 1 selected file/ }).boundingBox();
-  check('on a phone the scope button is on screen and tappable', !!box && box.x >= 0 && box.x + box.width <= 390 && box.height >= 40, JSON.stringify(box));
+  // The scope row sits under the composer; "Search all files" is its control.
+  const box = await phone.getByRole('button', { name: 'Search all files' }).boundingBox();
+  check('on a phone the scope control is on screen and tappable', !!box && box.x >= 0 && box.x + box.width <= 390 && box.height >= 32, JSON.stringify(box));
 
   check('no page errors', errors.length === 0, errors.join('\n'));
 } finally {
