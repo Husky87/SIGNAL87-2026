@@ -121,6 +121,15 @@ try {
   check('hover still highlights with numbers on', (await highlighted()).length === 2);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/desktop-dark-numbers.png` });
   await page.evaluate(() => window.__setNumbers(false));
+  // Reading rhythm: answers keep a comfortable, Claude-like line height (never cramped).
+  const rhythm = await page.evaluate(() => {
+    const el = document.querySelector('.s87-prose');
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { lineHeight: parseFloat(cs.lineHeight), fontSize: parseFloat(cs.fontSize), letterSpacing: cs.letterSpacing };
+  });
+  check('answers use a comfortable line height (1.6–1.8× the text size)', !!rhythm && rhythm.lineHeight / rhythm.fontSize >= 1.6 && rhythm.lineHeight / rhythm.fontSize <= 1.8, JSON.stringify(rhythm));
+  check('answers use normal letter spacing', !!rhythm && (rhythm.letterSpacing === 'normal' || parseFloat(rhythm.letterSpacing) === 0), JSON.stringify(rhythm));
   await page.close();
 
   // ---------- phone (touch) ----------

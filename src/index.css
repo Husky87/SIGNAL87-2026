@@ -721,8 +721,10 @@
 .s87-theme-picker button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
 
-/* Ask reading column stays at ~48rem. Paragraph line spacing is set in the
-   renderer so long answers fit more comfortably above the composer. */
+/* Ask reading rhythm, modelled on Claude: a ~48rem reading column (≈75 characters
+   a line), 16px text at a 1.7 line height, a blank line between paragraphs and
+   roomier lists. Don't reduce the line height to fit more text: at 1.0 lines
+   touch and answers become hard to read (tests/citations-ui.e2e.mjs checks it). */
 .s87-app .s87-ask { --workspace-width: 768px; }
 .s87-app .s87-prose > :first-child { margin-top: 0; }
 .s87-app .s87-prose > :last-child { margin-bottom: 0; }
