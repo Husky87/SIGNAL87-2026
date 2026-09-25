@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EXISTING_USER_GRACE_START, getTrialStatus } from '../src/lib/trial';
 import { hasActiveStripeSubscription } from '../src/lib/stripeEntitlements';
+import { checkoutPriceForPlan } from '../api/create-checkout-session';
+
+test('checkout selects only the configured price for each plan', () => {
+  const env = { STRIPE_PRICE_ID_100_DOCUMENTS: 'price_20', STRIPE_PRICE_ID_UNLIMITED: 'price_50' } as NodeJS.ProcessEnv;
+  assert.equal(checkoutPriceForPlan('documents_100', env), 'price_20');
+  assert.equal(checkoutPriceForPlan('unlimited', env), 'price_50');
+  assert.equal(checkoutPriceForPlan('price_50', env), null);
+  assert.equal(checkoutPriceForPlan(undefined, env), null);
+});
 
 const day = 24 * 60 * 60 * 1000;
 const oldUser = { metadata: { creationTime: '2025-01-01T00:00:00.000Z' } } as any;

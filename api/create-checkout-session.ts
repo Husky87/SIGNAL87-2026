@@ -2,12 +2,20 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyFirebaseIdToken } from '../src/lib/firebaseAuth.js';
 
 const SITE_URL = 'https://signal87.ai';
+type CheckoutPlan = 'documents_100' | 'unlimited';
+export function checkoutPriceForPlan(plan: unknown, env: NodeJS.ProcessEnv): string | null {
+  if (plan === 'documents_100') return env.STRIPE_PRICE_ID_100_DOCUMENTS || null;
+  if (plan === 'unlimited') return env.STRIPE_PRICE_ID_UNLIMITED || null;
+  return null;
+}
 function json(res: VercelResponse, status: number, body: Record<string, unknown>) { res.status(status).setHeader('Content-Type', 'application/json').json(body); }
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { error: 'Method not allowed.' }); }
   let claims;
   try { claims = await verifyFirebaseIdToken(req.headers.authorization); } catch { return json(res, 401, { error: 'Sign in again to start checkout.' }); }
-  const secretKey = process.env.STRIPE_SECRET_KEY; const priceId = process.env.STRIPE_PRICE_ID;
+  const plan: unknown = req.body?.plan;
+  if (plan !== 'documents_100' && plan !== 'unlimited') return json(res, 400, { error: 'Choose a valid subscription plan.' });
+  const secretKey = process.env.STRIPE_SECRET_KEY; const priceId = checkoutPriceForPlan(plan as CheckoutPlan, process.env);
   if (!secretKey || !priceId) { console.error('Stripe is not configured.'); return json(res, 503, { error: 'Billing is not configured yet. Please try again shortly.' }); }
   // Bind checkout to the authenticated account, not an email supplied in the
   // request body. The UID remains on the subscription for later access checks.
