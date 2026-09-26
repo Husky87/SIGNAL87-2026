@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DocumentItem } from '../types';
 import { uploadDocumentThumbnail } from '../lib/firebase';
+import { auth } from '../lib/firebase';
+import { getIdToken } from 'firebase/auth';
 
 // Older PDFs are converted only after their card enters view. One conversion at
 // a time avoids fetching and rendering an entire folder's documents together.
@@ -14,7 +16,9 @@ function generateLegacyPreview(doc: DocumentItem): Promise<string> {
   if (existing) return existing;
   const job = previewQueue.then(async () => {
     const { renderPdfThumbnail } = await import('../lib/documentPreview');
-    const res = await fetch(`/api/documents/preview?url=${encodeURIComponent(doc.fileUrl!)}`);
+    if (!auth.currentUser) throw new Error('Sign in required for preview');
+    const token = await getIdToken(auth.currentUser);
+    const res = await fetch(`/api/documents/preview?url=${encodeURIComponent(doc.fileUrl!)}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new Error(`PDF preview returned ${res.status}`);
     const thumbnail = await renderPdfThumbnail(await res.blob());
     return uploadDocumentThumbnail(thumbnail, doc.id);

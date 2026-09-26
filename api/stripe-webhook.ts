@@ -98,9 +98,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const object = event.data?.object ?? {};
 
-  // These events are intentionally handled in one place so the endpoint is ready
-  // to connect to the application's entitlement store when that persistence layer
-  // is enabled. Stripe retries events, so consumers must make event IDs idempotent.
+  // Stripe stores the subscription state. /api/billing-status reads the current
+  // subscription directly, including renewals and cancellations, so webhook
+  // delivery order cannot grant or revoke access incorrectly. Keep these verified
+  // events for operational visibility; the success URL grants no access itself.
   switch (event.type) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded': {

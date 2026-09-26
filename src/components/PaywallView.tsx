@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { getIdToken } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 interface PaywallViewProps {
   userEmail?: string | null;
   onSignOut: () => void;
+  onRetryBilling?: () => void;
 }
 
 const PLAN_FEATURES = [
@@ -12,7 +15,7 @@ const PLAN_FEATURES = [
   'Shared workspace access'
 ];
 
-export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }) => {
+export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut, onRetryBilling }) => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -23,10 +26,12 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
     setCheckoutError(null);
 
     try {
+      if (!auth.currentUser) throw new Error('Please sign in again before upgrading.');
+      const token = await getIdToken(auth.currentUser);
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({})
       });
 
       const data = await response.json() as { url?: string; error?: string };
@@ -94,6 +99,8 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             </p>
           )}
         </div>
+
+        {onRetryBilling && <button type="button" onClick={onRetryBilling} className="text-[13px] text-[var(--teal)] underline">Already subscribed? Check access again</button>}
 
         <button
           type="button"
