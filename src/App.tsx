@@ -47,6 +47,7 @@ import {
 } from './lib/firestoreService';
 import { adoptLegacyWorkspace } from './lib/workspaceMigration';
 import { useBackDismiss } from './lib/useBackDismiss';
+import { getIdToken } from 'firebase/auth';
 
 function readUserJson<T>(uid: string, key: string, fallback: T): T {
   try {
@@ -124,6 +125,34 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [billingState, setBillingState] = useState<{ uid: string; status: 'loading' | 'active' | 'inactive' | 'error'; verifiedAt?: number } | null>(null);
+  const [billingClock, setBillingClock] = useState(Date.now());
+  const checkBilling = useCallback(async (user: User) => {
+    setBillingState((previous) => previous?.uid === user.uid && previous.status === 'active' && Date.now() - (previous.verifiedAt || 0) < 15 * 60 * 1000
+      ? previous : { uid: user.uid, status: 'loading' });
+    try {
+      const token = await getIdToken(user);
+      const response = await fetch('/api/billing-status', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      if (!response.ok) throw new Error(`Billing verification returned ${response.status}`);
+      const result = await response.json() as { active: boolean };
+      setBillingState({ uid: user.uid, status: result.active ? 'active' : 'inactive', verifiedAt: Date.now() });
+    } catch (error) {
+      console.error('Could not verify billing status:', error);
+      // A transient Stripe outage must not immediately revoke a previously
+      // verified subscriber's access in the same browser session.
+      setBillingState((previous) => previous?.uid === user.uid && previous.status === 'active' && Date.now() - (previous.verifiedAt || 0) < 15 * 60 * 1000
+        ? previous : { uid: user.uid, status: 'error' });
+    }
+  }, []);
+  useEffect(() => {
+    if (!currentUser) { setBillingState(null); return; }
+    const user = currentUser;
+    void checkBilling(user);
+    const refresh = () => { if (document.visibilityState === 'visible') void checkBilling(user); };
+    window.addEventListener('focus', refresh);
+    const timer = window.setInterval(() => { setBillingClock(Date.now()); refresh(); }, 5 * 60 * 1000);
+    return () => { window.removeEventListener('focus', refresh); window.clearInterval(timer); };
+  }, [currentUser, checkBilling]);
   const [authReady, setAuthReady] = useState(false);
   const hadUserRef = React.useRef(false);
   // The history array most recently loaded from storage. Saving skips exactly that
@@ -1079,9 +1108,15 @@ export default function App() {
     );
   }
 
-  const trialStatus = getTrialStatus(currentUser);
-  if (trialStatus.isExpired && !isAdminEmail(currentUser.email)) {
-    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} />;
+  const trialStatus = getTrialStatus(currentUser, billingClock);
+  if (trialStatus.isExpired && !isAdminEmail(currentUser.email) && (billingState?.uid !== currentUser.uid || billingState.status !== 'active' || billingClock - (billingState.verifiedAt || 0) >= 15 * 60 * 1000)) {
+    if (billingState?.uid !== currentUser.uid || billingState.status === 'loading') {
+      return <main className="flex min-h-[100dvh] items-center justify-center bg-[var(--bg)] text-[var(--ink)]">Checking subscription…</main>;
+    }
+    if (billingState.status === 'error') {
+      return <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-[var(--bg)] px-6 text-center text-[var(--ink)]"><p>We couldn't verify your subscription right now.</p><button type="button" className="rounded-full bg-[var(--teal)] px-5 py-3 text-white" onClick={() => void checkBilling(currentUser)}>Try again</button><button type="button" onClick={handleSignOut}>Sign out</button></main>;
+    }
+    return <PaywallView userEmail={currentUser.email} onSignOut={handleSignOut} onRetryBilling={() => void checkBilling(currentUser)} />;
   }
 
   return (

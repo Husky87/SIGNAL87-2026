@@ -1,32 +1,36 @@
 import React, { useState } from 'react';
+import { getIdToken } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import type { BillingPlan } from '../lib/billingPlans';
 
 interface PaywallViewProps {
   userEmail?: string | null;
   onSignOut: () => void;
+  onRetryBilling?: () => void;
 }
 
-const PLAN_FEATURES = [
-  'Unlimited document uploads',
-  'AI-powered search and analysis',
-  'Citation-backed answers',
-  'Shared workspace access'
+const PLANS: { id: BillingPlan; name: string; price: string; description: string }[] = [
+  { id: 'pro_100', name: '100 Documents', price: '$20/month', description: 'For a focused document collection' },
+  { id: 'unlimited', name: 'Unlimited', price: '$50/month', description: 'For a growing document collection' },
 ];
 
-export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }) => {
+export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut, onRetryBilling }) => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: BillingPlan) => {
     if (isCheckoutLoading) return;
 
     setIsCheckoutLoading(true);
     setCheckoutError(null);
 
     try {
+      if (!auth.currentUser) throw new Error('Please sign in again before upgrading.');
+      const token = await getIdToken(auth.currentUser);
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan })
       });
 
       const data = await response.json() as { url?: string; error?: string };
@@ -65,24 +69,26 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
           </p>
         </div>
 
-        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl p-6 text-left space-y-4">
-          <ul className="space-y-2.5">
-            {PLAN_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-center gap-2.5 text-[14px] text-[var(--ink)]">
-                <span aria-hidden="true" className="text-[var(--teal)] font-bold">✓</span>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-
-          <button
-            type="button"
-            onClick={handleUpgrade}
-            disabled={isCheckoutLoading}
-            className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 disabled:cursor-wait text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center gap-2 transition-all min-h-[44px]"
-          >
-            {isCheckoutLoading ? 'Opening secure checkout…' : 'Upgrade with Stripe'}
-          </button>
+        <div className="space-y-3 text-left">
+          {PLANS.map((plan) => (
+            <div key={plan.id} className="bg-[var(--surface)] border border-[var(--rule)] rounded-2xl p-5 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-[15px]">{plan.name}</h2>
+                  <p className="text-[13px] text-[var(--ink-2)]">{plan.description}</p>
+                </div>
+                <span className="font-semibold text-[14px] whitespace-nowrap">{plan.price}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleUpgrade(plan.id)}
+                disabled={isCheckoutLoading}
+                className="w-full py-2.5 bg-[var(--teal)] hover:opacity-90 disabled:opacity-60 disabled:cursor-wait text-white font-medium text-[13.5px] rounded-full cursor-pointer inline-flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              >
+                {isCheckoutLoading ? 'Opening secure checkout…' : `Choose ${plan.name}`}
+              </button>
+            </div>
+          ))}
 
           {checkoutError ? (
             <p className="text-[12px] text-red-500 text-center" role="alert">
@@ -94,6 +100,8 @@ export const PaywallView: React.FC<PaywallViewProps> = ({ userEmail, onSignOut }
             </p>
           )}
         </div>
+
+        {onRetryBilling && <button type="button" onClick={onRetryBilling} className="text-[13px] text-[var(--teal)] underline">Already subscribed? Check access again</button>}
 
         <button
           type="button"

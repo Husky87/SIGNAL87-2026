@@ -42,6 +42,11 @@ jobs:
           node --import tsx tests/citation-recovery.test.ts
           node --import tsx tests/chat-response-render.test.tsx
 
+      - name: Billing ownership and printable answer safety tests
+        run: |
+          node --import tsx tests/stripe-billing.test.ts
+          node --import tsx tests/print-escape.test.ts
+
       - name: Build
         run: npm run build
 

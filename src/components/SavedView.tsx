@@ -108,6 +108,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
   const noteIdRef = useRef('');
   const noteCreatedAtRef = useRef('');
   const noteDirtyRef = useRef(false);
+  const persistNoteRef = useRef<() => boolean>(() => false);
   const savedRangeRef = useRef<Range | null>(null);
   const checklistSplitRef = useRef<{ item: Element; next: Element | null } | null>(null);
   const colorMenuRef = useRef<HTMLDivElement>(null);
@@ -178,6 +179,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
 
   useEffect(() => {
     if (!newNoteRequestId && !prelinkedDocId) return;
+    if (noteDirtyRef.current) persistNoteRef.current();
     setSelectedItem(null);
     setIsCreatingNote(true);
     setNoteTitle('');
@@ -236,6 +238,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
   };
 
   const startNewNote = () => {
+    if (noteDirtyRef.current) persistNoteRef.current();
     setSelectedItem(null);
     setIsCreatingNote(true);
     setNoteTitle('');
@@ -247,6 +250,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
   };
 
   const openItem = (item: SavedItem) => {
+    if (noteDirtyRef.current) persistNoteRef.current();
     setSelectedItem(item);
     setIsCreatingNote(false);
     if (item.type === 'note') {
@@ -305,6 +309,13 @@ export const SavedView: React.FC<SavedViewProps> = ({
     noteDirtyRef.current = false;
     return true;
   };
+  persistNoteRef.current = persistNote;
+
+  // The parent unmounts this editor when a workspace tab is selected. Flush the
+  // current draft before the debounce cleanup cancels its pending autosave.
+  useEffect(() => () => {
+    if (noteDirtyRef.current) persistNoteRef.current();
+  }, []);
 
   const saveNote = () => {
     if (!persistNote()) return;

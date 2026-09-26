@@ -7,6 +7,8 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { fileDataCache } from '../lib/pdfGenerator';
 import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { getIdToken } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 // The worker ships with the app instead of being fetched from jsdelivr at
 // runtime. On the CDN version the viewer rendered nothing whenever that host was
@@ -136,7 +138,8 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         // attempting a cross-origin Storage/range request that can fail in Firefox
         // with NetworkError even when the browser's built-in PDF viewer can open it.
         const sourceUrl = isFirebaseStorageUrl(fileUrl) ? buildSameOriginPreviewUrl(fileUrl) : fileUrl;
-        const res = await fetch(sourceUrl);
+        const token = isFirebaseStorageUrl(fileUrl) && auth.currentUser ? await getIdToken(auth.currentUser) : null;
+        const res = await fetch(sourceUrl, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
         if (!res.ok) throw new Error(`Failed to fetch document preview: HTTP ${res.status}`);
         const arrayBuffer = await res.arrayBuffer();
         if (!isPdfBuffer(arrayBuffer)) throw new Error(`The preview source is not a valid PDF (${fileName}).`);
@@ -194,11 +197,11 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
     setLoading(false);
   }
 
-  const basePageWidth = Math.max(280, Math.min(containerWidth || 800, 1200));
+  const basePageWidth = Math.min(containerWidth || 800, 1200);
   const pageWidth = basePageWidth * (zoomLevel / 100);
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center w-full relative min-w-0">
+    <div ref={containerRef} className="flex flex-col items-center w-full relative min-w-0 overflow-x-auto">
       {loading && (
         <div className="flex flex-col items-center justify-center p-12 text-[var(--muted)] gap-3">
           <Loader2 size={32} className="animate-spin text-[var(--teal)]" />
@@ -207,8 +210,8 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
       )}
 
       {!loading && pdfFile && !error && (
-        <div className="w-full flex justify-center min-w-0 overflow-visible">
-          <div className="transition-transform duration-200 origin-top rounded-xl overflow-hidden bg-white border border-[var(--rule)] shadow-sm" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', width: `${basePageWidth}px` }}>
+        <div className="min-w-full w-max flex justify-center">
+          <div className="rounded-xl overflow-hidden bg-white border border-[var(--rule)] shadow-sm" style={{ width: `${pageWidth}px` }}>
             <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError} loading={null} error={null}>
               <Page pageNumber={Math.min(Math.max(1, currentPage), totalPages || 1)} width={pageWidth} renderTextLayer={true} renderAnnotationLayer={false} customTextRenderer={customTextRenderer} className="w-full" />
             </Document>
