@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
 import { hasActiveSubscription } from '../src/lib/stripeBilling';
+import { checkoutPriceForPlan } from '../src/lib/billingPlans';
+
+const prices = { pro100: 'price_20', unlimited: 'price_50' };
+assert.equal(checkoutPriceForPlan('pro_100', prices), 'price_20');
+assert.equal(checkoutPriceForPlan('unlimited', prices), 'price_50');
+assert.equal(checkoutPriceForPlan('price_20', prices), null);
+assert.equal(checkoutPriceForPlan('other', prices), null);
+assert.equal(checkoutPriceForPlan('pro_100', { unlimited: 'price_50' }), null);
 
 const originalFetch = globalThis.fetch;
 try {
